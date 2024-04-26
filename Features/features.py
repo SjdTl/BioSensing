@@ -46,9 +46,9 @@ def get_features(data):
 
 # Cut data into smaller intervals and extract features
 #   Input:
-#       - data: dictionary containing ECG, EDA, and EMG data of one subject and labels
+#       - data: dictionary containing ECG, EDA, and EMG data of one subject
 #   Output:
-#       - features: dataframe containing features of all intervals of this one subject with the label
+#       - features: dataframe containing features of all intervals of this one subject
 def cut_data(data, Fs):
     # Cut into smaller interval
     # TODO
@@ -56,7 +56,23 @@ def cut_data(data, Fs):
 
     # Features of this interval
     features = get_features(interval)
+    return features
 
+
+
+# Split up the data according to the labels to send this to the cut_data function
+#   Input:
+#       - data: dictionary containing ECG, EDA, and EMG data of one subject and labels
+#   Output:
+#       - features: dataframe containing features of all intervals of this one subject with the label
+def split_labels(data, Fs):
+    features = pd.DataFrame()
+    for i in range(1,5):
+        label_array =  np.asarray([idx for idx,val in enumerate(data["labels"]) if val == i])
+        data_per_label = {"ECG": data["ECG"][label_array], "EDA" : data["EDA"][label_array], "EMG" : data["EMG"][label_array], "labels" : data["labels"][label_array]}
+        current_feature = cut_data(data_per_label, Fs)
+        features = pd.concat([features, current_feature], ignore_index=True)
+    return features
 
 
 # Main function: load data, loop through data per person, cut data, extract features, and save features
@@ -68,7 +84,7 @@ def main_WESAD(data):
     Fs = 700
     features = pd.DataFrame()
     for subject in data:
-        current_feature = cut_data(data[subject], Fs)
+        current_feature = split_labels(data[subject], Fs)
         features = pd.concat([features, current_feature], ignore_index=True)
     print(features.head())
     save_features(features, "features.pkl")
