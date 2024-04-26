@@ -1,6 +1,29 @@
 # Input
 ## WESAD
-The WESAD dataset should be in this folder at Features/WESAD/*, which is opened with read_WESAD and put into a different format
+The WESAD dataset should be in this folder at Features/WESAD/*, which is opened with read_WESAD and put into a different format. Download this dictionary pickle from [here](https://drive.google.com/file/d/1H9UYMfebv40WnRRoZgf4nFpQDRa_Q_RM/view?usp=drive_link).
+The format is a dictionary with the format:
+```
+data = {
+    "2" : data_from_S2
+    "3" : data_from_S3
+    "4" : data_from_S4
+    ...
+}
+```
+Where data_from_Sx is also a dictionary with the format:
+```
+data_from_SX = {
+    "EMG" : 1D np array with EMG chest data
+    "ECG" : 1D np array with ECG chest data
+    "EDA" : 1D np array with EDA chest data
+    "Labels" : 1D np array labels
+}
+```
+So to access the EMG data from S2:
+```
+print(datap[2]["EMG"])
+```
+The data with labels 0 and 5-7 is removed. 
 ## Arduino
 The arduino data is provided by the hardware group and the format is yet unknown
 # Output
