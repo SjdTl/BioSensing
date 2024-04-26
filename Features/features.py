@@ -71,4 +71,4 @@ def main(data):
 
 
 all_data = load_dict(os.path.join(dir_path, "Raw_data/raw_data.pkl"))
-main(all_data)
+print(all_data)

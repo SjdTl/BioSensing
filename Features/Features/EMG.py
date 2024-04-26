@@ -11,3 +11,4 @@ import pandas as pd
 #  
 def EMG(EMG):
     # code here
+    a=1
