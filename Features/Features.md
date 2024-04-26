@@ -1,6 +1,6 @@
 # Input
 ### WESAD
-The WESAD dataset should be in this folder at Features/WESAD/\*, which is opened with read_WESAD and put into a different format. Download this dictionary pickle from [here](https://drive.google.com/file/d/1H9UYMfebv40WnRRoZgf4nFpQDRa_Q_RM/view?usp=drive_link). Please extract to "raw_data.pkl" and put the file in this folder (Features/\*)
+The WESAD dataset should be in this folder at Features/WESAD/\*, which is opened with read_WESAD and put into a different format. Download this dictionary pickle from [here](https://drive.google.com/file/d/1H9UYMfebv40WnRRoZgf4nFpQDRa_Q_RM/view?usp=drive_link). Please extract to "raw_data.pkl" and put the file in this folder (Features/Raw_data/\*)
 Both the arduino and wesad data is put in the same format, that is used for feature classification (file: features.py).
 The format is a dictionary with:
 ```

@@ -70,5 +70,5 @@ for subject in subjects:
     EDA = cdata.get_chest_data()['EDA'][used_labels,0]
     data[subject] = {"EMG" : EMG, "ECG" : ECG, "EDA" : EDA, "labels" : labels[used_labels]}
 
-with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), "raw_data.pkl"), 'wb') as handle:
+with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), "Raw_data/raw_data.pkl"), 'wb') as handle:
     pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
