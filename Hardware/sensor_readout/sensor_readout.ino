@@ -9,11 +9,10 @@ struct Data {
 
 void setup() {
   Serial.begin(57600);
-  Serial1.begin(57600);
-  myTransfer.begin(Serial1);
-  testStruct.Timestamp = 0;
-  testStruct.ECG = 0;
-  testStruct.GSR = 0;
+  myTransfer.begin(Serial);
+  testData.Timestamp = 0;
+  testData.ECG = 0;
+  testData.GSR = 0;
 }
 
 void loop() {
@@ -21,9 +20,7 @@ void loop() {
   // bytes we’re stuffing in the transmit buffer
   uint16_t sendSize = 0;
   ///////////////////////////////////////// Stuff buffer with struct
-  sendSize = myTransfer.txObj(testStruct, sendSize);
-  ///////////////////////////////////////// Stuff buffer with array
-  sendSize = myTransfer.txObj(arr, sendSize);
+  sendSize = myTransfer.txObj(testData, sendSize);
   ///////////////////////////////////////// Send buffer
   myTransfer.sendData(sendSize);
   delay(10);
