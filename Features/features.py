@@ -49,7 +49,7 @@ def get_features(data):
 #       - data: dictionary containing ECG, EDA, and EMG data of one subject and labels
 #   Output:
 #       - features: dataframe containing features of all intervals of this one subject with the label
-def cut_data(data):
+def cut_data(data, Fs):
     # Cut into smaller interval
     # TODO
     interval = [0]
@@ -62,13 +62,28 @@ def cut_data(data):
 # Main function: load data, loop through data per person, cut data, extract features, and save features
 #   Input:
 #      - data: dictionary containing ECG, EDA, EMG data and labels of all subjects
-#  Output:
+#  Output (in a picle file):
 #      - features: pandas dataframe containing features of all time intervals with the labels (the subject information is dropped)
-def main(data):
-    # Load data
-    load = 1
+def main_WESAD(data):
+    Fs = 700
+    features = pd.DataFrame()
+    for subject in data:
+        current_feature = cut_data(data[subject], Fs)
+        features = pd.concat([features, current_feature], ignore_index=True)
+    print(features.head())
+    save_features(features, "features.pkl")
 
+
+# Main function: load data, cut data, extract features, and save features
+#   Input:
+#      - data: dictionary containing ECG, EDA, EMG data without labels
+#  Output (in a pickle file):
+#      - features: pandas dataframe containing features of all time intervals without labels
+def main_arduino(data):
+    Fs = 'NaN'
+    features=1
+    
 
 
 all_data = load_dict(os.path.join(dir_path, "Raw_data/raw_data.pkl"))
-print(all_data)
+main_WESAD(all_data)
