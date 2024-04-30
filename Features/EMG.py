@@ -211,8 +211,8 @@ def test():
     """
     Description
     -----------
-    Function to test the EMG signal, without having to call the entire database. 
-
+    Function to test the signal, without having to call the entire database. Please use this function when looking for data to plot for the report.
+    
     Notes
     -----
     Returns and takes nothing
@@ -226,5 +226,3 @@ def test():
 
     df = EMG(emg, 700)
     print(df)
-
-test()

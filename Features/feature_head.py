@@ -1,5 +1,5 @@
 # Contains the reading of the raw data. Distributing this data to the feature extraction and preprocessing files (ECG, EMG, EDA)
-# And processing this data into a pandas array to save
+# And processing the resulting features into a pandas array to save
 
 import pandas as pd
 import os as os
@@ -62,7 +62,7 @@ def save_features(df, filename):
     
     Notes
     -----
-    Does not (yet) containg anything else then just:
+    Does not (yet) contain anything else then just:
     >>> df.to_pickle
     >>> df.to_excel
     """

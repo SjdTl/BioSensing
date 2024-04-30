@@ -5,7 +5,44 @@ import os
 import all_signals
 
 def EDA(eda, fs):
-    features = pd.DataFrame([1], columns = ["Feature3"])
+    """
+    Description
+    -----------
+    Obtains the features for an eda window of x seconds.
+
+    Parameters
+    ----------
+    unprocessed_eda : np.array
+        eda signal as provided directly by the sensors
+    fs : int or float
+        sampling frequency of the sensors
+
+    Returns
+    -------
+    features : pd.DataFrame
+        Dataframe (1 row) containing the features:
+            - ?
+            and the general features:
+            - Mean (no meaning in the case of emg)
+            - Median
+            - Std
+            - ...
+     
+    Raises
+    ------
+    ValueError
+        Raises error if there is a NaN value in the features
+    
+    Notes
+    -----
+    
+    Examples
+    --------
+    >>>
+    """
+
+    # Just for now without processing
+    features = pd.DataFrame([eda.mean()], columns = ["mean_EDA"])
 
 
     # Error messages
@@ -14,6 +51,16 @@ def EDA(eda, fs):
     return features
 
 def test():
+    """
+    Description
+    -----------
+    Function to test the signal, without having to call the entire database. Please use this function when looking for data to plot for the report.
+    
+    Notes
+    -----
+    Returns and takes nothing
+    """
+
     dir_path = os.path.dirname(os.path.realpath(__file__))
     filename = os.path.join(dir_path, "Raw_data", "raw_small_test_data.pkl")
     eda = all_signals.load_test_data("EDA", filename)

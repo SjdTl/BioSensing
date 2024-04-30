@@ -1,5 +1,5 @@
 # Contains functions that are used by ECG, EMG and EDA
-# Basic features, loading test data and quick plotting
+# Basic features, loading test data, rms and quick plotting
 
 import pandas as pd
 import numpy as np
