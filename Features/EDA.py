@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import os
 
-import all_signals
+import Features.feat_gen as feat_gen
 
 def EDA(eda, fs):
     """
@@ -63,6 +63,6 @@ def test():
 
     dir_path = os.path.dirname(os.path.realpath(__file__))
     filename = os.path.join(dir_path, "Raw_data", "raw_small_test_data.pkl")
-    eda = all_signals.load_test_data("EDA", filename)
+    eda = feat_gen.load_test_data("EDA", filename)
 
-    all_signals.quick_plot(eda)
+    feat_gen.quick_plot(eda)

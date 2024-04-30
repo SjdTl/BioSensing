@@ -3,7 +3,7 @@ import pandas as pd
 import os
 from scipy.signal import butter, filtfilt
 
-import all_signals
+import Features.feat_gen as feat_gen
 
 def EMG(unprocessed_emg, fs = 700):
     """
@@ -49,7 +49,7 @@ def EMG(unprocessed_emg, fs = 700):
 
     df_specific = EMG_specific_features(emg)
     # General features contain mean emg, but this has no meaning in the case of emg
-    df_general = all_signals.basic_features(emg, "emg")
+    df_general = feat_gen.basic_features(emg, "emg")
 
     features = pd.concat([df_specific, df_general], axis=1)
 
@@ -89,7 +89,7 @@ def EMG_specific_features(emg):
     epsilon = 100 * 10**(-6) # should be changed someday
     SSC = np.count_nonzero((emg[1:-1]-emg[:-2])*(emg[1:-1]-emg[2:]) > epsilon)
     # Overall muscle activity level: RMS is a measure of the amplitude of the EMG signal and reflects the overall muscle activity level
-    MAL = all_signals.rms(emg)
+    MAL = feat_gen.rms(emg)
     # MAV represents the average absolute amplitude of the EMG signal and is sensitive to muscle contraction intensity
     MCI = np.mean(np.abs(emg))
 
@@ -220,9 +220,9 @@ def test():
 
     dir_path = os.path.dirname(os.path.realpath(__file__))
     filename = os.path.join(dir_path, "Raw_data", "raw_small_test_data.pkl")
-    emg = all_signals.load_test_data("EMG", filename)
+    emg = feat_gen.load_test_data("EMG", filename)
 
-    all_signals.quick_plot(emg)
+    feat_gen.quick_plot(emg)
 
     df = EMG(emg, 700)
     print(df)
