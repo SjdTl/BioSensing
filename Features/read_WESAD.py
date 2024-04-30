@@ -15,7 +15,31 @@ from six.moves import cPickle as pickle #for performance
 
 # Class to read out the data of one subject
 class read_data_of_one_subject:
-    """Read data from WESAD dataset"""
+    """
+    Description
+    -----------
+    Read data of one of the subjects in the WESAD dataset.
+
+    Parameters
+    ----------
+    path : string
+        path to the WESAD dataset
+    subject : int
+        number assigned to the subject which has to be read
+
+    Returns
+    -------
+    labels : dictionary containing np.arrays 
+        labels (0-7) indicating 0: invalid, 1 = baseline, 2 = stress, 3 = amusement, 4 = meditation. 5-7 are not of interest.
+    wrist_data : dictionary containing np.arrays
+        data captured by the wrist device ('ACC', 'BVP', 'EDA', 'TEMP'). Access desired data using wrist_data["ACG"]
+    chest_data : dictionary containg np.arrays
+        data captured by the chest device ('ACC', 'ECG', 'EDA', 'EMG', 'Resp', 'Temp')
+    
+    Notes
+    -----
+    Code provided by EPO4 manual
+    """
     def __init__(self, path, subject):
         self.keys = ['label', 'subject', 'signal']
         self.signal_keys = ['wrist', 'chest']
@@ -50,6 +74,39 @@ class read_data_of_one_subject:
 WESAD_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "WESAD")
 
 def create_pickle(WESAD_path):
+    """
+    Description
+    -----------
+    Create a pickle file containing a dictionary with all relevant signals. These are EMG, ACG and EDA of the chest.
+    It also creates a second file containing data of all three signals with subject 2, label 1 and 60s of measurement.
+
+    Parameters
+    ----------
+    WESAD_path : string
+        path to WESAD dataset
+    
+    Returns
+    -------
+    Raw_data/raw_data.pkl : pickled dictionary
+        dictionary containing the wesad features with the form: \n
+        data = {
+            "2" :   "EMG" : 1D np array with EMG chest data
+                    "ECG" : 1D np array with ECG chest data
+                    "EDA" : 1D np array with EDA chest data
+                    "Labels" : 1D np array labels (0 and 5-7 are already removed)
+            "3" : 
+            ...
+        }\n
+        where the first key is the subject label
+
+    Raw_data/raw_small_test_data.pkl : pickled dictionary
+        data = {
+            "EMG" : 1D np array with 60s of EMG chest data
+            "ECG" : 1D np array with 60s of ECG chest data
+            "EDA" : 1D np array with 60s of EDA chest data
+        }
+    """
+
     # Object instantiation
     data = {}
     # All used subjects (could've been detected automatically)
@@ -70,5 +127,20 @@ def create_pickle(WESAD_path):
         EDA = cdata.get_chest_data()['EDA'][used_labels,0]
         data[subject] = {"EMG" : EMG, "ECG" : ECG, "EDA" : EDA, "labels" : labels[used_labels]}
 
-    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), "Raw_data/raw_data.pkl"), 'wb') as handle:
+    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), "Raw_data","raw_data.pkl"), 'wb') as handle:
         pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+    # Test data
+    fs = 700
+    t = 60
+    start = 100000
+    label = np.asarray([idx for idx,val in enumerate(labels) if (val == 1)])
+    cdata = read_data_of_one_subject(WESAD_path, 2)
+    test_data = {"EMG" : cdata.get_chest_data()['EMG'][label,0][start:start + fs * t],
+               "ECG" : cdata.get_chest_data()['ECG'][label,0][start:start + fs * t],
+               "EDA" : cdata.get_chest_data()['EDA'][label,0][start:start + fs * t],}
+    
+    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), "Raw_data","raw_small_test_data.pkl"), 'wb') as handle:
+        pickle.dump(test_data, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+create_pickle(WESAD_path)

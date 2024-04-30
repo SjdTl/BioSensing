@@ -1,12 +1,15 @@
+# Contains the reading of the raw data. Distributing this data to the feature extraction and preprocessing files (ECG, EMG, EDA)
+# And processing this data into a pandas array to save
+
 import pandas as pd
 import os as os
 import pickle as pickle
 import numpy as np
 import tqdm
 
-import Features.ECG as ECG
-import Features.EDA as EDA
-import Features.EMG as EMG
+import ECG
+import EDA
+import EMG
 
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -257,6 +260,6 @@ def WESAD_features(data, Fs=float(700)):
 def main_arduino(data):
     features=1
 
-all_data = load_dict(os.path.join(dir_path, "Raw_data/raw_data.pkl"))
+all_data = load_dict(os.path.join(dir_path, "Raw_data", "raw_data.pkl"))
 features = WESAD_features(all_data)
-save_features(features, os.path.join(dir_path, "features"))
+save_features(features, os.path.join(dir_path, "Features_out", "features"))
