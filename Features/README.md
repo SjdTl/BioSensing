@@ -41,3 +41,4 @@ The output is given by features.py and is a pickle dataframe, which is read by t
 The label is a value from 1-4: 1 = baseline, 2 = stress, 3 = amusement, 4 = meditation.
 
 The features are extracted from the WESAD data cut up into shorter timeframes, or the arduino data.
+# Visualisation
