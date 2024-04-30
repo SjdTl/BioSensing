@@ -1,6 +1,4 @@
 import pandas as pd
-import os as os
-import pickle as pickle
 import numpy as np
 from scipy.stats import mode
 
@@ -30,15 +28,25 @@ def basic_features(signal, name):
     
     Examples
     --------
-    >>>
+    >>> import pandas as pd
+    >>> import numpy as np
+    >>> from scipy.stats import mode
+    >>> a = [2, 4, 5, 6, 7, 3, 1, 4, 2]
+    >>> df = basic_features(a, "a")
+    >>> print(df)
+         Mean_a  Median_a     STD_a  Mode_a
+    0  3.777778       4.0  1.872478       2
     """
+    most_common, _ = mode(signal)
 
-    features = {"Mean_" + str(name) : np.mean(signal), 
-                "Median_" + str(name) : np.median(signal),
-                "STD_" + str(name) : np.std(signal),
-                "Mode_" + str(name) : (mode(signal)[0])}
+    features = {"Mean_" + str(name) : [np.mean(signal)], 
+                "Median_" + str(name) : [np.median(signal)],
+                "STD_" + str(name) : [np.std(signal)],
+                "Mode_" + str(name) : [most_common]}
     return pd.DataFrame(features)
 
-a = [2, 4, 5, 6, 7, 3, 1, 4]
-df = basic_features(a, "a")
-print(df)
+
+def example():
+    a = [2, 4, 5, 6, 7, 3, 1, 4, 2]
+    df = basic_features(a, "a")
+    print(df)

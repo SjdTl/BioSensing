@@ -90,6 +90,11 @@ def get_features(ecg, eda, emg):
         |   0   |     ...    |    ...     |
         which is only has one row
     
+    Raises
+    ------
+    ValueError:
+        The output should be a dataframe with only one row. If this error is raised the output has more (or less) then one row
+
     Notes
     -----
     
@@ -101,6 +106,11 @@ def get_features(ecg, eda, emg):
 
     # Combine features
     features = pd.concat([ecg_features, eda_features, emg_features], axis=1)
+
+    # Errors
+    if features.shape[0] != 1:
+        raise ValueError("After concating the ECG, EDA and EMG features, a pandas array with more than 1 row emerges")
+
     return features
 
 
@@ -158,6 +168,7 @@ def WESAD_features(data, Fs=float(700)):
     -----------
     Main function for the WESAD dataset. Splits up the data per person, per label and per timeinterval and returns a pandas dataframe with all features.
     This function itself loops through the subjects and calls the functions to split the data features.split_Timeframes() and to find the features features.get_features().
+
     Parameters
     ----------
     data : dictionary
@@ -185,10 +196,14 @@ def WESAD_features(data, Fs=float(700)):
         | 2     | 2          | 2          | 3     | 5       |
         | 3     | 3          | 3          | 4     | 6       |
 
-    Raises
+    Raises (perhaps change all error to warnings)
     ------
-    error
-        description
+    ValueError for row length
+        Each timeframe should return 1 row of the dataframe. If this is not the case, an error is raised.
+    ValueError for NaN
+        Each feature should have returned a value. If this is not the case, an error is raised.
+    ValueError for features
+        Each feature should have a different name. If this is not the case, an error is raised
 
     Notes
     -----
@@ -200,7 +215,7 @@ def WESAD_features(data, Fs=float(700)):
     """
 
     features = pd.DataFrame()
-    
+    df_length = 0
     # Loop through all subjects, split their data and store the feature data
     for subject in tqdm.tqdm(data):
         # Loop through labels 1-4 (0 and 5-7 are already removed)
@@ -219,13 +234,27 @@ def WESAD_features(data, Fs=float(700)):
                 # Add label and subject
                 current_feature = pd.concat([current_feature, pd.DataFrame({'label': [label], 'subject' : [subject]})], axis=1)
                 features = pd.concat([features, current_feature], ignore_index=True)
-        
+                df_length += 1
+
     print(features.head())
+
+    # Error messages
+    # Check row length
+    if features.shape[0] < df_length:
+        raise ValueError(f"The expected amount of rows in the DataFrame is {df_length}, the true length is {features.shape[0]}. A feature extraction has probably returned an empty dataframe")
+    if features.shape[0] > df_length:
+        raise ValueError(f"The expected amount of rows in the DataFrame is {df_length}, the true length is {features.shape[0]}. One feature has probably returned an array with size > 1")
+    # Check NaN values
+    if features.isnull().values.any():
+        raise ValueError("The feature array contains a NaN value")
+    # Check if all names are unique
+    if any(features.columns.duplicated()):
+        raise ValueError(f"Two features have the same name")
+    
     return features
 
 
 def main_arduino(data):
-    Fs = 'NaN'
     features=1
 
 all_data = load_dict(os.path.join(dir_path, "Raw_data/raw_data.pkl"))

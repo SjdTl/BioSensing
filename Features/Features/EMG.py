@@ -7,4 +7,10 @@ def EMG(EMG):
     # code here
     a=1
 
-    return pd.DataFrame([1], columns = ["Feature3"])
+    features = pd.DataFrame([1], columns = ["Feature1"])
+
+    # Error messages
+    if features.isnull().values.any():
+        raise ValueError("The feature array of EMG contains a NaN value")
+
+    return features

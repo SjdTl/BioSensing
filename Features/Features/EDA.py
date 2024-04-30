@@ -7,4 +7,10 @@ def EDA(EDA):
     # code here
     a=1
 
-    return pd.DataFrame([1], columns = ["Feature2"])
+    features = pd.DataFrame([1], columns = ["Feature3"])
+
+    # Error messages
+    if features.isnull().values.any():
+        raise ValueError("The feature array of EDA contains a NaN value")
+
+    return features
