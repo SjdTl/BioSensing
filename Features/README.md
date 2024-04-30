@@ -1,4 +1,6 @@
-# Input
+# Visualisation
+![flow](https://github.com/SjdTl/BioSensing/blob/f77534a53ebd736041b328da4da3ee336549f76e/Figures/features_flow.svg)
+#Input
 ### WESAD
 The WESAD dataset should be in this folder at Features/WESAD/\*, which is opened with read_WESAD and put into a different format. Download this dictionary pickle from [here](https://drive.google.com/file/d/1H9UYMfebv40WnRRoZgf4nFpQDRa_Q_RM/view?usp=drive_link). Please extract to "raw_data.pkl" and put the file in this folder (Features/Raw_data/\*)
 Both the arduino and wesad data is put in the same format, that is used for feature classification (file: features.py).
@@ -41,5 +43,3 @@ The output is given by features.py and is a pickle dataframe, which is read by t
 The label is a value from 1-4: 1 = baseline, 2 = stress, 3 = amusement, 4 = meditation.
 
 The features are extracted from the WESAD data cut up into shorter timeframes, or the arduino data.
-# Visualisation
-![Figures/features_flow.svg](https://github.com/SjdTl/BioSensing/blob/f77534a53ebd736041b328da4da3ee336549f76e/Figures/features_flow.svg)
