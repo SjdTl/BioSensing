@@ -1,5 +1,6 @@
 # Visualisation
 ![](https://github.com/SjdTl/BioSensing/blob/f77534a53ebd736041b328da4da3ee336549f76e/Figures/features_flow.svg)
+
 #Input
 ### WESAD
 The WESAD dataset should be in this folder at Features/WESAD/\*, which is opened with read_WESAD and put into a different format. Download this dictionary pickle from [here](https://drive.google.com/file/d/1H9UYMfebv40WnRRoZgf4nFpQDRa_Q_RM/view?usp=drive_link). Please extract to "raw_data.pkl" and put the file in this folder (Features/Raw_data/\*)
