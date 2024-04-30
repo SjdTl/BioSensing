@@ -41,7 +41,6 @@ def load_dict(filename):
     return out
 
 
-# Unfinished
 def save_features(df, filename):
     """
     Description
