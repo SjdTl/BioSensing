@@ -42,4 +42,4 @@ The label is a value from 1-4: 1 = baseline, 2 = stress, 3 = amusement, 4 = medi
 
 The features are extracted from the WESAD data cut up into shorter timeframes, or the arduino data.
 # Visualisation
-![Figures/features_flow.svg](Figures/features_flow.svg)
+![Figures/features_flow.svg](https://github.com/SjdTl/BioSensing/blob/f77534a53ebd736041b328da4da3ee336549f76e/Figures/features_flow.svg)
