@@ -4,7 +4,7 @@ import os
 
 import all_signals
 
-def EDA(EDA):
+def EDA(eda, fs):
     features = pd.DataFrame([1], columns = ["Feature3"])
 
 

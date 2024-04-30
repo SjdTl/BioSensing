@@ -4,7 +4,7 @@ import os
 
 import all_signals
 
-def ECG(ECG):
+def ECG(ecg, fs):
     features = pd.DataFrame([1], columns = ["Feature2"])
 
 

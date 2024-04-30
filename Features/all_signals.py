@@ -73,6 +73,29 @@ def load_test_data(signal, filename):
         out = pickle.load(f)
     return out[signal]
 
+def rms(x):
+  """
+  Description
+  -----------
+  Calculate the root mean squared value of a signal
+
+  Parameters
+  ----------
+  x : array
+     array to calculate the RMS value of
+  
+  Returns
+  -------
+  out : float
+     RMS value
+  
+  Examples
+  --------
+  >>> print(rms([2,3,4,5,6]))
+  4.242640687119285
+  """
+  return np.sqrt(np.mean(np.square(x)))
+
 # To see the signal (do not use for the report figures)
 def quick_plot(signal, t=60, fs=700):
     t = np.arange(0, signal.size * (1/fs), 1/fs)

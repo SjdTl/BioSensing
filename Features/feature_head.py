@@ -71,7 +71,7 @@ def save_features(df, filename):
     df.to_excel(str(filename) + ".xlsx")
 
 
-def get_features(ecg, eda, emg):
+def get_features(ecg, eda, emg, fs):
     """
     Description
     -----------
@@ -103,9 +103,9 @@ def get_features(ecg, eda, emg):
     
     """
     # Extract ECG, EDA, and EMG features
-    ecg_features = ECG.ECG(ecg)
-    eda_features = EDA.EDA(eda)
-    emg_features = EMG.EMG(emg)
+    ecg_features = ECG.ECG(ecg, fs)
+    eda_features = EDA.EDA(eda, fs)
+    emg_features = EMG.EMG(emg, fs)
 
     # Combine features
     features = pd.concat([ecg_features, eda_features, emg_features], axis=1)
@@ -211,10 +211,6 @@ def WESAD_features(data, Fs=float(700)):
     Notes
     -----
     Also prints the head of the dataframe and has a progress bar
-
-    Examples
-    --------
-    >>> 
     """
 
     features = pd.DataFrame()
@@ -233,10 +229,11 @@ def WESAD_features(data, Fs=float(700)):
             # >>> print(splitted_data.shape) 
             # (3, x, Fs * t)
             for iframe in range(0, splitted_data.shape[1]):
-                current_feature = get_features(splitted_data[0][iframe], splitted_data[1][iframe], splitted_data[2][iframe])
+                current_feature = get_features(splitted_data[0][iframe], splitted_data[1][iframe], splitted_data[2][iframe], Fs)
                 # Add label and subject
                 current_feature = pd.concat([current_feature, pd.DataFrame({'label': [label], 'subject' : [subject]})], axis=1)
                 features = pd.concat([features, current_feature], ignore_index=True)
+
                 df_length += 1
 
     print(features.head())
