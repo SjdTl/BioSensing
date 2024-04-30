@@ -1,5 +1,5 @@
 # Visualisation
-![](Figures/features_flow.svg)
+![](BioSensing/Figures/features_flow.svg)
 
 # Input
 ### WESAD
