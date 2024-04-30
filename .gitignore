@@ -1,2 +1,7 @@
 Features/WESAD
 Features/Raw_data
+*.aux
+*.log
+*.fls
+*.fdb_latexmk
+*.synctex.gz
