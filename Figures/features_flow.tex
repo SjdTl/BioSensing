@@ -36,7 +36,7 @@ text centered,
 draw=gray]
 \tikzstyle{arrow} = [thick,->,>=stealth]
 
-\tikzstyle{circle} = [circle, 
+\tikzstyle{circ} = [circle, 
 minimum size=1cm, 
 text centered, 
 draw=gray]
@@ -120,9 +120,11 @@ draw=gray]
         
         % Inside features_db
         % blocks
-        \node (dataframe_block) [block, above of = save_features, minimum height = 1 cm, yshift = -0.2cm] {dataframe};
+        \node (dataframe_block) [process, above of = save_features, minimum height = 1 cm, yshift = -0.2cm] {dataframe};
         % arrows
-        \draw [arrow] ([yshift=-1.2cm]features_db.east) -- node[pos=0.85, above] {\small append} (dataframe_block.east);
+        \node (append) [circ, minimum size = 0.1cm, anchor = west] at (dataframe_block.east) {};
+        \node[] at (append) {+};
+        \draw [arrow] ([yshift=-1.2cm]features_db.east) -- (append.east);
         \draw [thick] (dataframe_block.south) -- ([xshift = -2.2cm]features_db.south);
 
         % Dataframe
