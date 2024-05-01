@@ -96,14 +96,38 @@ def rms(x):
   """
   return np.sqrt(np.mean(np.square(x)))
 
-# To see the signal (do not use for the report figures)
-def quick_plot(signal, t=60, fs=700):
-    t = np.arange(0, signal.size * (1/fs), 1/fs)
+def quick_plot(*signals, fs=700):
+    """
+    Description
+    -----------
+    Plot several sampled signals without any fancy formatting
+    
+    Parameters
+    ----------
+    signals : type
+        any amount of signals to plot
+    fs : int or float
+        sampling frequencies of ALL signals
+    
+    Returns
+    -------
+        plt.show()
 
-    plt.figure()
-    plt.plot(t, signal)
-    plt.xlabel("Time ($s$)")
-    plt.ylabel("Signal")
+    Notes
+    -----
+    Do not use this to plot figures in the report
+
+    Examples
+    --------
+    >>> quickplot(np.arange(0,100), np.arange(100,0), fs=700)
+    """
+
+    fig, ax = plt.subplots()
+    for signal in signals:
+        t = np.arange(0, signal.size * (1/fs), 1/fs)
+        ax.plot(t, signal)
+    ax.set_xlabel("Time ($s$)")
+    ax.set_ylabel("Signal")
     plt.show()
 
 # Use to test basic_features
