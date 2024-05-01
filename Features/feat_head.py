@@ -117,7 +117,7 @@ def get_features(ecg, eda, emg, fs):
 
 
 # Possible extension: do something with the data that is cut off.
-def split_Timeframes(data, Fs, t=60):
+def split_time(data, Fs, t=60):
     """
     Description
     -----------
@@ -146,7 +146,7 @@ def split_Timeframes(data, Fs, t=60):
     --------
     >>> import numpy as np
     >>> a = np.array([np.arange(0,50),np.arange(50,100)])
-    >>> b = split_Timeframes(a, 10, 1.9)
+    >>> b = split_time(a, 10, 1.9)
     >>> print(f"a = {a}")
     >>> print(f"b = {b}")
     a = [[ 0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23
@@ -164,28 +164,28 @@ def split_Timeframes(data, Fs, t=60):
     return np.array(np.split(data[:,:int(np.floor(amount_of_splits)*size_of_split)], int(np.floor(amount_of_splits)), axis=1)).transpose(1,0,2)
 
 
-def WESAD_features(data, Fs=float(700)):
+def features_db(data, Fs=float(700)):
     """
     Description
     -----------
-    Main function for the WESAD dataset. Splits up the data per person, per label and per timeinterval and returns a pandas dataframe with all features.
-    This function itself loops through the subjects and calls the functions to split the data features.split_Timeframes() and to find the features features.get_features().
+    Main function for the dataset in a dictionary. Splits up the data per person, per label and per timeinterval and returns a pandas dataframe with all features.
+    This function itself loops through the subjects and calls the functions to split the data features.split_time() and to find the features features.get_features().
 
     Parameters
     ----------
     data : dictionary
-        dictionary containing the wesad features with the form: \n
+        dictionary containing the features with the form: \n
         data = {
-            "2" :   "EMG" : 1D np array with EMG chest data
-                    "ECG" : 1D np array with ECG chest data
-                    "EDA" : 1D np array with EDA chest data
+            "2" :   "EMG" : 1D np array with EMG data
+                    "ECG" : 1D np array with ECG data
+                    "EDA" : 1D np array with EDA data
                     "Labels" : 1D np array labels (0 and 5-7 are already removed)
             "3" : 
             ...
         }\n
         where the first key is the subject label
     Fs : float
-        sampling rate of the wesad devices (700 Hz)
+        sampling rate of the devices (700 Hz for wesad)
 
     Returns
     -------
@@ -223,7 +223,7 @@ def WESAD_features(data, Fs=float(700)):
             ECG = data[subject]["ECG"][label_array]
             EDA = data[subject]["EDA"][label_array]
             EMG = data[subject]["EMG"][label_array]
-            splitted_data = split_Timeframes(np.array([ECG, EDA, EMG]), Fs)
+            splitted_data = split_time(np.array([ECG, EDA, EMG]), Fs)
             # Loop through timeframes
             # >>> print(splitted_data.shape) 
             # (3, x, Fs * t)
@@ -253,9 +253,6 @@ def WESAD_features(data, Fs=float(700)):
     return features
 
 
-def main_arduino(data):
-    features=1
-
 all_data = load_dict(os.path.join(dir_path, "Raw_data", "raw_data.pkl"))
-features = WESAD_features(all_data)
+features = features_db(all_data)
 save_features(features, os.path.join(dir_path, "Features_out", "features"))

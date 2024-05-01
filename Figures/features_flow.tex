@@ -46,20 +46,25 @@ draw=gray]
         % All blocks
         \node (WESAD) [io] {WESAD dataset};
 
-        \node (read_WESAD) [block, right of=WESAD, xshift = 2 cm, align =center] {Read ECG, EDA \\ and EMG from dataset$^{1}$};
+        \node (read_WESAD) [block, below of=WESAD, align =center] {Read ECG, EDA \\ and EMG from dataset$^{1}$};
         \node at (read_WESAD.south east) [anchor = south east] {\footnotesize rWesad.create\_pickle()};
 
-        \node (wesad_features) [block, below of = read_WESAD, minimum width = 9 cm, minimum height = 4 cm, xshift = -2.75 cm, yshift = -0.75 cm] {};
-        \node at (wesad_features.south east) [anchor = south east] {\footnotesize feat\_head.WESAD\_features()};
-        \node at (wesad_features.north west) [anchor = north west, align =left ] {Split up data \\ and get features};
+        \node (arduino) [io, left of = WESAD, xshift = -1.75cm] {Arduino measurements};
 
-        \node (get_features) [block, right of = wesad_features, xshift = 5 cm, align= center, minimum height = 3.5 cm] {Obtain features \\ per timeframe};
+        \node (read_arduino) [block, below of=arduino, align =center] {Read ECG, EDA \\ and EMG from arduino$^{1}$};
+        \node at (read_arduino.south east) [anchor = south east] {\footnotesize rArduino.create\_pickle()};
+
+        \node (features_db) [block, below of = read_WESAD, minimum width = 9 cm, minimum height = 4.4 cm, xshift = -2.75 cm, yshift = -0.95 cm] {};
+        \node at (features_db.south east) [anchor = south east] {\footnotesize feat\_head.features\_db()};
+        \node at (features_db.north west) [anchor = north west, align =left ] {Split up data \\ and get features};
+
+        \node (get_features) [block, right of = features_db, xshift = 5 cm, align= center, minimum height = 3.5 cm] {Obtain features \\ per timeframe};
         \node at (get_features.south east) [anchor = south east] {\footnotesize feat\_head.get\_features()};
 
-        \node (save_features) [block, below of = wesad_features, yshift = -1 cm, xshift = -2.2cm, align =center] {Export feature \\ database};
+        \node (save_features) [block, below of = features_db, yshift = -1 cm, xshift = -2.2cm, align =center] {Export feature \\ database};
         \node at (save_features.south east) [anchor = south east] {\footnotesize feat\_head.save\_features()};
 
-        \node (legend) [block, right of = read_WESAD, xshift = 2.25 cm, dotted, line width = 0.3mm, align = left] {description};
+        \node[block, dotted, line width = 0.3mm, anchor = north west] (legend)  at (current bounding box.north east)  {description};
         \node at (legend.south east) [anchor = south east] {\footnotesize file.function()};
 
 
@@ -74,37 +79,51 @@ draw=gray]
         \node at (emg.north) [anchor = north] {EMG features};
         \node at (emg.south east) [anchor = south east] {\footnotesize EMG.EMG()};
 
-        \draw[arrow] ([yshift = 1cm] get_features.east) -- node[midway,above] {ecg} (ecg.west);
-        \draw[arrow] ([yshift = 0cm] get_features.east) -- node[midway,above] {eda} (eda.west);
-        \draw[arrow] ([yshift = -1cm] get_features.east) -- node[midway,above] {emg} (emg.west);
+        \def\x{1.5};
+        \def\d{0.2};
+        \def\y{-0.1};
+        \draw[arrow] ([yshift = 1 cm+\d cm] get_features.east) -- node[midway,above, yshift = \y cm] {ecg} +(\x, 0);
+        \draw[arrow] ([yshift = \d cm] get_features.east) -- node[midway,above, yshift = \y cm] {eda} +(\x, 0);
+        \draw[arrow] ([yshift = -1 cm +\d cm] get_features.east) -- node[midway,above, yshift = \y cm] {emg} +(\x, 0);
+        \draw[thick,<-,>=stealth] ([yshift = 1 cm -\d cm] get_features.east) -- node[midway,above, yshift = \y cm] {feat\_ecg} +(\x, 0);
+        \draw[thick,<-,>=stealth] ([yshift = -\d cm] get_features.east) -- node[midway,above, yshift = \y cm] {feat\_eda} +(\x, 0);
+        \draw[thick,<-,>=stealth] ([yshift = -1 cm -\d cm] get_features.east) -- node[midway,above, yshift = \y cm] {feat\_emg} +(\x, 0);
 
-        \node (blk1) [rectangle, draw=gray, xshift = -0.1cm, yshift = -0.1 cm, minimum width = 5 cm, minimum height = 2.25cm] at (wesad_features.north east) [anchor = north east] {};
-        \node (blk2) [rectangle, draw=gray, xshift = -0.1cm, yshift = -0.7 cm, minimum width = 4.7 cm, minimum height = 1.95cm] at (wesad_features.north east) [anchor = north east] {};
-        \node (blk3) [rectangle, draw=gray, xshift = -0.1cm, yshift = -1.3 cm, minimum width = 4.4 cm, minimum height = 1.65cm] at (wesad_features.north east) [anchor = north east] {};
-        \node (blk4) [rectangle, draw=gray, xshift = -0.1cm, yshift = -1.9 cm, minimum width = 4.1 cm, minimum height = 1.35cm] at (wesad_features.north east) [anchor = north east] {};
+        \node (blk1) [rectangle, draw=gray, xshift = -0.7cm, yshift = -0.1 cm, minimum width = 5 cm, minimum height = 2.15cm] at (features_db.north east) [anchor = north east] {};
+        \node (blk2) [rectangle, draw=gray, xshift = -0.5cm, yshift = -0.5 cm, minimum width = 4.7 cm, minimum height = 1.95cm] at (features_db.north east) [anchor = north east] {};
+        \node (blk3) [rectangle, draw=gray, xshift = -0.3cm, yshift = -0.9 cm, minimum width = 4.4 cm, minimum height = 1.75cm] at (features_db.north east) [anchor = north east] {};
+        \node (blk4) [rectangle, draw=gray, xshift = -0.1cm, yshift = -1.3 cm, minimum width = 4.1 cm, minimum height = 1.55cm] at (features_db.north east) [anchor = north east] {};
         \node at (blk1.north west) [anchor = north west] {all data};
         \node at (blk2.north west) [anchor = north west] {subject};
         \node at (blk3.north west) [anchor = north west] {label};
-        \node at (blk4.north west) [anchor = north west] {timeframes};
+        \node at (blk4.north west) [anchor = north west, align = left] {timeframes \\ \footnotesize feat\_head.split\_time()};
 
         % WESAD to read_WESAD
-        \draw [arrow] (WESAD) -- node[midway, above] {all data} (read_WESAD);
+        \draw [arrow] (WESAD) -- node[midway, above, rotate=90, below] {all data} (read_WESAD);
 
-        % All around WESAD_features
-        \draw [arrow] ([xshift=-1cm]read_WESAD.south) -- node[midway, rotate=90, below] {ECG} +(0, -1.25);
-        \draw [arrow] (read_WESAD.south) -- node[midway, rotate=90, below] {EDA} +(0, -1.25);
-        \draw [arrow] ([xshift=1cm]read_WESAD.south) -- node[midway, rotate=90, below] {EMG} +(0, -1.25);
-        \draw [arrow] ([yshift=1cm]wesad_features.east) -- node[midway, above] {timeframes} ([yshift=1cm]get_features.west);
-        \draw [thick, -] ([yshift=-1.2cm]get_features.west) -- node[midway, above] {features} ([yshift=-1.2cm]wesad_features.east);
-        \draw [arrow] ([xshift = -2.2cm]wesad_features.south) -- node[midway, rotate=90, below, align = center] {all \\ features} (save_features.north);
+        % Arduino to read_arduino
+        \draw [arrow] (arduino) -- node[midway, above, rotate=90, below] {all data} (read_arduino);
+
+        % All around features_db
+        \draw [arrow] ([xshift=-1cm]read_arduino.south) -- node[midway, rotate=90, below] {ECG} +(0, -1.25);
+        \draw [arrow] (read_arduino.south) -- node[midway, rotate=90, below] {EDA} +(0, -1.25);
+        \draw [arrow] ([xshift=1cm]read_arduino.south) -- node[midway, rotate=90, below] {EMG} +(0, -1.25);
+
+        \draw [arrow] ([xshift=-1cm]read_WESAD.south) -- node[midway, rotate=90, below] {ECG} +(0, -1.35);
+        \draw [arrow] (read_WESAD.south) -- node[midway, rotate=90, below] {EDA} +(0, -1.35);
+        \draw [arrow] ([xshift=1cm]read_WESAD.south) -- node[midway, rotate=90, below] {EMG} +(0, -1.35);
+
+        \draw [arrow] ([yshift=0.7cm, xshift = -0.1cm]features_db.east) -- node[midway, above] {timeframes} ([yshift=0.7cm]get_features.west);
+        \draw [thick, -] ([yshift=-1.2cm]get_features.west) -- node[midway, above] {features} ([yshift=-1.2cm]features_db.east);
+        \draw [arrow] ([xshift = -2.2cm]features_db.south) -- node[midway, rotate=90, below, align = center] {all \\ features} (save_features.north);
         \draw [arrow] (save_features.east) -- node[midway, above] {dataframe} +(2, 0);
         
-        % Inside wesad_features
+        % Inside features_db
         % blocks
         \node (dataframe_block) [block, above of = save_features, minimum height = 1 cm, yshift = -0.2cm] {dataframe};
         % arrows
-        \draw [arrow] ([yshift=-1.2cm]wesad_features.east) -- node[pos=0.85, above] {\small append} (dataframe_block.east);
-        \draw [thick] (dataframe_block.south) -- ([xshift = -2.2cm]wesad_features.south);
+        \draw [arrow] ([yshift=-1.2cm]features_db.east) -- node[pos=0.85, above] {\small append} (dataframe_block.east);
+        \draw [thick] (dataframe_block.south) -- ([xshift = -2.2cm]features_db.south);
 
         % Dataframe
         \node (df) [shape=rectangle, xshift = 3cm, right of = save_features, scale = 0.45] {
@@ -122,6 +141,6 @@ draw=gray]
               3963     & 0.01     & 0.007    & ... & 1     & 1       
               \end{tblr}
         };
-    \node[below right, align=right] at (current bounding box.south west) {\footnotesize $^{1}$ The data is stored intermediately in a pickled file and read out by feat\_head.load\_dict()};
+    \node[below right, align=right] at (current bounding box.south west) {\footnotesize $^{1}$ The data, in a dictionary, is stored intermediately in a pickled file and read out by feat\_head.load\_dict()};
     \end{tikzpicture}
 \end{document}
