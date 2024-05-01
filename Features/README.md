@@ -29,18 +29,16 @@ print(data[2]["EMG"])
 ```
 The data with labels 0 and 5-7 is removed. 
 ### Arduino
-The arduino data is provided by the hardware group and the format is yet unknown
+The arduino data is provided by the hardware group and the format should be changed to be exactly the same as the previously mentioned dictionary
 
 # Output
 The output is given by features.py and is a pickle dataframe, which is read by the features group. The data is a pandas dataframe with the following layout.
 
-|  |  feature1  | feature2  | label |
+|  |  feature1  | feature2  | label | Subject |
 | - | -| -| -|
-|0         |0         |0      |1|
-|1         |1         |1      |2|
-|2         |2         |2      |3|
-|3         |3         |3      |4|
+|0         |0         |0      |1| 1|
+|1         |1         |1      |2|1|
+|2         |2         |2      |3|1|
+|3         |3         |3      |4|2|
 
 The label is a value from 1-4: 1 = baseline, 2 = stress, 3 = amusement, 4 = meditation.
-
-The features are extracted from the WESAD data cut up into shorter timeframes, or the arduino data.
