@@ -43,12 +43,14 @@ def basic_features(signal, name):
     0  3.777778       4.0  1.872478       2
     """
     most_common, _ = mode(signal)
+    features = {}
 
-    features = {"Mean_" + str(name) : [np.mean(signal)], 
-                "Median_" + str(name) : [np.median(signal)],
-                "STD_" + str(name) : [np.std(signal)],
-                "Mode_" + str(name) : [most_common]}
-    return pd.DataFrame(features)
+    features["Mean"] = np.mean(signal)
+    features["Median"] = np.median(signal)
+    features["STD"] = np.std(signal)
+    features["Mode"] = most_common
+    
+    return pd.DataFrame.from_dict(features, orient="index").T.add_prefix(name + "_")
 
 def load_test_data(signal, filename):
     """

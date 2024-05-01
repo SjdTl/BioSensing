@@ -49,7 +49,7 @@ def ECG(unprocessed_ecg, fs= 700):
 
     df_specific = ECG_specific_features(ecg, fs)
     # General features contain mean emg, but this has no meaning in the case of emg
-    df_general = feat_gen.basic_features(ecg, "emg")
+    df_general = feat_gen.basic_features(ecg, "ECG")
 
     features = pd.concat([df_specific, df_general], axis=1)
 
@@ -144,19 +144,62 @@ def ECG_specific_features(ecg, fs):
     """ 
 
     r_peaks_pan = rpeak_detector(ecg, fs = 700)
-
     out_dict = {}
     
-    rri, rri_time, rri_missing = nk.hrv.hrv_utils._hrv_format_input(r_peaks_pan, sampling_rate=fs)
+    rri, rri_time = hrv_format_input(r_peaks_pan, fs)
     diff_rri = np.diff(rri)
-    out_dict["HRV_RMSSD"] = np.sqrt(np.nanmean(diff_rri**2))
+    out_dict["RMSSD"] = np.sqrt(np.nanmean(diff_rri**2))
     nn50 = np.sum(np.abs(diff_rri) > 50)
     nn20 = np.sum(np.abs(diff_rri) > 20)
     out_dict["pNN50"] = nn50 / (len(diff_rri) + 1) * 100
     out_dict["pNN20"] = nn20 / (len(diff_rri) + 1) * 100
     
     # Drop values that don't return anything for short signals 
-    return pd.DataFrame(out_dict)
+    return pd.DataFrame.from_dict(out_dict, orient="index").T.add_prefix("HRV_")
+
+def hrv_format_input(peaks, fs):
+    """
+    Description
+    -----------
+    Change the array of indexes to an array of R-R intervals in milliseconds.
+
+    Parameters
+    ----------
+    peaks : np.array
+        Array of indexes of the position of the R-peaks
+    
+    Returns
+    -------
+    intervals : np.array
+        Sanitized numpy array of intervals, in milliseconds.
+    intervals_time : np.array
+        Sanitized timestamps corresponding to intervals, in seconds.
+        
+    Raises
+    ------
+    error
+         description
+    
+    Notes
+    -----
+    This code is a simplification of the neurokit2 library
+    It is used instead of the neurokit2 library to save computing time
+    Since the neurokit2 libary requires you to calculate all features
+
+    Examples
+    --------
+    >>>
+    """
+
+    intervals = np.diff(peaks) / fs * 1000
+    # Impute intervals with median in case of missing values to calculate timestamps
+    imputed_intervals = np.where(
+        np.isnan(intervals), np.nanmedian(intervals, axis=0), intervals
+    )
+    # Compute the timestamps of the intervals in seconds
+    intervals_time = np.nancumsum(imputed_intervals / 1000)
+
+    return intervals, intervals_time
 
 def rpeak_detector(ecg, fs, plot= False):
 
@@ -266,6 +309,6 @@ def test(filepath):
     df = ECG(ecg, 700)
     return df
 
-dir_path = os.path.dirname(os.path.realpath(__file__))
-filepath = os.path.join(dir_path, "Raw_data", "raw_small_test_data.pkl")
-print(test(filepath))
+# dir_path = os.path.dirname(os.path.realpath(__file__))
+# filepath = os.path.join(dir_path, "Raw_data", "raw_small_test_data.pkl")
+# print(test(filepath))

@@ -51,7 +51,7 @@ def EDA(eda, fs):
 
     eda = preProcessing(eda, fs)
     
-    df_general = feat_gen.basic_features(eda, "eda")
+    df_general = feat_gen.basic_features(eda, "EDA")
     df_specific = EDA_specific_features(eda, fs)
 
     features = pd.concat([df_specific, df_general], axis=1)
@@ -199,21 +199,15 @@ def EDA_specific_features(eda, fs):
     widths, widths2, peaks = peak_detection(phasic)
 
     # Find features
-    onset = np.mean(peaks - widths[2])/fs
-    recovery = np.mean(widths2[3] - peaks)/fs
-    RR = len(peaks)/len(phasic)
-    RM = np.mean(phasic[peaks] - widths[1])
-    RT = np.mean(widths[0])/fs
-
-    # Create dictionary
-    features = {"onset_phasic" : [onset],
-                "recovery_phasic" : [recovery],
-                "RR_phasic" : [RR],
-                "RM_phasic" : [RM],
-                "RT_phasic" : [RT]}
+    out_dict = {}
+    out_dict["onset"] = np.mean(peaks - widths[2])/fs
+    out_dict["recovery"] = np.mean(widths2[3] - peaks)/fs
+    out_dict["RR"] = len(peaks)/len(phasic)
+    out_dict["RM"] = np.mean(phasic[peaks] - widths[1])
+    out_dict["RT"] = np.mean(widths[0])/fs
     
     # Turn dictionary into pd.DataFrame and return
-    return pd.DataFrame(features)
+    return pd.DataFrame.from_dict(out_dict, orient="index").T.add_prefix("EDA_")
 
 def peak_detection(phasic, fs=700, plot = False):
     """
