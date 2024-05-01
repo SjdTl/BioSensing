@@ -2,10 +2,12 @@ import time
 from pySerialTransfer import pySerialTransfer as txfer
 import csv
 
+baud = 57600
+
 def import_all(COMport = '/dev/ttyACM0'):
     print("Importing time, ECG, GSR data \n")
     try:
-        link = txfer.SerialTransfer(COMport)
+        link = txfer.SerialTransfer(COMport,baud)
         
         link.open()
         time.sleep(3) # allow some time for the Arduino to completely reset
