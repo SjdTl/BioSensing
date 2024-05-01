@@ -35,7 +35,7 @@ The arduino data is provided by the hardware group and the format should be chan
 The output is given by features.py and is a pickle dataframe, which is read by the features group. The data is a pandas dataframe with the following layout.
 
 |  |  feature1  | feature2  | label | Subject |
-| - | -| -| -|
+| - | -| -| -|-|
 |0         |0         |0      |1| 1|
 |1         |1         |1      |2|1|
 |2         |2         |2      |3|1|
