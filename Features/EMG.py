@@ -3,7 +3,7 @@ import pandas as pd
 import os
 from scipy.signal import butter, filtfilt
 
-import Features.feat_gen as feat_gen
+import feat_gen as feat_gen
 
 def EMG(unprocessed_emg, fs = 700):
     """
@@ -21,16 +21,16 @@ def EMG(unprocessed_emg, fs = 700):
     Returns
     -------
     features : pd.DataFrame
-        Dataframe (1 row) containing the features:
-            - WL: waveform length
-            - MAL: overall muscle activity level (RMS)
-            - MCI: muscle contraction intensity (average absolute amplitude)
-            - SSC: slope sign change (number of time slope of the EMG signal changes sign)
-            and the general features:
-            - Mean (no meaning in the case of emg)
-            - Median
-            - Std
-            - ...
+        Dataframe (1 row) containing the features:\n
+            - WL: waveform length \n
+            - MAL: overall muscle activity level (RMS)\n
+            - MCI: muscle contraction intensity (average absolute amplitude)\n
+            - SSC: slope sign change (number of time slope of the EMG signal changes sign)\n
+            and the general features:\n
+            - Mean (no meaning in the case of emg)\n
+            - Median\n
+            - Std\n
+            - ...\n
      
     Raises
     ------
@@ -82,7 +82,6 @@ def EMG_specific_features(emg):
     Notes
     -----
     """
-    
     # Waveform length
     WL = np.sum(emg[1:]-emg[:-1])
     # SLope sign change

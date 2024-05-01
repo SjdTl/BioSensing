@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import os
 
-import Features.feat_gen as feat_gen
+import feat_gen as feat_gen
 
 def EDA(eda, fs):
     """

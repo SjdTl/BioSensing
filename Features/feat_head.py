@@ -40,8 +40,49 @@ def load_dict(filename):
         out = pickle.load(f)
     return out
 
+def filename_exists(filepath, extension):
+    """
+    Description
+    -----------
+    Checks if filename already exists in the desired location and adds an integer if it does. 
+    So just prevent overwriting of files
 
-def save_features(df, filename):
+    Parameters
+    ----------
+    filepath : string
+        path to the file to save (works also with folders)
+    extension : string
+        extension of the file to save (do not include the dot)
+
+    Returns
+    -------
+    out : string
+        new filename
+    
+    Example 
+    -------
+    >>> import os
+    >>> filename = "name"
+    >>> dir_path = os.path.dirname(os.path.realpath(__file__))
+    >>> filepath = os.path.join(dirpath, filename)
+    >>> filename = filename_exists(filepath, "txt")
+    >>> print(filename)
+    C://../name.txt
+    or 
+    C://../name_1.txt
+    or 
+    C://../name_2.txt 
+    etc.
+    """
+    while os.path.exists((filepath + "." + str(extension))):
+        if filepath[-2] != "_" and ~(filepath[-1].isdigit()):
+            filepath = filepath + str("_1")
+        else:
+            filepath = filepath[:-1] + str(int(filepath[-1]) + 1)
+    return str(filepath) + "." + str(extension)
+
+
+def save_features(df, filepath):
     """
     Description
     -----------
@@ -58,16 +99,17 @@ def save_features(df, filename):
         | 2     | 2          | 2          | 3     | 5       |
         | 3     | 3          | 3          | 4     | 6       |
         With or without the label and subject column depending on which dataset is used.
-    
+    filepath : string
+        Directory path plus filename without extension, so filepath = C:/.../name
+        
     Notes
     -----
-    Does not (yet) contain anything else then just:
-    >>> df.to_pickle
-    >>> df.to_excel
     """
+    
 
-    df.to_pickle(str(filename)+ ".pkl")
-    df.to_excel(str(filename) + ".xlsx")
+    df.to_pickle(filename_exists(filepath, "pkl"))
+    df.to_excel(filename_exists(filepath, "xlsx"))
+
 
 
 def get_features(ecg, eda, emg, fs):
@@ -251,7 +293,6 @@ def features_db(data, Fs=float(700)):
         raise ValueError(f"Two features have the same name")
     
     return features
-
 
 all_data = load_dict(os.path.join(dir_path, "Raw_data", "raw_data.pkl"))
 features = features_db(all_data)
