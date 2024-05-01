@@ -24,12 +24,17 @@ def EDA(eda, fs):
     -------
     features : pd.DataFrame
         Dataframe (1 row) containing the features:
-            - ?
-            and the general features:
+            - Onset
+            - Recovery
+            - RR
+            - RM
+            - RT
+        and the general features:
             - Mean (no meaning in the case of emg)
             - Median
             - Std
             - ...
+        
      
     Raises
     ------
