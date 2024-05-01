@@ -1,5 +1,5 @@
 # Visualisation
-![](https://github.com/SjdTl/BioSensing/blob/f462dcda52cb3f587120ca95de4e15591ae50d68/Figures/features_flow.svg)
+![](../Figures/features_flow.svg)
 
 # Input
 ### WESAD
