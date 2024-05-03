@@ -272,7 +272,7 @@ def features_db(data, Fs=float(700)):
             for iframe in range(0, splitted_data.shape[1]):
                 current_feature = get_features(splitted_data[0][iframe], splitted_data[1][iframe], splitted_data[2][iframe], Fs)
                 # Add label and subject
-                current_feature = pd.concat([current_feature, pd.DataFrame({'label': [label], 'subject' : [subject]})], axis=1)
+                current_feature = pd.concat([current_feature, pd.DataFrame({'random_feature': np.random.rand(1), 'label': [label], 'subject' : [subject]})], axis=1)
                 features = pd.concat([features, current_feature], ignore_index=True)
 
                 df_length += 1
