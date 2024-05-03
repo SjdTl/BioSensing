@@ -49,7 +49,7 @@ def EMG(unprocessed_emg, fs = 700):
 
     df_specific = EMG_specific_features(emg)
     # General features contain mean emg, but this has no meaning in the case of emg
-    df_general = feat_gen.basic_features(emg, "emg")
+    df_general = feat_gen.basic_features(emg, "EMG")
 
     features = pd.concat([df_specific, df_general], axis=1)
 
@@ -82,24 +82,20 @@ def EMG_specific_features(emg):
     Notes
     -----
     """
+
+    out_dict = {}
     # Waveform length
-    WL = np.sum(emg[1:]-emg[:-1])
+    out_dict["WL"] = np.sum(emg[1:]-emg[:-1])
     # SLope sign change
     epsilon = 100 * 10**(-6) # should be changed someday
-    SSC = np.count_nonzero((emg[1:-1]-emg[:-2])*(emg[1:-1]-emg[2:]) > epsilon)
+    out_dict["SSC"] = np.count_nonzero((emg[1:-1]-emg[:-2])*(emg[1:-1]-emg[2:]) > epsilon)
     # Overall muscle activity level: RMS is a measure of the amplitude of the EMG signal and reflects the overall muscle activity level
-    MAL = feat_gen.rms(emg)
+    out_dict["MAL"] = feat_gen.rms(emg)
     # MAV represents the average absolute amplitude of the EMG signal and is sensitive to muscle contraction intensity
-    MCI = np.mean(np.abs(emg))
-
-    # Create dictionary
-    features = {"WL_emg" : [WL], 
-                "SSC_emg" : [SSC],
-                "MAL_emg" : [MAL],
-                "MCI_emg" : [MCI]}
+    out_dict["MCI"] = np.mean(np.abs(emg))
     
     # Turn dictionary into pd.DataFrame and return
-    return pd.DataFrame(features)
+    return pd.DataFrame.from_dict(out_dict, orient="index").T.add_prefix("EMG_")
 
 def preProcessing(emg, fs=700):
     """
