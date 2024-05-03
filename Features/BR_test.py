@@ -8,6 +8,9 @@ import scipy
 import matplotlib.pyplot as plt
 import tqdm
 
+import ECG as ECG
+import BR as BR
+
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
 def spider_data(folderpath):
@@ -62,10 +65,17 @@ def spider_data(folderpath):
     
     return data
 
-def plot_spider(ecg, br, fs=100):
-    fig, ax = plt.subplots(2,1)
+def plot_spider(ecg, br, br_ex=None, fs=100):
 
     t = np.arange(0, ecg.size * (1/fs), 1/fs)
+
+    if br_ex.any() != None:
+        fig, ax = plt.subplots(3,1)
+        ax[2].plot(t, br_ex)
+        ax[2].set_xlabel("Time ($s$)")
+        ax[2].set_ylabel("Repiration extracted (%)")
+    else:
+        fig,ax = plt.subplots(2,1)
 
     ax[0].plot(t, ecg)
     ax[1].plot(t, br)
@@ -75,14 +85,13 @@ def plot_spider(ecg, br, fs=100):
 
     ax[1].set_xlabel("Time ($s$)")
     ax[1].set_ylabel("Repiration (%)")
+
     plt.show()
 
-def EHF(ecg, fs=100, N=4, fcut=100):
-    # Elimination very high frequencies
-    nyq = 0.5 * fs
-    b, a = butter(N = N, Wn = fcut/nyq, fs = fs)
-    return filtfilt(b, a, ecg)
-
 d = spider_data(os.path.join(dir_path, "spiderfearful"))
-plot_spider(ecg = EHF(d["ECG"][0:1500]), br = d["BR"][0:1500])
+pre= ECG.preProcessing(d["ECG"][0:1500], 100)
+print(pre, pre.shape)
+edr = BR.test(d["ECG"][0:1500])
+
+plot_spider(ecg = (d["ECG"][0:1500]), br = d["BR"][0:1500], br_ex=edr)
 

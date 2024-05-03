@@ -94,13 +94,13 @@ def preProcessing(unprocessed_ecg, fs):
     # highpass filter
     high=0.5
     high= high/nyq
-    b, a = butter(5, high, btype = 'highpass')
+    b, a = butter(5, high, btype = 'highpass', fs=fs)
     ecg_h = lfilter(b,a,unprocessed_ecg)
 
     # lowpass filter
     low=70
     low= low/nyq
-    b, a = butter(5, low)
+    b, a = butter(5, low, fs=fs)
     ecg_hl = lfilter(b,a,ecg_h)
 
     # notch filter
