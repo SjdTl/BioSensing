@@ -293,7 +293,3 @@ def features_db(data, Fs=float(700)):
         raise ValueError(f"Two features have the same name")
     
     return features
-
-all_data = load_dict(os.path.join(dir_path, "Raw_data", "raw_data.pkl"))
-features = features_db(all_data)
-save_features(features, os.path.join(dir_path, "Features_out", "features"))

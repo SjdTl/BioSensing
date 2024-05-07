@@ -11,13 +11,13 @@ import neurokit2 as nk
 
 # def RR
 
-def neurokit_breathing(ecg, fs=100):
-    # Extract peaks
-    rpeaks, info = nk.ecg_peaks(ecg, sampling_rate=fs)
-    print(info)
-    # Compute rate
-    ecg_rate = nk.ecg_rate(rpeaks, sampling_rate=fs, desired_length=len(ecg))
+def ECG_to_RR(ecg, fs=100, method = "Neurokit"):
+    if method == "Neurokit":
+        # Extract peaks
+        rpeaks, info = nk.ecg_peaks(ecg, sampling_rate=fs)
+        # Compute rate
+        ecg_rate = nk.ecg_rate(rpeaks, sampling_rate=fs, desired_length=len(ecg))
 
-    edr = nk.ecg_rsp(ecg_rate, sampling_rate=fs)
+        edr = nk.ecg_rsp(ecg_rate, sampling_rate=fs)
 
-    return edr
+        return edr
