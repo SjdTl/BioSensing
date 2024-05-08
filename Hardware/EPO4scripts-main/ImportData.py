@@ -4,7 +4,7 @@ import csv
 
 baud = 57600
 
-def import_all(COMport = '/dev/ttyACM0'):
+def import_all(subject, COMport = '/dev/ttyACM0'):
     print("Importing time, ECG, GSR data \n")
     try:
         link = txfer.SerialTransfer(COMport,baud)
@@ -14,10 +14,10 @@ def import_all(COMport = '/dev/ttyACM0'):
         print(f"link status: {link.status}")
         print('Stop data collection by keyboard interrupt (ctrl+c)')
         
-        header = ['TimeStamp', 'ECG Data', 'GSR Data']
-        data = [0,0,0]
+        header = ['TimeStamp', 'ECG Data', 'GSR Data', 'label']
+        data = [0,0,0,0]
 
-        output_file = open('Alldata.csv', 'w')
+        output_file = open('data' + subject + '.csv', 'w')
         writer = csv.writer(output_file)
         writer.writerow(header)
     
@@ -55,6 +55,10 @@ def import_all(COMport = '/dev/ttyACM0'):
             # Import GSR data from serial connection
             data[2] = link.rx_obj(obj_type='H', start_pos=recSize)
             recSize += txfer.STRUCT_FORMAT_LENGTHS['H']
+            
+            # Import label data from serial connection            
+            data[3] = link.rx_obj(obj_type='L', start_pos=recSize)
+            recSize += txfer.STRUCT_FORMAT_LENGTHS['L']
         
             
             ###################################################################
