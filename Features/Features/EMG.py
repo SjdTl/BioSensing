@@ -101,6 +101,12 @@ def timeDomain_features(emg, fs):
     """See EMG_specific_features()"""
 
     out_dict = {}
+    # Integrated EMG
+    out_dict["IEMG"] = np.sum(np.abs(emg))
+    # Mean absolute value
+    out_dict["MAV"] = np.sum(np.abs(emg)) / emg.size
+    # Modified mean absolute value type 1
+    # out_dict["MAV1"] = 
     # Waveform length
     out_dict["WL"] = np.sum(emg[1:]-emg[:-1])
     # SLope sign change
@@ -122,6 +128,8 @@ def preProcessing(emg, fs=700):
     Description
     -----------
     Preprocessing of EMG signal by bandpass filtering and removing DC value
+        - Lowpass is for removing the DC value. This DC value is present due in the sensors (see report) and because muscle activity is between these values (see citation)
+        - Highpass is because we can
 
     Parameters
     ----------
