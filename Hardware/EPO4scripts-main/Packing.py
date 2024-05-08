@@ -11,7 +11,7 @@ def ReadFile(filedir='Alldata.csv'):
     ###Defining the arrays to store data
     ECGList = []
     GSRList = []
-    EDAList = []
+    EMGList = []
     LabelList = []
     ###
     ###getting data from csv file
@@ -22,14 +22,14 @@ def ReadFile(filedir='Alldata.csv'):
             if(len(row)!=0):
                 ECGList.append(row[1])
                 GSRList.append(row[2])
-                EDAList.append(0)
-                LabelList.append(0)
+                EMGList.append(row[3])
+                LabelList.append(row[4])
     ###
     ###Make dictionary
     subject_data = {
         "ECG" : ECGList,
-        "EMG" : GSRList,
-        "EDA" : EDAList,
+        "EMG" : EMGList,
+        "EDA" : GSRList,
         "Labels" : LabelList
     }
     ###

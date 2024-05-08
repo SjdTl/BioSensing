@@ -14,8 +14,8 @@ def import_all(COMport = '/dev/ttyACM0'):
         print(f"link status: {link.status}")
         print('Stop data collection by keyboard interrupt (ctrl+c)')
         
-        header = ['TimeStamp', 'ECG Data', 'GSR Data']
-        data = [0,0,0]
+        header = ['TimeStamp', 'ECG Data', 'GSR Data', 'EMG Data', 'Label']
+        data = [0,0,0,0,0]
 
         output_file = open('Alldata.csv', 'w')
         writer = csv.writer(output_file)
@@ -24,7 +24,7 @@ def import_all(COMport = '/dev/ttyACM0'):
         ###Defining the arrays to store data
         ECGList = []
         GSRList = []
-        EDAList = []
+        EMGList = []
         LabelList = []
         ###
         while True:
@@ -60,6 +60,14 @@ def import_all(COMport = '/dev/ttyACM0'):
             # Import GSR data from serial connection
             data[2] = link.rx_obj(obj_type='H', start_pos=recSize)
             recSize += txfer.STRUCT_FORMAT_LENGTHS['H']
+
+            # Import GSR data from serial connection
+            data[3] = link.rx_obj(obj_type='H', start_pos=recSize)
+            recSize += txfer.STRUCT_FORMAT_LENGTHS['H']
+
+            # Import GSR data from serial connection
+            data[4] = link.rx_obj(obj_type='H', start_pos=recSize)
+            recSize += txfer.STRUCT_FORMAT_LENGTHS['H']
         
             
             ###################################################################
@@ -70,8 +78,8 @@ def import_all(COMport = '/dev/ttyACM0'):
             ###Add data to lists
             ECGList.append(data[1])
             GSRList.append(data[2])
-            EDAList.append(0)
-            LabelList.append(0)
+            EMGList.append(data[3])
+            LabelList.append(data[4])
             ###
     
     except KeyboardInterrupt:
@@ -95,8 +103,8 @@ def import_all(COMport = '/dev/ttyACM0'):
     #Put data in dictionary
     subject_data = {
         "ECG" : ECGList,
-        "EMG" : GSRList,
-        "EDA" : EDAList,
+        "EMG" : EMGList,
+        "EDA" : GSRList,
         "Labels" : LabelList
     }
     return subject_data
