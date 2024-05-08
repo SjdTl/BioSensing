@@ -8,10 +8,13 @@ import feat_gen as feat_gen
 import scipy
 import matplotlib.pyplot as plt
 import tqdm
+from sklearn.preprocessing import minmax_scale as normalize
+import neurokit2 as nk
 
 import ECG as ECG
 import BR as BR
 from feat_head import split_time
+
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -116,39 +119,34 @@ def fft_RR(RR, fs=100):
     plt.show()
 
 
-def plot_spider(ecg, br, br_extracted=None, br_unprocessed=None, fs=100, shift = None):
+def plot_spider(ecg, br, br_extracted, br_unprocessed, shift, CC, fs=100):
+    # normalize
+    br_extracted = normalize(br_extracted)
+    br_unprocessed = normalize(br_unprocessed)
+    br = normalize(br)
 
     t = np.arange(0, ecg.size * (1/fs), 1/fs)
 
-    if np.any(br_extracted) and np.any(br_unprocessed):
-        fig, ax = plt.subplots(4,1)
-        ax[2].plot(t, br_extracted)
-        ax[2].set_xlabel("Time ($s$)")
-        ax[2].set_ylabel("Respiration extracted (%)")
-        ax[3].plot(t, br_unprocessed)
-        ax[3].set_xlabel("Time ($s$)")
-        ax[3].set_ylabel("Unprocessed respiration rate")
-    elif np.any(br_extracted) and not np.any(br_unprocessed):
-        fig, ax = plt.subplots(3,1)
-        ax[2].plot(t, br_extracted)
-        ax[2].set_xlabel("Time ($s$)")
-        ax[2].set_ylabel("Respiration extracted (%)")
-    elif not np.any(br_extracted) and np.any(br_unprocessed):
-        fig, ax = plt.subplots(3,1)
-        ax[2].plot(t, br_unprocessed)
-        ax[2].set_xlabel("Time ($s$)")
-        ax[2].set_ylabel("Unprocessed respiration rate")
-    else:
-        fig,ax = plt.subplots(2,1)
+    fig,ax = plt.subplots(4,1)
 
     ax[0].plot(t, ecg)
-    ax[1].plot(t, br)
-
     ax[0].set_xlabel("Time ($s$)")
     ax[0].set_ylabel("ECG ($mV$)")
 
+    ax[1].plot(t, br_unprocessed)
     ax[1].set_xlabel("Time ($s$)")
-    ax[1].set_ylabel("Repiration (%)")
+    ax[1].set_ylabel("Repiration (unprocessed)")
+
+    ax[2].plot(t, br)
+    ax[2].set_xlabel("Time ($s$)")
+    ax[2].set_ylabel("Respiration (processed)")
+
+    br_ex_shift = np.concatenate((np.zeros(int(shift*fs)), br_extracted[int(shift * fs):]))
+    ax[3].plot(t, br_ex_shift)
+    ax[3].set_xlabel("Time ($s$)")
+    ax[3].set_ylabel("Extracted respiration (shifted)")
+
+    ax[0].set_title(f"Respiration rate extracted from ecg with an accuracy of {round(CC,2)}")
 
     plt.show()
 
@@ -194,9 +192,8 @@ def compare_extracted_vs_real(RR_extracted, RR_real, step = 0.05, max_shift = 1,
     """
 
     # Normalize 
-    RR_extracted = RR_extracted / RR_extracted.max()
-    RR_real = RR_real / RR_real.max()
-
+    RR_extracted = normalize(RR_extracted)
+    RR_real = normalize(RR_real)
     CC = []
     shift = []
     # Calculate CC for all phase shifts -2s till 2s with steps of 0.05s
@@ -211,10 +208,10 @@ def compare_extracted_vs_real(RR_extracted, RR_real, step = 0.05, max_shift = 1,
         shift.append(current_shift)
 
     max_index = np.argmax(CC)
-    return CC[max_index], shift[max_index]
+    return CC[max_index], shift[max_index] - max_shift
 
 
-def determine_RR_accuracy(dataset, method="Neurokit", T=60, example = True):
+def determine_RR_accuracy(dataset, method="vangent2019", T=60, example = True):
     """
     Description
     -----------
@@ -237,11 +234,15 @@ def determine_RR_accuracy(dataset, method="Neurokit", T=60, example = True):
             - neurokit
     T : int
         Size of the windows in seconds
+    example: boolean
+        Plot the ecg, RR (unprocessed and processed) and extracted RR of one of the windows (selected randomly)
     
     Returns
     -------
-    out : type
-         description
+    CC : np.array
+        array of the correlation coefficients of all the windows
+    shift : np.array
+        array of the timeshifts of all the windows
     
     Raises
     ------
@@ -261,28 +262,55 @@ def determine_RR_accuracy(dataset, method="Neurokit", T=60, example = True):
     RR_split = split_time(np.array([dataset["BR"]]), fs, T)[0]
     ECG_split = split_time(np.array([dataset["ECG"]]), fs, T)[0]
 
+    # For selecting a window to plot
+    randomvalue = np.random.randint(low=0, high=RR_split.shape[0], size=1)
+    i = 0
+
+    max_shift = 1
     CC = []
     shift = []
     for RR, ECG in (zip(RR_split, ECG_split)):
         processed_RR = preProcess(RR, fs)
-        extracted_RR = BR.ECG_to_RR(ECG, fs=fs, method = method)
+        ECG = nk.ecg_clean(ECG, sampling_rate=fs)
+        if method != "control":
+            extracted_RR = BR.ECG_to_RR(ECG, fs=fs, method = method)
+        if method == "control":
+            extracted_RR = processed_RR + np.sin(2*np.pi * np.linspace(0, T/2, processed_RR.size))
 
-        cur_CC, cur_shift = compare_extracted_vs_real(extracted_RR, processed_RR)
+        cur_CC, cur_shift = compare_extracted_vs_real(extracted_RR, processed_RR, max_shift=max_shift)
         CC.append(cur_CC)
         shift.append(cur_shift)
 
-    plt.boxplot([CC, shift])
-    plt.show()
+        if example == True and i==randomvalue:
+            plot_spider(ECG, processed_RR, extracted_RR, RR, cur_shift+max_shift, cur_CC)
+        i += 1
 
-    # if example == True:
+    return CC, shift
+    
+
+def compare_methods(dataset, methods=["control", "vangent2019", "soni2019", "charlton2016", "sarkar2015"], T=60, example = True):
+    all_CC = []
+    all_shift = []
+
+    for method in methods:
+        cur_CC, cur_shift = determine_RR_accuracy(dataset, method, T, example)
+        all_CC.append(cur_CC)
+        all_shift.append(cur_shift)
+
+    fig, ax = plt.subplots(1,2)
+    ax[0].boxplot(all_CC, labels=methods)
+    ax[0].set_ylabel("Correlation coefficient")
+    ax[1].boxplot(all_shift, labels=methods)
+    ax[1].set_ylabel("Time (s)")
+    ax[0].set_title("Correlation coefficient of breathing extraction")
+    ax[1].set_title("Resulted timeshift from extraction")
+    plt.show()
 
 
 
 data = spider_data(os.path.join(dir_path, "spiderfearful"))
-determine_RR_accuracy(data)
-
-
-
+compare_methods(data, example=False, T=60)
+# determine_RR_accuracy(data, method = "vangent2019")
 
 
 # RR = d["BR"][0:2500]
