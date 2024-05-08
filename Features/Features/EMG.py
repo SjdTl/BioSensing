@@ -3,7 +3,7 @@ import pandas as pd
 import os
 from scipy.signal import butter, filtfilt
 
-import feat_gen as feat_gen
+from . import feat_gen 
 
 def EMG(unprocessed_emg, fs = 700):
     """
@@ -224,7 +224,7 @@ def test(filepath):
     """
     emg = feat_gen.load_test_data("EMG", filepath)
 
-    feat_gen.quick_plot(envolope_emg(emg))
+    # feat_gen.quick_plot(emg, preProcessing(emg), envolope_emg(emg))
 
     df = EMG(emg, 700)
     return df

@@ -7,12 +7,12 @@ import pickle as pickle
 import numpy as np
 import tqdm
 
-import ECG
-import EDA
-import EMG
+from . import ECG
+from . import EDA
+from . import EMG
+from . import BR
 
 
-dir_path = os.path.dirname(os.path.realpath(__file__))
 
 
 def load_dict(filename):
@@ -147,9 +147,10 @@ def get_features(ecg, eda, emg, fs):
     ecg_features = ECG.ECG(ecg, fs)
     eda_features = EDA.EDA(eda, fs)
     emg_features = EMG.EMG(emg, fs)
+    rr_features = BR.RR(ecg, fs)
 
     # Combine features
-    features = pd.concat([ecg_features, eda_features, emg_features], axis=1)
+    features = pd.concat([ecg_features, eda_features, emg_features, rr_features], axis=1)
 
     # Errors
     if features.shape[0] != 1:
@@ -293,3 +294,7 @@ def features_db(data, Fs=float(700)):
         raise ValueError(f"Two features have the same name")
     
     return features
+
+# all_data = load_dict(os.path.join(dir_path, "Raw_data", "raw_data.pkl"))
+# features = features_db(all_data)
+# save_features(features, os.path.join(dir_path, "Features_out", "features"))

@@ -4,19 +4,16 @@ import os
 from scipy.signal import butter, filtfilt, get_window, sosfiltfilt
 from scipy.ndimage import uniform_filter1d
 from scipy.signal import butter, iirnotch, lfilter
-import feat_gen as feat_gen
 import scipy
 import matplotlib.pyplot as plt
 import tqdm
 from sklearn.preprocessing import minmax_scale as normalize
 import neurokit2 as nk
 
-import ECG as ECG
-import BR as BR
-from feat_head import split_time
+from Features import ECG
+from Features import BR
+from Features.feat_head import split_time
 
-
-dir_path = os.path.dirname(os.path.realpath(__file__))
 
 def spider_data(folderpath):
     """
@@ -307,10 +304,9 @@ def compare_methods(dataset, methods=["control", "vangent2019", "soni2019", "cha
     plt.show()
 
 
-
-data = spider_data(os.path.join(dir_path, "spiderfearful"))
-compare_methods(data, example=False, T=60)
-# determine_RR_accuracy(data, method = "vangent2019")
+dirpath = (os.path.dirname(os.path.realpath(__file__)))
+data = spider_data(os.path.join(dirpath, "spiderfearful"))
+compare_methods(data)
 
 
 # RR = d["BR"][0:2500]
