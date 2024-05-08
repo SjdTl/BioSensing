@@ -84,3 +84,4 @@ def import_all(subject, COMport = '/dev/ttyACM0'):
             output_file.close()
         except:
             pass
+'''

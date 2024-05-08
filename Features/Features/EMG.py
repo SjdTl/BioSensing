@@ -3,7 +3,7 @@ import pandas as pd
 import os
 from scipy.signal import butter, filtfilt
 
-import feat_gen as feat_gen
+from . import feat_gen 
 
 def EMG(unprocessed_emg, fs = 700):
     """
@@ -49,7 +49,7 @@ def EMG(unprocessed_emg, fs = 700):
 
     df_specific = EMG_specific_features(emg)
     # General features contain mean emg, but this has no meaning in the case of emg
-    df_general = feat_gen.basic_features(emg, "emg")
+    df_general = feat_gen.basic_features(emg, "EMG")
 
     features = pd.concat([df_specific, df_general], axis=1)
 
@@ -82,24 +82,20 @@ def EMG_specific_features(emg):
     Notes
     -----
     """
+
+    out_dict = {}
     # Waveform length
-    WL = np.sum(emg[1:]-emg[:-1])
+    out_dict["WL"] = np.sum(emg[1:]-emg[:-1])
     # SLope sign change
     epsilon = 100 * 10**(-6) # should be changed someday
-    SSC = np.count_nonzero((emg[1:-1]-emg[:-2])*(emg[1:-1]-emg[2:]) > epsilon)
+    out_dict["SSC"] = np.count_nonzero((emg[1:-1]-emg[:-2])*(emg[1:-1]-emg[2:]) > epsilon)
     # Overall muscle activity level: RMS is a measure of the amplitude of the EMG signal and reflects the overall muscle activity level
-    MAL = feat_gen.rms(emg)
+    out_dict["MAL"] = feat_gen.rms(emg)
     # MAV represents the average absolute amplitude of the EMG signal and is sensitive to muscle contraction intensity
-    MCI = np.mean(np.abs(emg))
-
-    # Create dictionary
-    features = {"WL_emg" : [WL], 
-                "SSC_emg" : [SSC],
-                "MAL_emg" : [MAL],
-                "MCI_emg" : [MCI]}
+    out_dict["MCI"] = np.mean(np.abs(emg))
     
     # Turn dictionary into pd.DataFrame and return
-    return pd.DataFrame(features)
+    return pd.DataFrame.from_dict(out_dict, orient="index").T.add_prefix("EMG_")
 
 def preProcessing(emg, fs=700):
     """
@@ -206,33 +202,3 @@ def butter_bandpass_filter(data, lowcut, highcut, fs, order=4):
     y = filtfilt(b,a, data)
     return y
 
-def test(filepath):
-    """
-    Description
-    -----------
-    Function to test the signal, without having to call the entire database. Please use this function when looking for data to plot for the report.
-    
-    Parameters
-    ----------
-    Filepath: string
-        Filepath to the test signal. This should be a pickled dictionary with the following format:
-            dict = {EDA: [..]
-                    EMG: [..]
-                    ECG: [..]}
-        Each signal is of one person, one label and includes only a small timeframe
-    Returns
-    -------
-    df: pd.DataFrame
-        Dataframe containing the features 
-        
-    """
-    emg = feat_gen.load_test_data("EMG", filepath)
-
-    feat_gen.quick_plot(envolope_emg(emg))
-
-    df = EMG(emg, 700)
-    return df
-
-# dir_path = os.path.dirname(os.path.realpath(__file__))
-# filepath = os.path.join(dir_path, "Raw_data", "raw_small_test_data.pkl")
-# print(test(filepath))
