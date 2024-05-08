@@ -3,9 +3,10 @@ import pandas as pd
 import os
 from scipy.signal import butter, filtfilt, get_window, sosfiltfilt
 from scipy.ndimage import uniform_filter1d
-import feat_gen as feat_gen
 import scipy
 import matplotlib.pyplot as plt
+
+from . import feat_gen
 
 def EDA(eda, fs):
     """
@@ -92,7 +93,7 @@ def preProcessing(unprocessed_eda, fs=700):
     order = 4
     cutoff = 5
     b, a = butter(N = order, Wn = cutoff, fs = fs)
-    
+
     lowpass_eda = filtfilt(b, a, unprocessed_eda)
 
     # Using a one dimentional uniform filter scipy.ndimage.uniform_filter1d() with mode='nearest' and for size (length of the uniform filter) you can use 75% of the sampling rate.

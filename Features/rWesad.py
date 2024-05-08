@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy.signal
 import scipy.ndimage
+import tqdm
 
 import os
 import pickle
@@ -47,7 +48,7 @@ class read_data_of_one_subject:
         self.wrist_sensor_keys = ['ACC', 'BVP', 'EDA', 'TEMP']
         #os.chdir(path)
         #os.chdir(subject)
-        with open(os.path.join(path,"S"+str(2),"S"+str(2)+".pkl"), "rb") as file:
+        with open(os.path.join(path,"S"+str(subject),"S"+str(subject)+".pkl"), "rb") as file:
             data = pickle.load(file, encoding='latin1')
         self.data = data
 
@@ -116,7 +117,7 @@ def create_pickle(WESAD_path):
     # Labels: 1-4
     # Data: EMG, ECG, EDA of the chest
     # Other data (for now) not used
-    for subject in subjects:
+    for subject in tqdm.tqdm(subjects):
         cdata = read_data_of_one_subject(WESAD_path, subject)
         labels = cdata.get_labels()
 
@@ -125,7 +126,9 @@ def create_pickle(WESAD_path):
         EMG = cdata.get_chest_data()['EMG'][used_labels,0]
         ECG = cdata.get_chest_data()['ECG'][used_labels,0]
         EDA = cdata.get_chest_data()['EDA'][used_labels,0]
+
         data[subject] = {"EMG" : EMG, "ECG" : ECG, "EDA" : EDA, "labels" : labels[used_labels]}
+        cdata=None
 
     with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), "Raw_data","raw_data.pkl"), 'wb') as handle:
         pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
