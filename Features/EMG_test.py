@@ -23,7 +23,7 @@ def test(filepath):
     """
     emg = feat_gen.load_test_data("EMG", filepath)
 
-    feat_gen.quick_plot(emg, preProcessing(emg), envolope_emg(emg))
+    feat_gen.quick_plot(emg)
 
     df = EMG(emg, 700)
     return df

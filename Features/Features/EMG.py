@@ -47,7 +47,7 @@ def EMG(unprocessed_emg, fs = 700):
 
     emg = preProcessing(unprocessed_emg, fs)
 
-    df_specific = EMG_specific_features(emg)
+    df_specific = EMG_specific_features(emg, fs)
     # General features contain mean emg, but this has no meaning in the case of emg
     df_general = feat_gen.basic_features(emg, "EMG")
 
@@ -58,11 +58,17 @@ def EMG(unprocessed_emg, fs = 700):
         raise ValueError("The feature array of EMG contains a NaN value")
     return features
 
-def EMG_specific_features(emg):
+def EMG_specific_features(emg, fs=700):
     """
     Description
     -----------
     Calculate features specific to emg signal
+    Features obtained from:
+        Feature reduction and selection for EMG signal classification
+        Angkoon Phinyomark, 
+        Pornchai Phukpattaranont, 
+        Chusak Limsakul
+    https://www.sciencedirect.com/science/article/pii/S0957417412001200?via%3Dihub
 
     Parameters
     ----------
@@ -83,6 +89,17 @@ def EMG_specific_features(emg):
     -----
     """
 
+    df_time = timeDomain_features(emg, fs)
+    df_freq = freqDomain_features(emg, fs)
+    
+    features = pd.concat([df_time, df_freq], axis=1)
+    
+    # Turn dictionary into pd.DataFrame and return
+    return features
+
+def timeDomain_features(emg, fs):
+    """See EMG_specific_features()"""
+
     out_dict = {}
     # Waveform length
     out_dict["WL"] = np.sum(emg[1:]-emg[:-1])
@@ -93,8 +110,11 @@ def EMG_specific_features(emg):
     out_dict["MAL"] = feat_gen.rms(emg)
     # MAV represents the average absolute amplitude of the EMG signal and is sensitive to muscle contraction intensity
     out_dict["MCI"] = np.mean(np.abs(emg))
-    
-    # Turn dictionary into pd.DataFrame and return
+    return pd.DataFrame.from_dict(out_dict, orient="index").T.add_prefix("EMG_")
+
+def freqDomain_features(emg, fs):
+    """See EMG_specific_features()"""
+    out_dict = {}
     return pd.DataFrame.from_dict(out_dict, orient="index").T.add_prefix("EMG_")
 
 def preProcessing(emg, fs=700):
@@ -126,10 +146,9 @@ def preProcessing(emg, fs=700):
     """
 
     # Apply bandpass filter (10-300 Hz):
-    filtered_emg = butter_bandpass_filter(emg, 10, 300, fs, 4)
-    # Correct baseline
-    baseline = np.mean(filtered_emg)
-    return filtered_emg - baseline
+    filtered_emg = butter_bandpass_filter(emg, 10, 300, fs, 5)
+    # Baseline correction is useless with a bandpass or highpass filter
+    return filtered_emg 
 
 def envolope_emg(emg, fs=700):
     """

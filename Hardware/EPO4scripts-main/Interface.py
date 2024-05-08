@@ -19,7 +19,14 @@ def main(argv):
          print('-p <input_file.csv> or --plot <inputfile.csv>       only plot the data currently saved in input_file.csv')
          sys.exit()
       elif opt in ("-i", "--import"):
-         ImportData.import_all(arg)
+         num = 0
+         while True:
+            subject = input()
+            if(subject == "exit"):
+               break
+            else:
+               ImportData.import_all("S"+str(num),arg)
+            num += 1
       elif opt in ("-p", "--plot"):
          if(".csv" in arg):
             plotData.plot_data(arg)
