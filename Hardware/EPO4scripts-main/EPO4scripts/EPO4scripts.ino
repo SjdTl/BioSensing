@@ -8,6 +8,8 @@ struct Data {
   unsigned long Timestamp;
   uint16_t ECG;
   uint16_t GSR;
+  uint16_t EMG;
+  uint16_t label;
 } testData;
 
 void setup() {
@@ -16,6 +18,8 @@ void setup() {
   testData.Timestamp = 0;
   testData.ECG = 0;
   testData.GSR = 0;
+  testData.EMG = 0;
+  testData.label = 0;
 }
 
 void loop() {
@@ -32,4 +36,3 @@ void loop() {
   testData.Timestamp += 1;
 
 }
-
