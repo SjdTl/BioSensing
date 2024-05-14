@@ -2,6 +2,7 @@
 import os as os
 
 from Features.Features import feat_head
+from Classification import class_head
 
 classify = False
 
@@ -17,3 +18,8 @@ feat_head.save_features(features, os.path.join(dir_path, "Features", "Features_o
 if classify == True:
     a=1
 # Pass over to classification
+
+# Train test split
+X_train, Y_train, x_test, y_test = class_head.train_test_split(features_data=features, num_subjects=15, test_percentage=0.7)
+# Fit data
+class_head.fit_predict_evaluate(X_train, Y_train, x_test, y_test)
