@@ -6,6 +6,9 @@ import numpy as np
 from scipy.stats import mode
 import pickle
 import matplotlib.pyplot as plt
+import random
+
+from .feat_head import split_time
 
 def basic_features(signal, name):
     """
@@ -52,28 +55,43 @@ def basic_features(signal, name):
     
     return pd.DataFrame.from_dict(features, orient="index").T.add_prefix(name + "_")
 
-def load_test_data(signal, filename):
+def load_test_data(signal, filename, T=60, fs=700, label=1):
     """
     Description
     -----------
-    Load the smaller dataset (subject S2, label=1, 60s frame) for testing the feature extractions.
+    Load a random small part of the dataset for testing
     
     Parameters
     ----------
     signal : string
          Return ECG, EDA or EMG based on this string
     filename : string
-        Path to the smaller dataset. If this is provided by the read_WESAD.py script, the file is in the Features/Raw_data/raw_small_test_data.pkl
+        Path to the (WESAD) dataset in a dictionary. If this is provided by the read_WESAD.py script, the file is in the Features/Raw_data/raw_data,pkl
+    T : int
+        Time of the window
+    f : int or float
+        Sampling frequency
+    label : int
+        The label that the data should have (1 : baseline, 2: ...)
+    
          
     Returns
     -------
     out : np.array
-         np.array containing a signal ECG, EDA or EMG of 60s
+         np.array containing a signal ECG, EDA or EMG of T s
     """
-    
+
     with open(filename, 'rb') as f:
         out = pickle.load(f)
-    return out[signal]
+
+    data_from_random_subject = random.choice(list(out.values()))
+
+    label_array = np.asarray([idx for idx,val in enumerate(data_from_random_subject["labels"]) if val == label])
+    sig = data_from_random_subject[signal][label_array]
+
+    splitted_data = split_time(np.array([sig]), fs, T)[0]
+    random_index = np.random.randint(low=0, high = splitted_data.shape[0]-1, size=1)
+    return splitted_data[random_index][0]
 
 def rms(x):
   """

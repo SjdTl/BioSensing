@@ -22,12 +22,11 @@ def test(filepath):
         
     """
     emg = feat_gen.load_test_data("EMG", filepath)
-
-    feat_gen.quick_plot(emg, preProcessing(emg))
+    feat_gen.quick_plot(emg, preProcessing(emg), envolope_emg(preProcessing(emg)))
 
     df = EMG(emg, 700)
     return df
 
-dir_path = os.path.dirname(os.path.realpath(__file__))
-filepath = os.path.join(dir_path, "Raw_data", "raw_small_test_data.pkl")
-print(test(filepath))
+# dir_path = os.path.dirname(os.path.realpath(__file__))
+# filepath = os.path.join(dir_path, "Raw_data", "raw_data.pkl")
+# print(test(filepath))

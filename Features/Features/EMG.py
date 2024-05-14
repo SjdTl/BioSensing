@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import os
 from scipy.signal import butter, filtfilt
+from scipy.signal import butter, iirnotch, lfilter
 
 from . import feat_gen 
 
@@ -70,6 +71,9 @@ def EMG_specific_features(emg, fs=700):
         Chusak Limsakul
     https://www.sciencedirect.com/science/article/pii/S0957417412001200?via%3Dihub
 
+    The features are added in the same order as mentioned in the article. Some features are ignored and 
+    this is mentioned in the comments
+
     Parameters
     ----------
     emg : np.array
@@ -99,23 +103,67 @@ def EMG_specific_features(emg, fs=700):
 
 def timeDomain_features(emg, fs):
     """See EMG_specific_features()"""
+    N = emg.size
+    threshold = 100 * 10**-6  # Recommendation is between 50 muV and 100 mV (2.1.18 in Feature reduction and selection for EMG signal classification Angkoon Phinyomark ⇑, Pornchai Phukpattaranont, Chusak Limsakul)
+    dif_emg = np.diff(emg) # often used
 
     out_dict = {}
     # Integrated EMG
     out_dict["IEMG"] = np.sum(np.abs(emg))
+
     # Mean absolute value
-    out_dict["MAV"] = np.sum(np.abs(emg)) / emg.size
+    out_dict["MAV"] = np.sum(np.abs(emg)) / N
+
     # Modified mean absolute value type 1
-    # out_dict["MAV1"] = 
+    # Add a weighted window function w1 to improve the robustness of the MAV feature
+    w2 = 0.5 * np.ones(int(N/4))
+    # Done like this instead of int(N/2) to prevent rounding errors
+    w1 = 1 * np.ones(N-2*w2.size)
+    w = np.concatenate([w2, w1, w2])
+    out_dict["MAV1"] = np.sum(w * np.abs(emg)) / N
+
+    # Modified mean absolute value type 2
+    w1 = np.arange(0, 1, 4/N)
+    w2 = np.ones(N - 2*w1.size)
+    w = np.concatenate([w1, w2, np.flip(w1)])
+    
+    out_dict["MAV2"] = np.sum(w * np.abs(emg)) / N
+
+    # Simple square integral is the same as variance
+    # Variance is already in basic_features()
+
+    # And the absolute value of the moments
+    out_dict["TM3"] = np.abs(np.sum(emg**3)/N)
+    out_dict["TM4"] = np.abs(np.sum(emg**4)/N)
+    out_dict["TM5"] = np.abs(np.sum(emg**5)/N)
+    
+    # RMS is already in the basic_features()
+
+    # v-order is practically the same as RMS in the optimal case (v=2)
+
+    # Log detector
+    out_dict["LOG"] = np.exp(  (np.sum(np.log(np.abs(emg))))/N  )
+ 
     # Waveform length
-    out_dict["WL"] = np.sum(emg[1:]-emg[:-1])
+    out_dict["WL"] = np.sum(np.abs(dif_emg))
+
+    # Average amplitude change is the same as the waveform length
+
+    # Difference absolute standard deviation value
+    out_dict["DASDV"] = np.sqrt(  np.sum(dif_emg**2) / (N-1)  )
+
+    # Myopulse rate
+    out_dict["MYOP"] = np.count_nonzero(np.abs(emg) > threshold) / N
+
+    # Willison amplitude
+    out_dict["WAMP"] = np.count_nonzero(np.abs(dif_emg)> threshold)
+
     # SLope sign change
-    epsilon = 100 * 10**(-6) # should be changed someday
-    out_dict["SSC"] = np.count_nonzero((emg[1:-1]-emg[:-2])*(emg[1:-1]-emg[2:]) > epsilon)
+    out_dict["SSC"] = np.count_nonzero((emg[1:-1]-emg[:-2])*(emg[1:-1]-emg[2:]) > threshold)
+
     # Overall muscle activity level: RMS is a measure of the amplitude of the EMG signal and reflects the overall muscle activity level
-    out_dict["MAL"] = feat_gen.rms(emg)
-    # MAV represents the average absolute amplitude of the EMG signal and is sensitive to muscle contraction intensity
-    out_dict["MCI"] = np.mean(np.abs(emg))
+    out_dict["RMS"] = feat_gen.rms(emg)
+
     return pd.DataFrame.from_dict(out_dict, orient="index").T.add_prefix("EMG_")
 
 def freqDomain_features(emg, fs):
@@ -156,6 +204,7 @@ def preProcessing(emg, fs=700):
     # Apply bandpass filter (10-300 Hz):
     filtered_emg = butter_bandpass_filter(emg, 10, 300, fs, 5)
     # Baseline correction is useless with a bandpass or highpass filter
+    # No powerline interference removal, since there are valuable signals there 
     return filtered_emg 
 
 def envolope_emg(emg, fs=700):
