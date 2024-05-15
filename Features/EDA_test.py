@@ -22,24 +22,22 @@ def test(filepath):
         
     """
 
-    dir_path = os.path.dirname(os.path.realpath(__file__))
-    filename = os.path.join(dir_path, "Raw_data", "raw_small_test_data.pkl")
-    eda = feat_gen.load_test_data("EDA", filename)
+    eda = feat_gen.load_test_data("EDA", filepath)
 
     # Comparing raw and preprocessed
     preprocessed_eda = preProcessing(eda)
-    # feat_gen.quick_plot(eda, preprocessed_eda)
+    feat_gen.quick_plot(eda, preprocessed_eda)
 
     # Comparing tonic, phasic and processed
     phasic, tonic = split_phasic_tonic(preprocessed_eda)
-    # feat_gen.quick_plot(preprocessed_eda, phasic, tonic)
+    feat_gen.quick_plot(preprocessed_eda, phasic, tonic)
 
     # Test peak detection
-    # peak_detection(phasic, plot=True)
+    peak_detection(phasic, plot=True)
 
     df = EDA(eda, 700)
     return df
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
-filepath = os.path.join(dir_path, "Raw_data", "raw_small_test_data.pkl")
+filepath = os.path.join(dir_path, "Raw_data", "raw_data.pkl")
 print(test(filepath))

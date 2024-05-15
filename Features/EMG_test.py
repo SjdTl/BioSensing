@@ -25,20 +25,7 @@ def test(filepath):
         
     """
     emg = feat_gen.load_test_data("EMG", filepath)
-    # feat_gen.quick_plot(emg, preProcessing(emg), envolope_emg(preProcessing(emg)))
-    feat_gen.quick_plot(preProcessing(emg))
-
-    yf = fft(emg)
-    xf = fftfreq(emg.size, 1 / 700)
-
-    plt.plot(xf, 10 * np.log10(np.abs(yf)))
-    plt.show()
-
-    yf = fft(preProcessing(emg))
-
-    plt.plot(xf, 10 * np.log10(np.abs(yf)))
-    plt.savefig(os.path.join(dir_path, "test.svg"))
-
+    feat_gen.quick_plot(emg, preProcessing(emg), envolope_emg(preProcessing(emg)))
     df = EMG(emg, 700)
     return df
 
@@ -113,4 +100,4 @@ def EMG_figures(filepath, T =4):
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 filepath = os.path.join(dir_path, "Raw_data", "raw_data.pkl")
-EMG_figures(filepath)
+print(test(filepath))
