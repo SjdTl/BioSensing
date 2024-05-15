@@ -266,7 +266,7 @@ def evaluate(y_test, y_pred):
     >>>
     """
     accuracy = accuracy_score(y_test, y_pred)
-    fone = f1_score(y_test, y_pred)
+    fone = f1_score(y_test, y_pred, labels=[1,2,3,4], average="micro")
     return accuracy, fone
 
 def importances(model, classifier="RandomForest"):
