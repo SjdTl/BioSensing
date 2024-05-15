@@ -12,7 +12,7 @@ def test(filepath):
     ----------
     Filepath: string
         Filepath to the test signal. This should be a pickled dictionary with the following format:
-            dict = {EDA: [..]
+            dict = {EDA: [..]d
                     EMG: [..]
                     ECG: [..]}
         Each signal is of one person, one label and includes only a small timeframe

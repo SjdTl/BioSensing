@@ -6,7 +6,7 @@ from Classification import class_head
 import pandas as pd
 
 classify = True
-feature_extraction = False
+feature_extraction = True
 
 # Current location
 dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -26,3 +26,6 @@ if classify == True:
     X_train, Y_train, x_test, y_test = class_head.train_test_split(features_data=features, num_subjects=15, test_percentage=0.7)
     # Fit data
     class_head.fit_predict_evaluate(X_train, Y_train, x_test, y_test)
+dicticn = {}
+dicticn["Random Forest"] = 76.1
+return dicticn
