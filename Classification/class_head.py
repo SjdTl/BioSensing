@@ -102,7 +102,7 @@ def train_test_split(features_data, num_subjects=15, test_percentage=0.7):
     
     Notes
     -----
-    In cleaning of data random feature is droped and subjects are renumbered so split is easier will have to change if training on own data
+    In cleaning of data random feature is droped and subjects are renumbered so split is easier, will have to change if training on own data
 
     Examples
     --------
