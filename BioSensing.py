@@ -26,6 +26,3 @@ if classify == True:
     X_train, Y_train, x_test, y_test = class_head.train_test_split(features_data=features, num_subjects=15, test_percentage=0.7)
     # Fit data
     class_head.fit_predict_evaluate(X_train, Y_train, x_test, y_test)
-dicticn = {}
-dicticn["Random Forest"] = 76.1
-return dicticn

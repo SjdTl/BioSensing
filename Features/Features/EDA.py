@@ -114,7 +114,7 @@ def preProcessing(unprocessed_eda, fs=700):
 
     return eda
 
-def split_phasic_tonic(eda, fs = 700, order = 5):
+def split_phasic_tonic(eda, fs = 700, order = 10):
     """
     Description
     -----------
@@ -152,7 +152,6 @@ def split_phasic_tonic(eda, fs = 700, order = 5):
     --------
     >>>
     """
-    order=5
     freqs=0.05 #Hz
     sos = butter(N = order, Wn = freqs, fs = fs, btype = 'highpass', output="sos")
     phasic= sosfiltfilt(sos, eda)
