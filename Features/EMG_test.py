@@ -1,5 +1,8 @@
 import os
 from Features.EMG import *
+from scipy.fft import fft, fftfreq
+from scipy.signal import freqz, butter, freqs
+import matplotlib.pyplot as plt
 
 def test(filepath):
     """
@@ -22,11 +25,84 @@ def test(filepath):
         
     """
     emg = feat_gen.load_test_data("EMG", filepath)
-    feat_gen.quick_plot(emg, preProcessing(emg), envolope_emg(preProcessing(emg)))
+    # feat_gen.quick_plot(emg, preProcessing(emg), envolope_emg(preProcessing(emg)))
+    feat_gen.quick_plot(preProcessing(emg))
+
+    yf = fft(emg)
+    xf = fftfreq(emg.size, 1 / 700)
+
+    plt.plot(xf, 10 * np.log10(np.abs(yf)))
+    plt.show()
+
+    yf = fft(preProcessing(emg))
+
+    plt.plot(xf, 10 * np.log10(np.abs(yf)))
+    plt.savefig(os.path.join(dir_path, "test.svg"))
 
     df = EMG(emg, 700)
     return df
 
-# dir_path = os.path.dirname(os.path.realpath(__file__))
-# filepath = os.path.join(dir_path, "Raw_data", "raw_data.pkl")
-# print(test(filepath))
+def EMG_figures(filepath, T =4):
+    """Plots used for the processing flowchart in chapter four"""
+    fs=700
+    emg = feat_gen.load_test_data("EMG", filepath, T=T)
+
+    # EMG unprocessed timedomain
+    fig, ax = plt.subplots()
+
+    ax.plot(np.linspace(0,T, fs*T), emg*1000)
+    ax.set_xlabel("Time [$s$]")
+    ax.set_ylabel("Voltage [$mV$]")
+
+    fig.savefig(os.path.join(dir_path, "plots", "EMG_plots", "emg_unprocessed_td.svg"))
+
+    # EMG processed timedomain
+    processed_emg, b, a = preProcessing(emg, return_filter = True)
+    fig, ax = plt.subplots()
+
+    ax.plot(np.linspace(0,T, fs*T), processed_emg*1000, color= 'green')
+    ax.set_xlabel("Time [$s$]")
+    ax.set_ylabel("Voltage [$mV$]")
+
+    fig.savefig(os.path.join(dir_path, "plots", "EMG_plots", "emg_processed_td.svg"))
+
+    # Butterworth
+    w, h = freqz(b, a, fs=fs)
+
+    fig, ax = plt.subplots()
+    ax.semilogx(w, 20 * np.log10(abs(h)))
+    ax.set_xlabel('Frequency [radians / second]')
+    ax.set_ylabel('Amplitude [dB]')
+    ax.set_xlim(xmax = fs/2)
+    ax.set_ylim(ymin = -100)
+    ax.grid(which='both', axis='both')
+    fig.savefig(os.path.join(dir_path, "plots", "EMG_plots", "emg_butterworth.svg"))
+
+    # EMG unprocessed frequency domain
+    yf = fft(emg)
+    xf = fftfreq(emg.size, d= 1/fs)
+
+    fig, ax = plt.subplots()
+
+    ax.plot(xf, 10 * np.log10(np.abs(yf)))
+    ax.set_xlabel("Frequency [$Hz$]")
+    ax.set_ylabel("Amplitude [dB]")
+    ax.set_ylim(ymin = -15)
+
+    # EMG processed frequency domain
+    yf = fft(processed_emg)
+
+    fig, ax = plt.subplots()
+
+    ax.plot(xf, 10 * np.log10(np.abs(yf)), color= 'green')
+    ax.set_xlabel("Frequency [$Hz$]")
+    ax.set_ylabel("Amplitude [dB]")
+    ax.set_ylim(ymin = -15)
+
+    fig.savefig(os.path.join(dir_path, "plots", "EMG_plots", "emg_processed_fd.svg"))
+
+
+
+dir_path = os.path.dirname(os.path.realpath(__file__))
+filepath = os.path.join(dir_path, "Raw_data", "raw_data.pkl")
+EMG_figures(filepath)

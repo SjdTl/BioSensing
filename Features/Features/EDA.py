@@ -3,7 +3,6 @@ import pandas as pd
 import os
 from scipy.signal import butter, filtfilt, get_window, sosfiltfilt
 from scipy.ndimage import uniform_filter1d
-import scipy
 import matplotlib.pyplot as plt
 
 from . import feat_gen

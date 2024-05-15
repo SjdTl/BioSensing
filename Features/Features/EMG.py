@@ -171,13 +171,12 @@ def freqDomain_features(emg, fs):
     out_dict = {}
     return pd.DataFrame.from_dict(out_dict, orient="index").T.add_prefix("EMG_")
 
-def preProcessing(emg, fs=700):
+def preProcessing(emg, fs=700, return_filter = False):
     """
     Description
     -----------
     Preprocessing of EMG signal by bandpass filtering and removing DC value
         - Lowpass is for removing the DC value. This DC value is present due in the sensors (see report) and because muscle activity is between these values (see citation)
-        - Highpass is because we can
 
     Parameters
     ----------
@@ -202,12 +201,18 @@ def preProcessing(emg, fs=700):
     """
 
     # Apply bandpass filter (10-300 Hz):
-    filtered_emg = butter_bandpass_filter(emg, 10, 300, fs, 5)
+    lowcut = 10
+    highcut = 300
+    filtered_emg = butter_bandpass_filter(emg, lowcut, highcut, fs, 5)
     # Baseline correction is useless with a bandpass or highpass filter
     # No powerline interference removal, since there are valuable signals there 
-    return filtered_emg 
+    if return_filter == False:
+        return filtered_emg
+    else:
+        b, a = butter_bandpass(lowcut, highcut, fs)
+        return filtered_emg, b, a
 
-def envolope_emg(emg, fs=700):
+def envolope_emg(emg, fs=700, return_filter = False):
     """
     Description
     -----------
@@ -236,7 +241,10 @@ def envolope_emg(emg, fs=700):
     low_pass= 3 /(fs/2)
     b2, a2 = butter(4, low_pass, btype='low')
     emg_envelope = filtfilt(b2, a2, emg_rec)
-    return emg_envelope
+    if return_filter == False:
+        return emg_envelope
+    else:
+        return emg_envelope, b2, a2
 
 def butter_bandpass(lowcut, highcut, fs, order=4):
     """
