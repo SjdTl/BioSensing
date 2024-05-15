@@ -150,7 +150,7 @@ def get_features(ecg, eda, emg, fs):
     rr_features = RR.RR(ecg, fs)
 
     # Combine features
-    features = pd.concatenate([ecg_features, eda_features, emg_features, rr_features], axis=1)
+    features = pd.concat([ecg_features, eda_features, emg_features, rr_features], axis=1)
 
     # Errors
     if features.shape[0] != 1:

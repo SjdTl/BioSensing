@@ -31,5 +31,5 @@ def test(filepath):
     return df
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
-filepath = os.path.join(dir_path, "Raw_data", "raw_small_test_data.pkl")
+filepath = os.path.join(dir_path, "Raw_data", "raw_data.pkl")
 print(test(filepath))

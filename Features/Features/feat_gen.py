@@ -8,8 +8,6 @@ import pickle
 import matplotlib.pyplot as plt
 import random
 
-from .feat_head import split_time
-
 def basic_features(signal, name):
     """
     Description
@@ -54,6 +52,52 @@ def basic_features(signal, name):
     features["Mode"] = most_common
     
     return pd.DataFrame.from_dict(features, orient="index").T.add_prefix(name + "_")
+
+def split_time(data, Fs, t=60):
+    """
+    Description
+    -----------
+    Splits up the input in smaller pieces, according to a certain length in seconds. 
+
+    Parameters
+    ----------
+    data : np.arrays in np.array
+        Contains the signals that need to be splitted, e.g. data = [ECG, EDA, EMG], where each entry is another array
+    Fs : int or float
+        Sampling rate of the signals in array data
+    t : int or float (standard 60 s)
+        Desired time in seconds per timeframe. Standard is taken at 60 seconds as in the WESAD study.
+
+    Returns
+    -------
+    out : 
+        data array but with its entries splitted 
+
+    Notes
+    -----
+    Data at the edges that does not fit within a timeframe is removed.
+    Make sure the entries in data are the same size (perhaps add a ValueError)
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> a = np.array([np.arange(0,50),np.arange(50,100)])
+    >>> b = split_time(a, 10, 1.9)
+    >>> print(f"a = {a}")
+    >>> print(f"b = {b}")
+    a = [[ 0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23
+    24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47
+    48 49]
+    [50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73
+    74 75 76 77 78 79 80 81 82 83 84 85 86 87 88 89 90 91 92 93 94 95 96 97
+    98 99]]
+    b = [[[ 0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18] [19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37]]
+    [[50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68] [69 70 71 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87]]]
+    """
+    size_of_split = Fs * t
+    total_size = data.shape[1]
+    amount_of_splits = total_size/size_of_split
+    return np.array(np.split(data[:,:int(np.floor(amount_of_splits)*size_of_split)], int(np.floor(amount_of_splits)), axis=1)).transpose(1,0,2)
 
 def load_test_data(signal, filename, T=60, fs=700, label=1):
     """
