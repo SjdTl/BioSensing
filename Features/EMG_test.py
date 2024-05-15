@@ -43,7 +43,15 @@ def test(filepath):
     return df
 
 def EMG_figures(filepath, T =4):
-    """Plots used for the processing flowchart in chapter four"""
+    """
+    Plots used for the processing flowchart in chapter four
+    Returns five plots:
+        - Unprocessed and processed EMG signal in the timedomain
+        - Unprocessed and processed EMG signal in the frequency domain
+        - Plot of the filter used to process
+    The code is connected to the EMG such that changing some parameters their would simply 
+    require this to run again to obtain the updated plots (with different cutoff frequencies e.g.)
+    """
     fs=700
     emg = feat_gen.load_test_data("EMG", filepath, T=T)
 
