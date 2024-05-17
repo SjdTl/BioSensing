@@ -14,8 +14,8 @@ def import_all(subject, COMport = '/dev/ttyACM0'):
         print(f"link status: {link.status}")
         print('Stop data collection by keyboard interrupt (ctrl+c)')
         
-        header = ['TimeStamp', 'ECG Data', 'GSR Data', 'label']
-        data = [0,0,0,0]
+        header = ['TimeStamp', 'ECG Data', 'EMG Data', 'GSR Data', 'label']
+        data = [0,0,0,0,0]
 
         output_file = open('data' + subject + '.csv', 'w')
         writer = csv.writer(output_file)
@@ -52,12 +52,16 @@ def import_all(subject, COMport = '/dev/ttyACM0'):
             data[1] = link.rx_obj(obj_type='H', start_pos=recSize)
             recSize += txfer.STRUCT_FORMAT_LENGTHS['H']
 
-            # Import GSR data from serial connection
+            # Import EMG data from serial connection
             data[2] = link.rx_obj(obj_type='H', start_pos=recSize)
             recSize += txfer.STRUCT_FORMAT_LENGTHS['H']
             
+            # Import GSR data from serial connection
+            data[3] = link.rx_obj(obj_type='H', start_pos=recSize)
+            recSize += txfer.STRUCT_FORMAT_LENGTHS['H']
+            
             # Import label data from serial connection            
-            data[3] = link.rx_obj(obj_type='L', start_pos=recSize)
+            data[4] = link.rx_obj(obj_type='L', start_pos=recSize)
             recSize += txfer.STRUCT_FORMAT_LENGTHS['L']
         
             
@@ -84,4 +88,3 @@ def import_all(subject, COMport = '/dev/ttyACM0'):
             output_file.close()
         except:
             pass
-'''
