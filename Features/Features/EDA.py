@@ -90,12 +90,13 @@ def preProcessing(unprocessed_eda, fs=700):
     --------
     >>>
     """
+
+    # Lowpass
     order = 4
     cutoff = 5
-    b, a = butter(N = order, Wn = cutoff, fs = fs)
+    lowpass_eda = butter_EDA(unprocessed_eda, N=order, cutoff=cutoff, fs=fs)
 
-    lowpass_eda = filtfilt(b, a, unprocessed_eda)
-
+    # 
     # Using a one dimentional uniform filter scipy.ndimage.uniform_filter1d() with mode='nearest' and for size (length of the uniform filter) you can use 75% of the sampling rate.
     size = int(0.75 * fs)
     eda_sm0 = uniform_filter1d(lowpass_eda, size, mode="nearest")
@@ -113,6 +114,11 @@ def preProcessing(unprocessed_eda, fs=700):
     eda = eda_sm[size:-size]
 
     return eda
+
+def butter_EDA(eda, N, cutoff, fs=700):
+    """Butterworth filter used by EDA preprocessing"""
+    b,a = butter(N = N, Wn = cutoff, fs= fs)
+    return filtfilt(b, a, eda)
 
 def split_phasic_tonic(eda, fs = 700, order = 10):
     """

@@ -6,7 +6,7 @@ from Classification import class_head
 import pandas as pd
 
 classify = True
-feature_extraction = True
+feature_extraction = False
 
 # Current location
 dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -18,7 +18,7 @@ if feature_extraction == True:
     # Intermediate save
     feat_head.save_features(features, os.path.join(dir_path, "Features", "Features_out", "features"))
 else:
-    filename = os.path.join(dir_path, "Features", "Features_out", "features_3.pkl")
+    filename = os.path.join(dir_path, "Features", "Features_out", "features_4.pkl")
     features = pd.read_pickle(filename)
 
 if classify == True:
