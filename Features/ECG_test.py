@@ -12,7 +12,7 @@ def test(filepath):
     ----------
     Filepath: string
         Filepath to the test signal. This should be a pickled dictionary with the following format:
-            dict = {EDA: [..]
+            dict = {EDA: [..]d
                     EMG: [..]
                     ECG: [..]}
         Each signal is of one person, one label and includes only a small timeframe
@@ -31,5 +31,5 @@ def test(filepath):
     return df
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
-filepath = os.path.join(dir_path, "Raw_data", "raw_small_test_data.pkl")
+filepath = os.path.join(dir_path, "Raw_data", "raw_data.pkl")
 print(test(filepath))

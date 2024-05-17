@@ -10,12 +10,12 @@ import tqdm
 from . import ECG
 from . import EDA
 from . import EMG
-from . import BR
+from . import RR
 
 
 
 
-def load_dict(filename):
+def load_dict(filepath):
     """
     Description
     -----------
@@ -23,7 +23,7 @@ def load_dict(filename):
 
     Parameters
     ----------
-    filename : string
+    filepath : string
         path to the saved pickle dictionary
     Returns
     -------
@@ -33,10 +33,10 @@ def load_dict(filename):
     Raises
     ------
     FileNotFoundError (native)
-        If provided filename does not exist
+        If provided filepath does not exist
     """
 
-    with open(filename, 'rb') as f:
+    with open(filepath, 'rb') as f:
         out = pickle.load(f)
     return out
 
@@ -116,7 +116,7 @@ def get_features(ecg, eda, emg, fs):
     """
     Description
     -----------
-    Calls ECG.ECG, EDA.EDA and EMG.EMG function, which return the features of their perticular signal in a pandas dataframe, which gets merged and returned
+    Calls ECG.ECG, EDA.EDA, EMG.EMG and RR function, which return the features of their perticular signal in a pandas dataframe, which gets merged and returned
 
     Parameters
     ----------
@@ -147,14 +147,14 @@ def get_features(ecg, eda, emg, fs):
     ecg_features = ECG.ECG(ecg, fs)
     eda_features = EDA.EDA(eda, fs)
     emg_features = EMG.EMG(emg, fs)
-    rr_features = BR.RR(ecg, fs)
+    rr_features = RR.RR(ecg, fs)
 
     # Combine features
     features = pd.concat([ecg_features, eda_features, emg_features, rr_features], axis=1)
 
     # Errors
     if features.shape[0] != 1:
-        raise ValueError("After concating the ECG, EDA and EMG features, a pandas array with more than 1 row emerges")
+        raise ValueError("After concthe ECG, EDA and EMG features, the pandas array has more than 1 row ")
 
     return features
 
@@ -262,18 +262,20 @@ def features_db(data, Fs=float(700)):
         # Loop through labels 1-4 (0 and 5-7 are already removed)
         for label in range(1,5):
             # Take the current label, split into smaller timeframes and find the features 
-            label_array =  np.asarray([idx for idx,val in enumerate(data[subject]["labels"]) if val == label])
+            label_array = np.asarray([idx for idx,val in enumerate(data[subject]["labels"]) if val == label])
             ECG = data[subject]["ECG"][label_array]
             EDA = data[subject]["EDA"][label_array]
             EMG = data[subject]["EMG"][label_array]
             splitted_data = split_time(np.array([ECG, EDA, EMG]), Fs)
-            # Loop through timeframes
-            # >>> print(splitted_data.shape) 
-            # (3, x, Fs * t)
+
             for iframe in range(0, splitted_data.shape[1]):
+                # Get feature of current timeframe
                 current_feature = get_features(splitted_data[0][iframe], splitted_data[1][iframe], splitted_data[2][iframe], Fs)
                 # Add label and subject
-                current_feature = pd.concat([current_feature, pd.DataFrame({'random_feature': np.random.rand(1), 'label': [label], 'subject' : [subject]})], axis=1)
+                current_feature = pd.concat([current_feature, pd.DataFrame({'random_feature': np.random.rand(1), 
+                                                                            'label': [label], 
+                                                                            'subject' : [subject]})], axis=1)
+                # Add to dataframe
                 features = pd.concat([features, current_feature], ignore_index=True)
 
                 df_length += 1
@@ -294,7 +296,3 @@ def features_db(data, Fs=float(700)):
         raise ValueError(f"Two features have the same name")
     
     return features
-
-# all_data = load_dict(os.path.join(dir_path, "Raw_data", "raw_data.pkl"))
-# features = features_db(all_data)
-# save_features(features, os.path.join(dir_path, "Features_out", "features"))

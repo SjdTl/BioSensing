@@ -114,12 +114,11 @@ def preProcessing(unprocessed_eda, fs=700):
 
     return eda
 
-def split_phasic_tonic(eda, fs = 700, order = 5):
+def split_phasic_tonic(eda, fs = 700, order = 10):
     """
     Description
     -----------
-    REMOVE THIS BEFORE END OF ASSIGNMENT!!!!
-    As noted in the manual, the electrodermal activity is made of two components:
+    The electrodermal activity is made of two components:
     phasic and tonic. A very simple approach for decomposing the signal into this 
     two components is by using high and low pass filtering respectively. 
     Use 5th order Butterworth filter with output="sos". and cutoff frequency of 0.05 Hz.
@@ -153,7 +152,6 @@ def split_phasic_tonic(eda, fs = 700, order = 5):
     --------
     >>>
     """
-    order=5
     freqs=0.05 #Hz
     sos = butter(N = order, Wn = freqs, fs = fs, btype = 'highpass', output="sos")
     phasic= sosfiltfilt(sos, eda)
