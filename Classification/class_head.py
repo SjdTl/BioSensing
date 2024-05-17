@@ -369,6 +369,8 @@ def confusion_matirx(model, x_test, y_test):
     plt.xlabel('Predicted label')
     all_sample_title = 'Accuracy Score: {0}'.format(score)
     plt.title(all_sample_title, size = 10)
+    
+    plt.savefig(os.path.join(dir_path, "ConfusionMatrix.svg"))
 
 def fit_predict_evaluate(X_train, Y_train, x_test, y_test, RFC_n_estimators=100, RFC_max_depth=None, KNE_n_neighbors=20, KNE_leaf_size=30, ADA_n_estimators=50, ADA_learning_rate=1, DTC_max_depth=3, LDA_solver="svd", BNB_alpha=1):
     """

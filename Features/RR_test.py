@@ -14,6 +14,7 @@ from Features import ECG
 from Features import RR
 from Features.feat_head import split_time
 
+dirpath = (os.path.dirname(os.path.realpath(__file__)))
 
 def spider_data(folderpath):
     """
@@ -116,36 +117,43 @@ def fft_RR(rr, fs=100):
     plt.show()
 
 
-def plot_spider(ecg, rr, rr_extracted, rr_unprocessed, shift, CC, fs=100):
+def plot_spider(ecg, rr, rr_extracted, rr_unprocessed, shift, CC, method, fs=100):
     # normalize
     rr_extracted = normalize(rr_extracted)
     rr_unprocessed = normalize(rr_unprocessed)
     rr = normalize(rr)
+    ecg = normalize(ecg)
 
     t = np.arange(0, ecg.size * (1/fs), 1/fs)
 
-    fig,ax = plt.subplots(4,1)
+    fig,ax = plt.subplots(4,1, figsize=(10, 15))
 
     ax[0].plot(t, ecg)
     ax[0].set_xlabel("Time ($s$)")
-    ax[0].set_ylabel("ECG ($mV$)")
+    ax[0].set_title("EMG")
+    ax[0].set_ylabel("EMG")
 
     ax[1].plot(t, rr_unprocessed)
     ax[1].set_xlabel("Time ($s$)")
-    ax[1].set_ylabel("Repiration (unprocessed)")
+    ax[1].set_title("Unprocessed RR")
+    ax[1].set_ylabel("RR")
+
 
     ax[2].plot(t, rr)
     ax[2].set_xlabel("Time ($s$)")
-    ax[2].set_ylabel("Respiration (processed)")
+    ax[2].set_title("Processed RR")
+    ax[2].set_ylabel("RR")
 
     rr_ex_shift = np.concatenate((np.zeros(int(shift*fs)), rr_extracted[int(shift * fs):]))
     ax[3].plot(t, rr_ex_shift)
     ax[3].set_xlabel("Time ($s$)")
-    ax[3].set_ylabel("Extracted respiration (shifted)")
+    ax[3].set_title("Extracted RR")
+    ax[3].set_ylabel("RR")
 
-    ax[0].set_title(f"Respiration rate extracted from ecg with an accuracy of {round(CC,2)}")
+    plt.suptitle(f"Respiration rate extracted from ecg with an accuracy of {round(CC,2)}")
 
-    plt.show()
+    plt.tight_layout()
+    plt.savefig(os.path.join(dirpath, "Plots", "RR_plots", "RR_"+str(method) + ".svg"))
 
 def compare_extracted_vs_real(RR_extracted, RR_real, step = 0.05, max_shift = 1, fs=100):
     """
@@ -279,7 +287,7 @@ def determine_RR_accuracy(dataset, method="vangent2019", T=60, example = True):
         shift.append(cur_shift)
 
         if example == True and i==randomvalue:
-            plot_spider(ecg, processed_RR, extracted_RR, rr, cur_shift+max_shift, cur_CC)
+            plot_spider(ecg, processed_RR, extracted_RR, rr, cur_shift+max_shift, cur_CC, method)
         i += 1
 
     return CC, shift
@@ -296,15 +304,18 @@ def compare_methods(dataset, methods=["control", "vangent2019", "soni2019", "cha
 
     fig, ax = plt.subplots(1,2)
     ax[0].boxplot(all_CC, labels=methods)
-    ax[0].set_ylabel("Correlation coefficient")
+    ax[0].set_ylabel("CC")
     ax[1].boxplot(all_shift, labels=methods)
     ax[1].set_ylabel("Time (s)")
-    ax[0].set_title("Correlation coefficient of rreathing extraction")
-    ax[1].set_title("Resulted timeshift from extraction")
-    plt.show()
+    ax[0].set_title("CC of RR extraction")
+    ax[1].set_title("Timeshift")
+    ax[0].set_xticklabels(methods, rotation=60)
+    ax[1].set_xticklabels(methods, rotation=60)
+    plt.tight_layout()
+    plt.savefig(os.path.join(dirpath, "Plots", "RR_plots", "RR_method_comparison.svg"))
 
 
-dirpath = (os.path.dirname(os.path.realpath(__file__)))
+
 data = spider_data(os.path.join(dirpath, "spiderfearful"))
 compare_methods(data)
 
