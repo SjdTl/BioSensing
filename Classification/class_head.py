@@ -69,7 +69,7 @@ def load_features(filename):
     df = pd.read_pickle(filename)
     return df
 
-def train_test_split(features_data, num_subjects=15, test_percentage=0.7):
+def train_test_split(features_data, param_subject_array="Not Given", num_subjects=15, test_percentage=0.7):
     """
     Description
     -----------
@@ -123,8 +123,12 @@ def train_test_split(features_data, num_subjects=15, test_percentage=0.7):
     features_data_scaled = features_data_scaled.join(features_data['subject'])
 
     #Create shuffeled subject array
-    subject_array = np.arange(1, num_subjects+1)
-    np.random.shuffle(subject_array)
+    param_check = "Not Given"
+    if param_subject_array is param_check:
+        subject_array = np.arange(1, num_subjects+1)
+        np.random.shuffle(subject_array)
+    else:
+        subject_array = param_subject_array
 
     #Split dataset into test and train
     num_test_subjects = round(num_subjects * test_percentage)
@@ -148,7 +152,7 @@ def train_test_split(features_data, num_subjects=15, test_percentage=0.7):
 
     return X_train, Y_train, x_test, y_test
 
-def fit_model(X_train, Y_train, classifier="RandomForest", KNE_n_neighbors=20, DT_max_depth=3):
+def fit_model(X_train, Y_train, classifier="RandomForest", RFC_n_estimators=100, RFC_max_depth=None, KNE_n_neighbors=20, KNE_leaf_size=30, ADA_n_estimators=50, ADA_learning_rate=1, DTC_max_depth=2, LDA_solver="svd", BNB_alpha=1):
     """
     Description
     -----------
@@ -187,13 +191,13 @@ def fit_model(X_train, Y_train, classifier="RandomForest", KNE_n_neighbors=20, D
     >>>
     """
     switch={
-        "RandomForest": RandomForestClassifier().fit(X_train, Y_train),
-        "KNeighbors": KNeighborsClassifier(n_neighbors = KNE_n_neighbors).fit(X_train, Y_train),
-        "AdaBoost": AdaBoostClassifier().fit(X_train, Y_train),
-        "DecisionTree": DecisionTreeClassifier(max_depth=DT_max_depth).fit(X_train, Y_train),
+        "RandomForest": RandomForestClassifier(n_estimators=RFC_n_estimators, max_depth=RFC_max_depth).fit(X_train, Y_train),
+        "KNeighbors": KNeighborsClassifier(n_neighbors=KNE_n_neighbors, leaf_size=KNE_leaf_size).fit(X_train, Y_train),
+        "AdaBoost": AdaBoostClassifier(algorithm="SAMME", n_estimators=ADA_n_estimators, learning_rate=ADA_learning_rate).fit(X_train, Y_train),
+        "DecisionTree": DecisionTreeClassifier(max_depth=DTC_max_depth).fit(X_train, Y_train),
         "SVM": SVC(kernel='rbf').fit(X_train, Y_train),
-        "LinearDiscriminantAnalysis": LinearDiscriminantAnalysis().fit(X_train, Y_train),
-        "BernoulliNB": BernoulliNB().fit(X_train, Y_train)
+        "LinearDiscriminantAnalysis": LinearDiscriminantAnalysis(solver=LDA_solver).fit(X_train, Y_train),
+        "BernoulliNB": BernoulliNB(alpha=BNB_alpha).fit(X_train, Y_train)
     }
 
     return switch.get(classifier, 'Invalid input')
@@ -366,7 +370,7 @@ def confusion_matirx(model, x_test, y_test):
     all_sample_title = 'Accuracy Score: {0}'.format(score)
     plt.title(all_sample_title, size = 10)
 
-def fit_predict_evaluate(X_train, Y_train, x_test, y_test, KNE_n_neighbors=20, DT_max_depth=3):
+def fit_predict_evaluate(X_train, Y_train, x_test, y_test, RFC_n_estimators=100, RFC_max_depth=None, KNE_n_neighbors=20, KNE_leaf_size=30, ADA_n_estimators=50, ADA_learning_rate=1, DTC_max_depth=3, LDA_solver="svd", BNB_alpha=1):
     """
     Description
     -----------
@@ -404,45 +408,42 @@ def fit_predict_evaluate(X_train, Y_train, x_test, y_test, KNE_n_neighbors=20, D
     --------
     >>>
     """
+    accuracy_dict = {}
+    fone_dict = {}
+
     #Random Forest Classifier
-    classifier_RFC = fit_model(X_train=X_train, Y_train=Y_train, classifier="RandomForest")
+    classifier_RFC = fit_model(X_train=X_train, Y_train=Y_train, classifier="RandomForest", RFC_max_depth=RFC_max_depth, RFC_n_estimators=RFC_n_estimators)
     y_pred_RFC = predict(classifier_RFC, x_test)
-    accuracy_RFC, fone_RFC = evaluate(y_test, y_pred_RFC)
+    accuracy_dict["Random Forrest"], fone_dict["Random Forrest"] = evaluate(y_test, y_pred_RFC)
 
     #K-Nearest Neighbors Classifier
-    classifier_KNE = fit_model(X_train=X_train, Y_train=Y_train, classifier="KNeighbors", KNE_n_neighbors=KNE_n_neighbors)
+    classifier_KNE = fit_model(X_train=X_train, Y_train=Y_train, classifier="KNeighbors", KNE_n_neighbors=KNE_n_neighbors, KNE_leaf_size=KNE_leaf_size)
     y_pred_KNE = predict(classifier_KNE, x_test)
-    accuracy_KNE, fone_KNE = evaluate(y_test, y_pred_KNE)
+    accuracy_dict["K-Nearest Neighbors"], fone_dict["K-Nearest Neighbors"] = evaluate(y_test, y_pred_KNE)
 
     #Adaboost Classifier
-    classifier_ADA = fit_model(X_train=X_train, Y_train=Y_train, classifier="AdaBoost")
+    classifier_ADA = fit_model(X_train=X_train, Y_train=Y_train, classifier="AdaBoost", ADA_learning_rate=ADA_learning_rate, ADA_n_estimators=ADA_n_estimators)
     y_pred_ADA = predict(classifier_ADA, x_test)
-    accuracy_ADA, fone_ADA = evaluate(y_test, y_pred_ADA)
+    accuracy_dict["AdaBoost"], fone_dict["AdaBoost"] = evaluate(y_test, y_pred_ADA)
 
     #Decision Tree Regressor
-    classifier_DTC = fit_model(X_train=X_train, Y_train=Y_train, classifier="DecisionTree", DT_max_depth=DT_max_depth)
+    classifier_DTC = fit_model(X_train=X_train, Y_train=Y_train, classifier="DecisionTree", DTC_max_depth=DTC_max_depth)
     y_pred_DTC = predict(classifier_DTC, x_test)
-    accuracy_DTC, fone_DTC = evaluate(y_test, y_pred_DTC)
+    accuracy_dict["Decision Tree"], fone_dict["Decision Tree"] = evaluate(y_test, y_pred_DTC)
 
     #Support Vector Machine
     classifier_SVM = fit_model(X_train=X_train, Y_train=Y_train, classifier="SVM")
     y_pred_SVM = predict(classifier_SVM, x_test)
-    accuracy_SVM, fone_SVM = evaluate(y_test, y_pred_SVM)
+    accuracy_dict["Support Vector Machine"], fone_dict["Support Vector Machine"] = evaluate(y_test, y_pred_SVM)
 
     #Linear Discriminant Analysis
-    classifier_LDA = fit_model(X_train=X_train, Y_train=Y_train, classifier="LinearDiscriminantAnalysis")
+    classifier_LDA = fit_model(X_train=X_train, Y_train=Y_train, classifier="LinearDiscriminantAnalysis", LDA_solver=LDA_solver)
     y_pred_LDA = predict(classifier_LDA, x_test)
-    accuracy_LDA, fone_LDA = evaluate(y_test, y_pred_LDA)
+    accuracy_dict["Linear Discriminant Analysis"], fone_dict["Linear Discriminant Analysis"] = evaluate(y_test, y_pred_LDA)
 
     #Bernoulli
-    classifier_BNB = fit_model(X_train=X_train, Y_train=Y_train, classifier="BernoulliNB")
+    classifier_BNB = fit_model(X_train=X_train, Y_train=Y_train, classifier="BernoulliNB", BNB_alpha=BNB_alpha)
     y_pred_BNB = predict(classifier_BNB, x_test)
-    accuracy_BNB, fone_BNB = evaluate(y_test, y_pred_BNB)
+    accuracy_dict["Bernoulli Naive Bayes"], fone_dict["Bernoulli Naive Bayes"] = evaluate(y_test, y_pred_BNB)
 
-    print("{} Accuracy, F1 score : {:.2f}%, {:.2f}".format('Random Forrest Classifier', accuracy_RFC*100, fone_RFC))
-    print("{} Accuracy, F1 score : {:.2f}%, {:.2f}".format('K-Nearest Neighbors Classifier', accuracy_KNE*100, fone_KNE))
-    print("{} Accuracy, F1 score : {:.2f}%, {:.2f}".format('Adaboost Classifier', accuracy_ADA*100, fone_ADA))
-    print("{} Accuracy, F1 score : {:.2f}%, {:.2f}".format('Decision Tree Classifier', accuracy_DTC*100, fone_DTC))
-    print("{} Accuracy, F1 score : {:.2f}%, {:.2f}".format('Support Vector Machine', accuracy_SVM*100, fone_SVM))
-    print("{} Accuracy, F1 score : {:.2f}%, {:.2f}".format('Linear Discriminant Analysis', accuracy_LDA*100, fone_LDA))
-    print("{} Accuracy, F1 score : {:.2f}%, {:.2f}".format('Bernoulli', accuracy_BNB*100, fone_BNB))
+    return accuracy_dict, fone_dict
