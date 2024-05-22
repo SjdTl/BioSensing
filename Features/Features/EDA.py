@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import os
-from scipy.signal import butter, filtfilt, get_window, sosfiltfilt
+from scipy.signal import butter, filtfilt, get_window, sosfiltfilt, decimate
 from scipy.ndimage import uniform_filter1d
 import scipy
 import matplotlib.pyplot as plt
@@ -31,7 +31,7 @@ def EDA(eda, fs):
             - RM
             - RT
         and the general features:
-            - Mean (no meaning in the case of emg)
+            - Mean (no meaning in the case of emg)T
             - Median
             - Std
             - ...
@@ -94,12 +94,21 @@ def preProcessing(unprocessed_eda, fs=700):
     # Lowpass
     order = 4
     cutoff = 5
-    lowpass_eda = butter_EDA(unprocessed_eda, N=order, cutoff=cutoff, fs=fs)
+    # Downsampling factor
+    Q = 10
+    fs = fs/Q
+    lowpass_eda = butter_EDA(unprocessed_eda, N=order, cutoff=cutoff, fs=fs, Q=Q)
 
-    # 
+    # Smoothing
+    smooth_eda = smooth_EDA(lowpass_eda, fs=fs)
+
+    return smooth_eda
+
+def smooth_EDA(eda, fs=700):
+    """Smoothing used for EDA preprocessing and downsample because most information is unnecessary"""
     # Using a one dimentional uniform filter scipy.ndimage.uniform_filter1d() with mode='nearest' and for size (length of the uniform filter) you can use 75% of the sampling rate.
     size = int(0.75 * fs)
-    eda_sm0 = uniform_filter1d(lowpass_eda, size, mode="nearest")
+    eda_sm0 = uniform_filter1d(eda, size, mode="nearest")
 
     # Computing the moving average using np.convolve(). To do that you need to first make window using scipy.signal.get_window with parzan kernel, with the same size as previous step. Then concatenate your signal to avoid boundry effect using np.concatenate()
     kernel = "parzen"
@@ -115,10 +124,11 @@ def preProcessing(unprocessed_eda, fs=700):
 
     return eda
 
-def butter_EDA(eda, N, cutoff, fs=700):
+def butter_EDA(eda, N=4, cutoff=5, fs=700, Q=10):
     """Butterworth filter used by EDA preprocessing"""
     b,a = butter(N = N, Wn = cutoff, fs= fs)
-    return filtfilt(b, a, eda)
+    eda = filtfilt(b, a, eda)
+    return decimate(eda, Q)
 
 def split_phasic_tonic(eda, fs = 700, order = 10):
     """
@@ -152,7 +162,6 @@ def split_phasic_tonic(eda, fs = 700, order = 10):
     
     Notes
     -----
-    CHANGE THIS FUNCTION. VALUES ARE STILL SELECTED WITHOUT ANY REASONING
 
     Examples
     --------
@@ -165,7 +174,7 @@ def split_phasic_tonic(eda, fs = 700, order = 10):
     highcut=0.05 #Hz
     freqs=highcut
     sos = butter(N = order, Wn = freqs, fs = fs, output="sos")
-    tonic= sosfiltfilt(sos, eda )
+    tonic = sosfiltfilt(sos, eda )
 
     return phasic, tonic
 
