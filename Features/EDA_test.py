@@ -1,6 +1,7 @@
 import os
 from Features.EDA import *
 from scipy.fft import fft, fftfreq, fftshift
+from scipy.signal import freqz
 
 def test(filepath):
     """
@@ -25,21 +26,10 @@ def test(filepath):
 
     eda = feat_gen.load_test_data("EDA", filepath, T=300, label=2)
 
-    # Comparing raw and preprocessed
-    preprocessed_eda = preProcessing(eda)
-    feat_gen.quick_plot(eda, preprocessed_eda)
+    df = EDA(eda, 700)
+    return df
 
-    # # Comparing tonic, phasic and processed
-    phasic, tonic = split_phasic_tonic(preprocessed_eda)
-    feat_gen.quick_plot(preprocessed_eda, phasic, tonic)
-
-    # # Test peak detection
-    # peak_detection(phasic, plot=True)
-
-    # df = EDA(eda, 700)
-    # return df
-
-def EDA_figures(filepath, T =20):
+def EDA_figures(filepath, T =40):
     """
     Plots used for the processing flowchart in chapter four
     Returns five plots:
@@ -48,6 +38,7 @@ def EDA_figures(filepath, T =20):
         - Plot of the filter used to process
     The code is connected to the EDA such that changing some parameters their would simply 
     require this to run again to obtain the updated plots (with different cutoff frequencies e.g.)
+    EXCEPT THE BUTTERWORTH FILTER PLOT
     """
     fs=700
     eda = feat_gen.load_test_data("EDA", filepath, T=T)
@@ -72,21 +63,25 @@ def EDA_figures(filepath, T =20):
     ax.set_ylabel("Conductance [$\mu S$]")
     fig.savefig(os.path.join(dir_path, "plots", "EDA_plots", "eda_filtered_td.svg"))
 
-    # EDA smoothing
-    smooth_eda = smooth_EDA(filtered_eda)
+    # Butterworth
+    b, a = butter(N = 4, Wn = 5, fs= fs)
+    w, h = freqz(b, a, fs=fs)
 
     fig, ax = plt.subplots()
-
-    ax.plot(np.linspace(0,T, int(fs*T/Q)), smooth_eda)
-    ax.set_xlabel("Time [$s$]")
-    ax.set_ylabel("Conductance [$\mu S$]")
-    fig.savefig(os.path.join(dir_path, "plots", "EDA_plots", "eda_smooth_td.svg"))
+    ax.semilogx(w, 20 * np.log10(abs(h)))
+    ax.set_xlabel('Frequency [radians / second]')
+    ax.set_ylabel('Amplitude [dB]')
+    ax.set_xlim(xmax = fs/2)
+    ax.set_ylim(ymin = -100)
+    ax.grid(which='both', axis='both')
+    fig.savefig(os.path.join(dir_path, "plots", "EDA_plots", "eda_butterworth.svg"))
 
     # EDA phasic and tonic
-    phasic, tonic = split_phasic_tonic(smooth_eda, fs)
-    # Raise with DC for displaying
-    phasic_raised = np.mean(tonic) + phasic
-
+    phasic, tonic = split_phasic_tonic(filtered_eda, fs/Q)
+    # Raise with tonic for displaying
+    phasic_raised = tonic + phasic
+    
+    fig, ax = plt.subplots()
     ax.plot(np.linspace(0,T, int(fs*T/Q)), phasic_raised, label="phasic", color="blue")
     ax.plot(np.linspace(0,T, int(fs*T/Q)), tonic, label="tonic", color="aqua")
     ax.set_xlabel("Time [$s$]")
@@ -121,28 +116,15 @@ def EDA_figures(filepath, T =20):
 
     fig.savefig(os.path.join(dir_path, "plots", "EDA_plots", "eda_processed_fd.svg"))
 
-    # Smooth EDA frequency domain
-    yf = fftshift(fft(smooth_eda))
-    xf = fftshift(fftfreq(smooth_eda.size, d=Q/fs))
-
-    fig, ax = plt.subplots()
-
-    ax.plot(xf, 10 * np.log10(np.abs(yf)), color= 'green')
-    ax.set_xlabel("Frequency [$Hz$]")
-    ax.set_ylabel("Amplitude [dB]")
-    ax.set_ylim(ymin = -25)
-
-    fig.savefig(os.path.join(dir_path, "plots", "EDA_plots", "eda_smooth_fd.svg"))
-
     # EDA phasic tonic frequency domain
     yfphasic = fftshift(fft(phasic))
     yftonic = fftshift(fft(tonic))
-    xf = fftshift(fftfreq(smooth_eda.size, d=Q/fs))
+    xf = fftshift(fftfreq(yfphasic.size, d=Q/fs))
 
     fig, ax = plt.subplots()
 
-    ax.plot(xf, 10 * np.log10(np.abs(yfphasic)), color= 'green', label="phasic")
     ax.plot(xf, 10 * np.log10(np.abs(yftonic)), color= 'lime', label="tonic")
+    ax.plot(xf, 10 * np.log10(np.abs(yfphasic)), color= 'green', label="phasic")
     ax.set_xlabel("Frequency [$Hz$]")
     ax.set_ylabel("Amplitude [dB]")
     ax.set_ylim(ymin = -25)
@@ -150,6 +132,100 @@ def EDA_figures(filepath, T =20):
 
     fig.savefig(os.path.join(dir_path, "plots", "EDA_plots", "phasic_tonic_fd.svg"))
 
+    # PEAK detection
+    widths, widths2, peaks = peak_detection(phasic, fs/Q)
+
+    fig, ax = plt.subplots()
+
+    t =np.linspace(0,T, int(fs*T/Q))
+
+    ax.plot(t,phasic,label='phasic')
+    ax.plot(t[peaks],phasic[peaks],'o',label='peaks')
+    ax.hlines(widths[1], *widths[2:]/np.max(widths[3])*t[-1], color="C2")
+    ax.hlines(widths2[1], *widths2[2:]/np.max(widths2[3])*t[-1], color="C3")
+
+    # labels and titles
+    ax.set_xlabel('$Time (s)$')
+    ax.set_ylabel('Conductivity $[\mu S]$')
+    ax.legend()
+
+    fig.savefig(os.path.join(dir_path, "plots", "EDA_plots", "peak_detection.svg"))
+
+
+def compare_phasic_tonic_methods(filepath, T= 100):
+    """
+    Plots used to compare the phasic and tonic split algorithms
+    """
+    fs=700
+    eda = feat_gen.load_test_data("EDA", filepath, T=T)
+    # EDA lowpass filter and downsampling
+    Q = 10
+    filtered_eda = butter_EDA(eda, Q=Q)
+
+    methods= ["cvxeda", "smoothmedian", "highpass"]
+
+    fig, ax = plt.subplots(2,2, figsize=(10, 10))
+
+    ax[0][0].plot(np.linspace(0,T, int(fs*T/Q)), filtered_eda)
+    ax[0][0].set_title("Preprocessed EDA signal")
+    ax[0][0].set_xlabel("Time [$s$]")
+    ax[0][0].set_ylabel("Conductance [$\mu S$]")
+    
+    for i in range(0,3):
+        # EDA phasic and tonic
+        phasic, tonic = split_phasic_tonic(filtered_eda, fs/Q, method=methods[i])
+        # Raise with tonic for displaying
+        phasic_raised = tonic + phasic
+        
+        if i < 1:
+            ax[i+1][0].plot(np.linspace(0,T, int(fs*T/Q)), phasic_raised, label="phasic", color="blue")
+            ax[i+1][0].plot(np.linspace(0,T, int(fs*T/Q)), tonic, label="tonic", color="aqua")
+            ax[i+1][0].set_xlabel("Time [$s$]")
+            ax[i+1][0].set_ylabel("Conductance [$\mu S$]")
+            ax[i+1][0].set_title(str(methods[i]))
+            ax[i+1][0].legend()
+        else:
+            ax[i-2][1].plot(np.linspace(0,T, int(fs*T/Q)), phasic_raised, label="phasic", color="blue")
+            ax[i-2][1].plot(np.linspace(0,T, int(fs*T/Q)), tonic, label="tonic", color="aqua")
+            ax[i-2][1].set_title(str(methods[i]))
+            ax[i-2][1].set_xlabel("Time [$s$]")
+            ax[i-2][1].set_ylabel("Conductance [$\mu S$]")
+            ax[i-2][1].legend()
+    fig.suptitle("Comparison between different eda decomposition methods")
+    fig.tight_layout()
+    fig.savefig(os.path.join(dir_path, "plots", "EDA_plots", "phasic_tonic_comparison.svg"))
+
+def compare_peak_detection(filepath, T=100):
+    fs=700
+    eda = feat_gen.load_test_data("EDA", filepath, T=T)
+    # EDA lowpass filter and downsampling
+    Q = 10
+    filtered_eda = butter_EDA(eda, Q=Q)
+    phasic, tonic = split_phasic_tonic(filtered_eda, fs/Q)
+
+    widths, widths2, peaks = peak_detection(phasic, method = "Neurokit", fs=fs/Q)
+    print(widths, widths2)
+    print(widths.shape)
+    print(widths2.shape)
+
+    fig, ax = plt.subplots()
+
+    t =np.linspace(0,T, int(fs*T/Q))
+
+    ax.plot(t,phasic,label='phasic')
+    ax.plot(t[peaks],phasic[peaks],'o',label='peaks')
+    ax.hlines(widths[1], *widths[2:]/np.max(widths[3])*t[-1], color="C2")
+    ax.hlines(widths2[1], *widths2[2:]/np.max(widths2[3])*t[-1], color="C3")
+    # labels and titles
+    ax.set_xlabel('$Time (s)$')
+    ax.set_ylabel('Conductivity $[\mu S]$')
+    ax.legend()
+    plt.show()
+
+
 dir_path = os.path.dirname(os.path.realpath(__file__))
 filepath = os.path.join(dir_path, "Raw_data", "raw_data.pkl")
-EDA_figures(filepath)
+# EDA_figures(filepath)
+compare_peak_detection(filepath)
+# print(test(filepath))
+# compare_phasic_tonic_methods(filepath)
