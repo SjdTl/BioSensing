@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 from tqdm.notebook import tqdm
 from sklearn import preprocessing
-from sklearn.decomposition import PCA
+from sklearn.model_selection import LeaveOneGroupOut
 from scipy import stats
 import seaborn as sns
 import numpy as np
@@ -19,7 +19,6 @@ from sklearn.naive_bayes import BernoulliNB
 
 #Import evaluation metrics
 from sklearn.datasets import make_classification
-from sklearn.metrics import mean_absolute_error
 from sklearn.metrics import f1_score, accuracy_score,confusion_matrix
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -122,33 +121,53 @@ def train_test_split(features_data, param_subject_array="Not Given", num_subject
     features_data_scaled = features_data_scaled.join(features_data['label'])
     features_data_scaled = features_data_scaled.join(features_data['subject'])
 
-    #Create shuffeled subject array
-    param_check = "Not Given"
-    if param_subject_array is param_check:
-        subject_array = np.arange(1, num_subjects+1)
-        np.random.shuffle(subject_array)
-    else:
-        subject_array = param_subject_array
+    logo = LeaveOneGroupOut()
+    features = features_data_scaled.drop(columns=['label', 'subject']).to_numpy()
+    labels = features_data_scaled['label'].to_numpy()
+    groups = features_data_scaled['subject'].to_numpy()
 
-    #Split dataset into test and train
-    num_test_subjects = round(num_subjects * test_percentage)
-    test_data = pd.DataFrame()
-    train_data = pd.DataFrame()
-    for ts_sub in range(0, num_test_subjects):
-        test_data = pd.concat((test_data, features_data_scaled.loc[features_data_scaled['subject'] == subject_array[ts_sub]]))
-    for tr_sub in range(num_test_subjects, num_subjects):
-        train_data = pd.concat((train_data, features_data_scaled.loc[features_data_scaled['subject'] == subject_array[tr_sub]]))
+    for train_index, test_index in logo.split(features, labels, groups):
+        X_train, x_test = features[train_index], features[test_index]
+        Y_train, y_test = labels[train_index], labels[test_index]
+    
+        # Here you can train your model using X_train, Y_train and evaluate using X_test, Y_test
+        # Example:
+        # model.fit(X_train, Y_train)
+        # predictions = model.predict(X_test)
+        # evaluate_model(predictions, Y_test)
+        # For demonstration, let's just print the sizes of the train and test sets
+        print(f"Train size: {X_train.shape[0]}, Test size: {x_test.shape[0]}")
 
-    #Split into X and Y
-    X_train = train_data.drop(columns=['label', 'subject']).to_numpy()
-    Y_train = train_data['label'].to_numpy()
-    x_test = test_data.drop(columns=['label', 'subject']).to_numpy()
-    y_test = test_data['label'].to_numpy()
+    # #Create shuffeled subject array
+    # param_check = "Not Given"
+    # if param_subject_array is param_check:
+    #     subject_array = np.arange(1, num_subjects+1)
+    #     np.random.shuffle(subject_array)
+    # else:
+    #     subject_array = param_subject_array
+
+    # #Split dataset into test and train
+    # num_test_subjects = round(num_subjects * test_percentage)
+    # test_data = pd.DataFrame()
+    # train_data = pd.DataFrame()
+    # for ts_sub in range(0, num_test_subjects):
+    #     test_data = pd.concat((test_data, features_data_scaled.loc[features_data_scaled['subject'] == subject_array[ts_sub]]))
+    # for tr_sub in range(num_test_subjects, num_subjects):
+    #     train_data = pd.concat((train_data, features_data_scaled.loc[features_data_scaled['subject'] == subject_array[tr_sub]]))
+
+    # #Split into X and Y
+    # X_train = train_data.drop(columns=['label', 'subject']).to_numpy()
+    # Y_train = train_data['label'].to_numpy()
+    # x_test = test_data.drop(columns=['label', 'subject']).to_numpy()
+    # y_test = test_data['label'].to_numpy()
 
     #Scale split data
     scaler = preprocessing.StandardScaler().fit(X_train)
     X_train = scaler.transform(X_train)
     x_test = scaler.transform(x_test)
+
+
+    
 
     return X_train, Y_train, x_test, y_test
 
@@ -363,14 +382,14 @@ def confusion_matirx_print(model, x_test, y_test, model_name="none"):
     cm = confusion_matrix(y_test, y_pred)
     score = model.score(x_test, y_test)
 
-    plt.figure(figsize=(4,4))
-    sns.heatmap(cm, annot=True, fmt=".3f", linewidths=.5, square = True, cmap = 'Blues')
+    plt.figure(figsize=(6,6))
+    sns.heatmap(cm, annot=True, fmt=".3f", linewidths=.5, square = True, cmap = 'Blues', xticklabels=["Baseline", "Stress", "Amusement", "Meditation"], yticklabels=["Baseline", "Stress", "Amusement", "Meditation"])
     plt.ylabel('Actual label')
     plt.xlabel('Predicted label')
-    plt.xticks([1,2,3,4], ["Baseline", "Stress", "Amusement", "Meditation"])
-    plt.yticks([1,2,3,4], ["Baseline", "Stress", "Amusement", "Meditation"])
     all_sample_title = 'Accuracy Score: {0}, {1}'.format(round(score*100, 3), model_name)
     plt.title(all_sample_title, size = 10)
+
+    plt.savefig(os.path.join(dir_path, "ConfusionMatrix", ".".join([model_name, "svg"])))
 
 def fit_predict_evaluate(X_train, Y_train, x_test, y_test, features_array, RFC_n_estimators=100, RFC_max_depth=None, KNE_n_neighbors=20, KNE_leaf_size=30, ADA_n_estimators=50, ADA_learning_rate=1, DTC_max_depth=3, LDA_solver="svd", BNB_alpha=1):
     """
@@ -412,6 +431,7 @@ def fit_predict_evaluate(X_train, Y_train, x_test, y_test, features_array, RFC_n
     """
     accuracy_dict = {}
     fone_dict = {}
+    classifier_name_list = ["Random Forrest", "K-Nearest Neighbors", "AdaBoost", "Decision Tree", "Support Vector Machine", "Linear Discriminant Analysis", "Bernoulli Naive Bayes"]
 
     #Random Forest Classifier
     classifier_RFC = fit_model(X_train=X_train, Y_train=Y_train, classifier="RandomForest", RFC_max_depth=RFC_max_depth, RFC_n_estimators=RFC_n_estimators)
@@ -432,7 +452,6 @@ def fit_predict_evaluate(X_train, Y_train, x_test, y_test, features_array, RFC_n
     plt.xticks(rotation=90)
     plt.xlabel("Feature index")
     plt.ylabel("Feature importance")
-    plt.show()
 
     #K-Nearest Neighbors Classifier
     classifier_KNE = fit_model(X_train=X_train, Y_train=Y_train, classifier="KNeighbors", KNE_n_neighbors=KNE_n_neighbors, KNE_leaf_size=KNE_leaf_size)
@@ -458,8 +477,7 @@ def fit_predict_evaluate(X_train, Y_train, x_test, y_test, features_array, RFC_n
     plt.xticks(range(X_train.shape[1]), list(features_array.columns))
     plt.xticks(rotation=90)
     plt.xlabel("Feature index")
-    plt.ylabel("Feature importance")
-    plt.show()
+    plt.ylabel("Feature importance") 
 
     #Decision Tree Regressor
     classifier_DTC = fit_model(X_train=X_train, Y_train=Y_train, classifier="DecisionTree", DTC_max_depth=DTC_max_depth)
