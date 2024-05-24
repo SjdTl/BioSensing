@@ -147,7 +147,7 @@ def get_features(ecg, eda, emg, fs):
     ecg_features = ECG.ECG(ecg, fs)
     eda_features = EDA.EDA(eda, fs)
     emg_features = EMG.EMG(emg, fs)
-    rr_features = RR.RR(ecg, fs)
+    # rr_features = RR.RR(ecg, fs)
 
     # Combine features
     features = pd.concat([ecg_features, eda_features, emg_features, rr_features], axis=1)

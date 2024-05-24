@@ -388,6 +388,8 @@ def confusion_matirx_print(model, x_test, y_test, model_name="none"):
     plt.xlabel('Predicted label')
     all_sample_title = 'Accuracy Score: {0}, {1}'.format(round(score*100, 3), model_name)
     plt.title(all_sample_title, size = 10)
+    
+    plt.savefig(os.path.join(dir_path, "ConfusionMatrix.svg"))
 
     plt.savefig(os.path.join(dir_path, "ConfusionMatrix", ".".join([model_name, "svg"])))
 
