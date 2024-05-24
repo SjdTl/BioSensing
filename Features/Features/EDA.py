@@ -1,10 +1,13 @@
 import numpy as np
 import pandas as pd
 import os
-from scipy.signal import butter, filtfilt, get_window, sosfiltfilt
+from scipy.signal import butter, filtfilt, get_window, sosfiltfilt, decimate
 from scipy.ndimage import uniform_filter1d
 import scipy
 import matplotlib.pyplot as plt
+import neurokit2 as nk
+from scipy.stats import entropy
+
 
 from . import feat_gen
 
@@ -31,7 +34,7 @@ def EDA(eda, fs):
             - RM
             - RT
         and the general features:
-            - Mean (no meaning in the case of emg)
+            - Mean (no meaning in the case of emg)T
             - Median
             - Std
             - ...
@@ -49,24 +52,24 @@ def EDA(eda, fs):
     --------
     >>>
     """
-
-    eda = preProcessing(eda, fs)
+    downsampling_factor = 10
+    eda, phasic, tonic = preProcessing(eda, fs, Q= downsampling_factor)
     
-    df_general = feat_gen.basic_features(eda, "EDA")
-    df_specific = EDA_specific_features(eda, fs)
+    df_eda = tot_eda_features(eda, fs/downsampling_factor)
+    df_phasic = phasic_features(phasic, fs/downsampling_factor)
 
-    features = pd.concat([df_specific, df_general], axis=1)
+    features = pd.concat([df_eda, df_phasic], axis=1)
 
     # Error messages
     if features.isnull().values.any():
         raise ValueError("The feature array of EDA contains a NaN value")
     return features
 
-def preProcessing(unprocessed_eda, fs=700):
+def preProcessing(unprocessed_eda, fs=700, Q=10):
     """
     Description
     -----------
-    Preprocessing the EDA signal using a lowpass filter an dsmooth
+    Preprocessing the EDA signal using a lowpass filter and split up (and smoothed) using the split_phasic_tonic() function
 
     Parameters
     ----------
@@ -77,6 +80,10 @@ def preProcessing(unprocessed_eda, fs=700):
     -------
     eda : np.array
         the EDA data processed
+    phasic : np.array
+        eda after highpass filtering
+    tonic : np.array
+        eda after lowpass filtering
     
     Raises
     ------
@@ -94,33 +101,23 @@ def preProcessing(unprocessed_eda, fs=700):
     # Lowpass
     order = 4
     cutoff = 5
-    lowpass_eda = butter_EDA(unprocessed_eda, N=order, cutoff=cutoff, fs=fs)
+    # Downsampling factor
+    fs = fs/Q
+    lowpass_eda = butter_EDA(unprocessed_eda, N=order, cutoff=cutoff, fs=fs, Q=Q)
 
-    # 
-    # Using a one dimentional uniform filter scipy.ndimage.uniform_filter1d() with mode='nearest' and for size (length of the uniform filter) you can use 75% of the sampling rate.
-    size = int(0.75 * fs)
-    eda_sm0 = uniform_filter1d(lowpass_eda, size, mode="nearest")
+    # Smoothing
+    phasic, tonic = split_phasic_tonic(lowpass_eda, fs=fs, method = "cvxEDA")
 
-    # Computing the moving average using np.convolve(). To do that you need to first make window using scipy.signal.get_window with parzan kernel, with the same size as previous step. Then concatenate your signal to avoid boundry effect using np.concatenate()
-    kernel = "parzen"
-    window = get_window(kernel, size)
-    w = window/window.sum()
+    return phasic + tonic, phasic, tonic
 
-    # Extend signal edges to avoid boundary effects.
-    eda_sm0 = np.concatenate((eda_sm0[0] * np.ones(size), eda_sm0, eda_sm0[-1] * np.ones(size)))
 
-    # Compute moving average
-    eda_sm = np.convolve(w, eda_sm0, mode = "same")
-    eda = eda_sm[size:-size]
-
-    return eda
-
-def butter_EDA(eda, N, cutoff, fs=700):
-    """Butterworth filter used by EDA preprocessing"""
+def butter_EDA(eda, N=4, cutoff=5, fs=700, Q=10):
+    """Butterworth filter used by EDA preprocessing and downsample because most information is unnecessary"""
     b,a = butter(N = N, Wn = cutoff, fs= fs)
-    return filtfilt(b, a, eda)
+    eda = filtfilt(b, a, eda)
+    return decimate(eda, Q)
 
-def split_phasic_tonic(eda, fs = 700, order = 10):
+def split_phasic_tonic(eda, fs = 700, method = "cvxEDA"):
     """
     Description
     -----------
@@ -128,6 +125,12 @@ def split_phasic_tonic(eda, fs = 700, order = 10):
     phasic and tonic. A very simple approach for decomposing the signal into this 
     two components is by using high and low pass filtering respectively. 
     Use 5th order Butterworth filter with output="sos". and cutoff frequency of 0.05 Hz.
+
+    Another approach is the cvxEDA algorithm:
+    This function implements the cvxEDA algorithm described in "cvxEDA: a
+    Convex Optimization Approach to Electrodermal Activity Processing"
+    (http://dx.doi.org/10.1109/TBME.2015.2474131, also available from the
+    authors' homepages).
 
     Parameters
     ----------
@@ -140,10 +143,10 @@ def split_phasic_tonic(eda, fs = 700, order = 10):
     
     Returns
     -------
-    tonic : np.array
-        eda after lowpass filtering
     phasic : np.array
         eda after highpass filtering
+    tonic : np.array
+        eda after lowpass filtering
 
     Raises
     ------
@@ -152,35 +155,82 @@ def split_phasic_tonic(eda, fs = 700, order = 10):
     
     Notes
     -----
-    CHANGE THIS FUNCTION. VALUES ARE STILL SELECTED WITHOUT ANY REASONING
 
     Examples
     --------
     >>>
     """
-    freqs=0.05 #Hz
-    sos = butter(N = order, Wn = freqs, fs = fs, btype = 'highpass', output="sos")
-    phasic= sosfiltfilt(sos, eda)
+    
+    df = nk.eda_phasic(eda, sampling_rate = fs, method = method)
+    return (df["EDA_Phasic"]).to_numpy(), (df["EDA_Tonic"]).to_numpy()
 
-    highcut=0.05 #Hz
-    freqs=highcut
-    sos = butter(N = order, Wn = freqs, fs = fs, output="sos")
-    tonic= sosfiltfilt(sos, eda )
-
-    return phasic, tonic
-
-def EDA_specific_features(eda, fs):
+def tot_eda_features(eda, fs):
     """
     Description
     -----------
-    Calculate features specific to eda signal
+    Calculate general features of the eda signal
     
     Parameters
     ----------
     eda : np.array
-        processed eda siganl
+        processed eda signal
+        I recommend this to be: eda = phasic + tonic, such that the errors are minimized using cvxEDA
     fs : float or int
-        sampling frequency of eda signal
+        (DOWNSAMPLED) sampling frequency of eda signal
+    
+    Returns
+    -------
+    out : pd.DataFrame
+        dataframe containing the features mentioned in the docstring of EDA()
+    
+    Raises
+    ------
+    error
+         description
+    
+    Notes
+    -----
+    Most features are from:
+    Automatic motion artifact detection in electrodermal activity data using machine learning
+    Md-Billal Hossain, Hugo F. Posada-Quintero, Youngsun Kong, Riley McNaboe, Ki H. Chon 
+
+    Examples
+    --------
+    >>>
+    """ 
+
+    out_dict = {}
+    
+    out_dict["Median"] = np.median(eda)
+    out_dict["Range"] = np.max(eda) - np.min(eda)
+    out_dict["Entropy"] = entropy(eda)
+
+    print(eda.size/fs)
+    # Derivatives
+    der1 = np.gradient(eda, np.linspace(0, eda.size / fs, eda.size))
+    der2 = np.gradient(der1, np.linspace(0, eda.size / fs, eda.size))
+    der = [eda, der1, der2]
+    for i in [0,1,2]:
+        out_dict["Mean_der" + str(i)] = np.mean(der[i])
+        out_dict["Std_der" + str(i)] = np.std(der[i])
+        out_dict["Min_der" + str(i)] = np.min(der[i])
+        out_dict["Max_der" + str(i)] = np.max(der[i])
+        
+
+    return pd.DataFrame.from_dict(out_dict, orient="index").T.add_prefix("EDA_")
+
+def phasic_features(phasic, fs):
+    """
+    Description
+    -----------
+    Calculate features specific to phasic part of the eda signal
+    
+    Parameters
+    ----------
+    phasic : np.array
+        processed phasic part of the eda signal
+    fs : float or int
+        (DOWNSAMPLED) sampling frequency of eda signal
     
     Returns
     -------
@@ -199,22 +249,26 @@ def EDA_specific_features(eda, fs):
     --------
     >>>
     """
-    # Find relevant data
-    phasic, _ = split_phasic_tonic(eda)
-    widths, widths2, peaks = peak_detection(phasic)
+    out_dict = {}
+    # General phasic features
+    out_dict["Mean"] = np.mean(phasic)
+
+
+    # Peak data
+    peaks, onset, offset50, offset63, magnitude = peak_detection(phasic, method="Neurokit", fs=fs)
 
     # Find features
-    out_dict = {}
-    out_dict["onset"] = np.mean(peaks - widths[2])/fs
-    out_dict["recovery"] = np.mean(widths2[3] - peaks)/fs
-    out_dict["RR"] = len(peaks)/len(phasic)
-    out_dict["RM"] = np.mean(phasic[peaks] - widths[1])
-    out_dict["RT"] = np.mean(widths[0])/fs
-    
-    # Turn dictionary into pd.DataFrame and return
-    return pd.DataFrame.from_dict(out_dict, orient="index").T.add_prefix("EDA_")
+    out_dict["RT"] = np.mean(-(onset-offset63)/fs)
+    out_dict["Recovery63"] = np.mean(-(peaks-offset63)/fs)
+    out_dict["Recovery50"] = np.mean(-(peaks-offset50)/fs)
+    out_dict["Rise"] = np.mean(-(onset-peaks)/fs)
+    out_dict["RM"] = np.mean(magnitude)
+    out_dict["RR"] = peaks.size / (phasic.size/fs)
 
-def peak_detection(phasic, fs=700, plot = False):
+    # Turn dictionary into pd.DataFrame and return
+    return pd.DataFrame.from_dict(out_dict, orient="index").T.add_prefix("EDA_phasic_")
+
+def peak_detection(phasic, method = "Neurokit", fs=700):
     """
     Description
     -----------
@@ -224,17 +278,29 @@ def peak_detection(phasic, fs=700, plot = False):
     ----------
     phasic : np.array
         The phasic component of the signal
+    method : string
+        Method used, options:
+            - manual
+            - neurokit
+            - gamboa2008 (neurokit)
+            - kim2004 (neurokit)
+            - vanhalem2020 (neurokit)
+            - nabian2018 (neurokit)
     fs : int or float
-        Sampling frequency of the eda signal
-    plot : boolean
-        If the results have to be plotted
+        (DOWNSAMPLED) sampling frequency of the eda signal
     
     Returns
     -------
-    widths : np.array
-        ?
     peaks : np.array
-        peaks of 
+        Indexes of the peaks
+    onset : np.array
+        Indexes of the start of a response
+    offset50 : np.array
+        Index where the response has gone back to 50% of its original value
+    offset63 : np.array
+        Index where the response has gone back to 67% of its original value
+    magnitude : np.array
+        Magnitude of a peak (peak-onset usually)
     
     Raises
     ------
@@ -245,69 +311,83 @@ def peak_detection(phasic, fs=700, plot = False):
     -----
     
     """
+    offset50 = []
+    offset63 = []
 
-    rel_height=0.63
+    # if method == "manual":
+    #     rel_height=0.63
 
-    peaks, _ = scipy.signal.find_peaks(phasic)#your code here]
-    heights, _, __ = scipy.signal.peak_prominences(phasic,peaks)#your code here]
-    widths = np.asarray(scipy.signal.peak_widths(phasic,peaks,rel_height)) #your code here]
-    rel_height=0.5
-    widths2 = np.asarray(scipy.signal.peak_widths(phasic,peaks,rel_height)) #your code here]
-    # find the indices with an amplitude larger that 0.1
-    keep = np.full(len(peaks), True)
-    amplitude_min=0.1*np.max(phasic)
-    keep[np.where(heights<amplitude_min)] = False
-    # only keep those
-    peaks=peaks[keep]
-    heights=heights[keep]
-    widths=widths[:,keep]
-    widths2 = widths2[:,keep]
-    
-    if plot == True:
-        plot_peaks(phasic, widths, peaks)
+    #     peaks, _ = scipy.signal.find_peaks(phasic)#your code here]
+    #     magnitude, _, __ = scipy.signal.peak_prominences(phasic,peaks)#your code here]
 
-    return widths, widths2, peaks
+    #     widths = np.asarray(scipy.signal.peak_widths(phasic,peaks,rel_height)) #your code here]
+    #     rel_height=0.5
+    #     widths2 = np.asarray(scipy.signal.peak_widths(phasic,peaks,rel_height)) #your code here]
+    #     # find the indices with an amplitude larger that 0.1
+    #     keep = np.full(len(peaks), True)
+    #     amplitude_min=0.1*np.max(phasic)
+    #     keep[np.where(magnitude<amplitude_min)] = False
+    #     # only keep those
+    #     peaks=peaks[keep]
+    #     magnitude=magnitude[keep]
 
-def plot_peaks(phasic, widths, peaks, fs=700):
-    """
-    Description
-    -----------
-    Function to plot the results of peak_detection()
-    from manual REMOVE THIS:
-    peaks of the phasic component (we don't need the tonic component anymore) as an indicator of the orienting responses. 
-    after finding all the peaks we only keep those with an amplitude larger than 0.1 and remove the rest
+    #     widths=widths[:,keep]
+    #     widths2 = widths2[:,keep]
 
-    Parameters
-    ----------
-    phasic : np.array
-         eda after highpass filtering
-    widths : np.array
-        ?
-    peaks : np.array
-        peaks of the phasic component
-    fs : int or float
-        sampling frequency of the eda sensor
         
-    Returns
-    -------
-    plt.show()
-    
-    Notes
-    -----
-    CHANGE WHEN USING THE OUTPUT IN THE MANUAL and return svg
+    if method != "manual": 
+        t =np.linspace(0, phasic.size/fs, phasic.size)
+        df = nk.eda_findpeaks(phasic, sampling_rate=fs, method = method)
+        onset = np.array(df["SCR_Onsets"])
+        peaks = np.array(df["SCR_Peaks"])
+        magnitude = np.array(df["SCR_Height"])
 
-    Examples
-    --------
-    >>>
-    """
-    plt.figure(figsize=(12,4))
-    t =np.arange(0,phasic.size*(1/fs),(1/fs))
-    plt.plot(t,phasic,label='phasic')
-    plt.plot(t[peaks],phasic[peaks],'o',label='peaks')
-    plt.hlines(widths[1], *widths[2:]/np.max(widths[3])*t[-1], color="C2")
-    # labels and titles
-    plt.xlabel('$Time (s)$')
-    plt.ylabel('$EDA$')
-    plt.legend()
-    plt.show()
 
+        # Sometimes returns nan values
+        valid_indices = ~np.isnan(onset) & ~np.isnan(peaks) & ~np.isnan(magnitude)
+        onset = onset[valid_indices]
+        peaks = peaks[valid_indices]
+        magnitude = magnitude[valid_indices]
+
+
+        for i in range(onset.size):
+            height50 = 0.5 * magnitude[i]
+            height63 = (1-0.63) * magnitude[i]
+            
+            # Find the index where phasic drops below height50
+            index50 = np.argwhere(phasic[peaks[i]:] < height50)[:,0]
+            if index50.size == 0:
+                offset50.append(-1)
+            else:
+                offset50.append((index50[0] + peaks[i]))
+            
+            # Find the index where phasic drops below height67
+            index63 = np.argwhere(phasic[peaks[i]:] < height63)[:,0]
+            if index63.size == 0:
+                offset63.append(-1)
+            else:
+                offset63.append((index63[0] + peaks[i]))
+
+        offset50 = np.array(offset50)
+        offset63 = np.array(offset63)
+
+
+        valid_indices =( np.argwhere(offset50 != -1) & np.argwhere(offset50 != -1))[:,0]
+        onset = onset[valid_indices].astype(int)
+        peaks = peaks[valid_indices].astype(int)
+        magnitude = magnitude[valid_indices]
+        offset50 = offset50[valid_indices].astype(int)
+        offset63 = offset63[valid_indices].astype(int)
+
+        # print(peaks, onset, offset50, offset63, magnitude)
+        # print(peaks.shape, onset.shape, offset50.shape, offset63.shape, magnitude.shape)
+        
+        if onset.size == 0:
+            onset = np.array([0])
+            peaks = np.array([0])
+            magnitude = np.array([0])
+            offset50 = np.array([0])
+            offset63 = np.array([0])
+
+
+    return peaks, onset, offset50, offset63, magnitude
