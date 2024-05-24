@@ -149,7 +149,7 @@ def ECG_specific_features(ecg, fs):
 
     # RR peak based
     out_dict["Heart_rate1"] = r_peaks_pan.size / (ecg.size / fs) * 60
-    out_dict["Heart_rate1"] = 60 / np.mean(rri) * 1000
+    out_dict["Heart_rate2"] = 60 / np.mean(rri) * 1000
     out_dict["MeanNN"] = np.mean(rri)
     out_dict["SDNN"] = np.std(rri)
 
@@ -176,8 +176,10 @@ def ECG_specific_features(ecg, fs):
     out_dict["MaxNN"] = np.nanmax(rri)
 
     # Other statistical analysis
-    out_dict["dNNmode"] = mode(diff_rri)
-    out_dict["NNmode"] = mode(rri)
+    most_common_NN, _ = mode(rri)
+    most_common_dNN, _ = mode(diff_rri)
+    out_dict["dNNmode"] = most_common_dNN
+    out_dict["NNmode"] = most_common_NN
     out_dict["MaxdNN"] = np.nanmax(diff_rri)
     out_dict["MindNN"] = np.nanmin(diff_rri)
     out_dict["Prc20dNN"] = np.nanpercentile(diff_rri, q=20)

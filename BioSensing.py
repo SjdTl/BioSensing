@@ -9,8 +9,11 @@ from tqdm import tqdm
 import pandas as pd
 import numpy as np
 
+# YOU DONT HAVE TO RUN THE FEATURE EXTRACTION!!!!
+# >16:00 24/05/2024
+
 classify = True
-feature_extraction = True
+feature_extraction = False
 
 # Current location
 dir_path = os.path.dirname(os.path.realpath(__file__))
