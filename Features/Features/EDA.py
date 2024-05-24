@@ -33,6 +33,8 @@ def EDA(eda, fs):
             - RR
             - RM
             - RT
+            - ...
+            See manual for more information
         and the general features:
             - Mean (no meaning in the case of emg)T
             - Median
@@ -69,7 +71,7 @@ def preProcessing(unprocessed_eda, fs=700, Q=10):
     """
     Description
     -----------
-    Preprocessing the EDA signal using a lowpass filter and split up (and smoothed) using the split_phasic_tonic() function
+    Preprocessing the EDA signal using a lowpass filter and split up using the split_phasic_tonic() function
 
     Parameters
     ----------
@@ -84,18 +86,6 @@ def preProcessing(unprocessed_eda, fs=700, Q=10):
         eda after highpass filtering
     tonic : np.array
         eda after lowpass filtering
-    
-    Raises
-    ------
-    error
-         description
-    
-    Notes
-    -----
-    
-    Examples
-    --------
-    >>>
     """
 
     # Lowpass
@@ -147,18 +137,6 @@ def split_phasic_tonic(eda, fs = 700, method = "cvxEDA"):
         eda after highpass filtering
     tonic : np.array
         eda after lowpass filtering
-
-    Raises
-    ------
-    error
-         description
-    
-    Notes
-    -----
-
-    Examples
-    --------
-    >>>
     """
     
     df = nk.eda_phasic(eda, sampling_rate = fs, method = method)
@@ -183,20 +161,11 @@ def tot_eda_features(eda, fs):
     out : pd.DataFrame
         dataframe containing the features mentioned in the docstring of EDA()
     
-    Raises
-    ------
-    error
-         description
-    
     Notes
     -----
     Most features are from:
     Automatic motion artifact detection in electrodermal activity data using machine learning
     Md-Billal Hossain, Hugo F. Posada-Quintero, Youngsun Kong, Riley McNaboe, Ki H. Chon 
-
-    Examples
-    --------
-    >>>
     """ 
 
     out_dict = {}
@@ -236,18 +205,6 @@ def phasic_features(phasic, fs):
     -------
     out : pd.DataFrame
         dataframe containing the features mentioned in the docstring of EDA()
-    
-    Raises
-    ------
-    error
-         description
-    
-    Notes
-    -----
-    
-    Examples
-    --------
-    >>>
     """
     out_dict = {}
     # General phasic features
@@ -272,7 +229,8 @@ def peak_detection(phasic, method = "Neurokit", fs=700):
     """
     Description
     -----------
-    Detect the peaks of the phasic component
+    Detect the peaks of the phasic component using different options
+    The Neurokit options does not give the offset, so that is calculated by finding the the first index that is lower than the 50% or 63% value
 
     Parameters
     ----------
@@ -301,15 +259,6 @@ def peak_detection(phasic, method = "Neurokit", fs=700):
         Index where the response has gone back to 67% of its original value
     magnitude : np.array
         Magnitude of a peak (peak-onset usually)
-    
-    Raises
-    ------
-    error
-         description
-    
-    Notes
-    -----
-    
     """
     offset50 = []
     offset63 = []
