@@ -10,7 +10,7 @@ import pandas as pd
 import numpy as np
 
 classify = True
-feature_extraction = False
+feature_extraction = True
 
 # Current location
 dir_path = os.path.dirname(os.path.realpath(__file__))

@@ -174,7 +174,6 @@ def tot_eda_features(eda, fs):
     out_dict["Range"] = np.max(eda) - np.min(eda)
     out_dict["Entropy"] = entropy(eda)
 
-    print(eda.size/fs)
     # Derivatives
     der1 = np.gradient(eda, np.linspace(0, eda.size / fs, eda.size))
     der2 = np.gradient(der1, np.linspace(0, eda.size / fs, eda.size))
