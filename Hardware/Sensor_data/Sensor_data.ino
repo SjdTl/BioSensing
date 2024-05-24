@@ -9,7 +9,7 @@ struct Data {
   unsigned long Timestamp;
   uint16_t ECG;
   uint16_t EMG;
-  uint16_t GSR;
+  float GSR;
   unsigned long label;
 } testData;
 

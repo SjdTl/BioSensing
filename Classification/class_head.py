@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 from tqdm.notebook import tqdm
 from sklearn import preprocessing
-from sklearn.decomposition import PCA
+from sklearn.model_selection import LeaveOneGroupOut
 from scipy import stats
 import seaborn as sns
 import numpy as np
@@ -19,7 +19,6 @@ from sklearn.naive_bayes import BernoulliNB
 
 #Import evaluation metrics
 from sklearn.datasets import make_classification
-from sklearn.metrics import mean_absolute_error
 from sklearn.metrics import f1_score, accuracy_score,confusion_matrix
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -122,33 +121,53 @@ def train_test_split(features_data, param_subject_array="Not Given", num_subject
     features_data_scaled = features_data_scaled.join(features_data['label'])
     features_data_scaled = features_data_scaled.join(features_data['subject'])
 
-    #Create shuffeled subject array
-    param_check = "Not Given"
-    if param_subject_array is param_check:
-        subject_array = np.arange(1, num_subjects+1)
-        np.random.shuffle(subject_array)
-    else:
-        subject_array = param_subject_array
+    logo = LeaveOneGroupOut()
+    features = features_data_scaled.drop(columns=['label', 'subject']).to_numpy()
+    labels = features_data_scaled['label'].to_numpy()
+    groups = features_data_scaled['subject'].to_numpy()
 
-    #Split dataset into test and train
-    num_test_subjects = round(num_subjects * test_percentage)
-    test_data = pd.DataFrame()
-    train_data = pd.DataFrame()
-    for ts_sub in range(0, num_test_subjects):
-        test_data = pd.concat((test_data, features_data_scaled.loc[features_data_scaled['subject'] == subject_array[ts_sub]]))
-    for tr_sub in range(num_test_subjects, num_subjects):
-        train_data = pd.concat((train_data, features_data_scaled.loc[features_data_scaled['subject'] == subject_array[tr_sub]]))
+    for train_index, test_index in logo.split(features, labels, groups):
+        X_train, x_test = features[train_index], features[test_index]
+        Y_train, y_test = labels[train_index], labels[test_index]
+    
+        # Here you can train your model using X_train, Y_train and evaluate using X_test, Y_test
+        # Example:
+        # model.fit(X_train, Y_train)
+        # predictions = model.predict(X_test)
+        # evaluate_model(predictions, Y_test)
+        # For demonstration, let's just print the sizes of the train and test sets
+        print(f"Train size: {X_train.shape[0]}, Test size: {x_test.shape[0]}")
 
-    #Split into X and Y
-    X_train = train_data.drop(columns=['label', 'subject']).to_numpy()
-    Y_train = train_data['label'].to_numpy()
-    x_test = test_data.drop(columns=['label', 'subject']).to_numpy()
-    y_test = test_data['label'].to_numpy()
+    # #Create shuffeled subject array
+    # param_check = "Not Given"
+    # if param_subject_array is param_check:
+    #     subject_array = np.arange(1, num_subjects+1)
+    #     np.random.shuffle(subject_array)
+    # else:
+    #     subject_array = param_subject_array
+
+    # #Split dataset into test and train
+    # num_test_subjects = round(num_subjects * test_percentage)
+    # test_data = pd.DataFrame()
+    # train_data = pd.DataFrame()
+    # for ts_sub in range(0, num_test_subjects):
+    #     test_data = pd.concat((test_data, features_data_scaled.loc[features_data_scaled['subject'] == subject_array[ts_sub]]))
+    # for tr_sub in range(num_test_subjects, num_subjects):
+    #     train_data = pd.concat((train_data, features_data_scaled.loc[features_data_scaled['subject'] == subject_array[tr_sub]]))
+
+    # #Split into X and Y
+    # X_train = train_data.drop(columns=['label', 'subject']).to_numpy()
+    # Y_train = train_data['label'].to_numpy()
+    # x_test = test_data.drop(columns=['label', 'subject']).to_numpy()
+    # y_test = test_data['label'].to_numpy()
 
     #Scale split data
     scaler = preprocessing.StandardScaler().fit(X_train)
     X_train = scaler.transform(X_train)
     x_test = scaler.transform(x_test)
+
+
+    
 
     return X_train, Y_train, x_test, y_test
 
@@ -270,7 +289,7 @@ def evaluate(y_test, y_pred):
     >>>
     """
     accuracy = accuracy_score(y_test, y_pred)
-    fone = f1_score(y_test, y_pred, labels=[1,2,3,4], average="micro")
+    fone = f1_score(y_test, y_pred, labels=[1,2,3,4], average="weighted")
     return accuracy, fone
 
 def importances(model, classifier="RandomForest"):
@@ -326,7 +345,7 @@ def importances(model, classifier="RandomForest"):
         print("Invalid input")
         return 0
 
-def confusion_matirx(model, x_test, y_test):
+def confusion_matirx_print(model, x_test, y_test, model_name="none"):
     """
     Description
     -----------
@@ -363,16 +382,18 @@ def confusion_matirx(model, x_test, y_test):
     cm = confusion_matrix(y_test, y_pred)
     score = model.score(x_test, y_test)
 
-    plt.figure(figsize=(4,4))
-    sns.heatmap(cm, annot=True, fmt=".3f", linewidths=.5, square = True, cmap = 'Blues_r')
+    plt.figure(figsize=(6,6))
+    sns.heatmap(cm, annot=True, fmt=".3f", linewidths=.5, square = True, cmap = 'Blues', xticklabels=["Baseline", "Stress", "Amusement", "Meditation"], yticklabels=["Baseline", "Stress", "Amusement", "Meditation"])
     plt.ylabel('Actual label')
     plt.xlabel('Predicted label')
-    all_sample_title = 'Accuracy Score: {0}'.format(score)
+    all_sample_title = 'Accuracy Score: {0}, {1}'.format(round(score*100, 3), model_name)
     plt.title(all_sample_title, size = 10)
     
     plt.savefig(os.path.join(dir_path, "ConfusionMatrix.svg"))
 
-def fit_predict_evaluate(X_train, Y_train, x_test, y_test, RFC_n_estimators=100, RFC_max_depth=None, KNE_n_neighbors=20, KNE_leaf_size=30, ADA_n_estimators=50, ADA_learning_rate=1, DTC_max_depth=3, LDA_solver="svd", BNB_alpha=1):
+    plt.savefig(os.path.join(dir_path, "ConfusionMatrix", ".".join([model_name, "svg"])))
+
+def fit_predict_evaluate(X_train, Y_train, x_test, y_test, features_array, RFC_n_estimators=100, RFC_max_depth=None, KNE_n_neighbors=20, KNE_leaf_size=30, ADA_n_estimators=50, ADA_learning_rate=1, DTC_max_depth=3, LDA_solver="svd", BNB_alpha=1):
     """
     Description
     -----------
@@ -412,40 +433,76 @@ def fit_predict_evaluate(X_train, Y_train, x_test, y_test, RFC_n_estimators=100,
     """
     accuracy_dict = {}
     fone_dict = {}
+    classifier_name_list = ["Random Forrest", "K-Nearest Neighbors", "AdaBoost", "Decision Tree", "Support Vector Machine", "Linear Discriminant Analysis", "Bernoulli Naive Bayes"]
 
     #Random Forest Classifier
     classifier_RFC = fit_model(X_train=X_train, Y_train=Y_train, classifier="RandomForest", RFC_max_depth=RFC_max_depth, RFC_n_estimators=RFC_n_estimators)
     y_pred_RFC = predict(classifier_RFC, x_test)
     accuracy_dict["Random Forrest"], fone_dict["Random Forrest"] = evaluate(y_test, y_pred_RFC)
+    confusion_matirx_print(classifier_RFC, x_test, y_test, model_name="Random Forrest")
+
+    importances_RFC = importances(classifier_RFC, "RandomForest")
+    # Sort feature importances in descending order
+    indices_RFC = np.argsort(importances_RFC)[::-1]
+
+    # Plot the feature importances
+    plt.figure()
+    plt.rcParams['figure.figsize'] = [35, 4]
+    plt.title("Feature importances Random Forrest")
+    plt.bar(range(X_train.shape[1]), importances_RFC[indices_RFC], align="center")
+    plt.xticks(range(X_train.shape[1]), list(features_array.columns))
+    plt.xticks(rotation=90)
+    plt.xlabel("Feature index")
+    plt.ylabel("Feature importance")
 
     #K-Nearest Neighbors Classifier
     classifier_KNE = fit_model(X_train=X_train, Y_train=Y_train, classifier="KNeighbors", KNE_n_neighbors=KNE_n_neighbors, KNE_leaf_size=KNE_leaf_size)
     y_pred_KNE = predict(classifier_KNE, x_test)
     accuracy_dict["K-Nearest Neighbors"], fone_dict["K-Nearest Neighbors"] = evaluate(y_test, y_pred_KNE)
+    confusion_matirx_print(classifier_KNE, x_test, y_test, model_name="K-Nearest Neighbors")
 
     #Adaboost Classifier
     classifier_ADA = fit_model(X_train=X_train, Y_train=Y_train, classifier="AdaBoost", ADA_learning_rate=ADA_learning_rate, ADA_n_estimators=ADA_n_estimators)
     y_pred_ADA = predict(classifier_ADA, x_test)
     accuracy_dict["AdaBoost"], fone_dict["AdaBoost"] = evaluate(y_test, y_pred_ADA)
+    confusion_matirx_print(classifier_ADA, x_test, y_test, model_name="AdaBoost")
+
+    importances_ADA = importances(classifier_ADA, "AdaBoost")
+    # Sort feature importances in descending order
+    indices_ADA = np.argsort(importances_ADA)[::-1]
+
+    # Plot the feature importances
+    plt.figure()
+    plt.rcParams['figure.figsize'] = [35, 4]
+    plt.title("Feature importances AdaBoost")
+    plt.bar(range(X_train.shape[1]), importances_ADA[indices_ADA], align="center")
+    plt.xticks(range(X_train.shape[1]), list(features_array.columns))
+    plt.xticks(rotation=90)
+    plt.xlabel("Feature index")
+    plt.ylabel("Feature importance") 
 
     #Decision Tree Regressor
     classifier_DTC = fit_model(X_train=X_train, Y_train=Y_train, classifier="DecisionTree", DTC_max_depth=DTC_max_depth)
     y_pred_DTC = predict(classifier_DTC, x_test)
     accuracy_dict["Decision Tree"], fone_dict["Decision Tree"] = evaluate(y_test, y_pred_DTC)
+    confusion_matirx_print(classifier_DTC, x_test, y_test, model_name="Decision Tree")
 
     #Support Vector Machine
     classifier_SVM = fit_model(X_train=X_train, Y_train=Y_train, classifier="SVM")
     y_pred_SVM = predict(classifier_SVM, x_test)
     accuracy_dict["Support Vector Machine"], fone_dict["Support Vector Machine"] = evaluate(y_test, y_pred_SVM)
+    confusion_matirx_print(classifier_SVM, x_test, y_test, model_name="Support Vector Machine")
 
     #Linear Discriminant Analysis
     classifier_LDA = fit_model(X_train=X_train, Y_train=Y_train, classifier="LinearDiscriminantAnalysis", LDA_solver=LDA_solver)
     y_pred_LDA = predict(classifier_LDA, x_test)
     accuracy_dict["Linear Discriminant Analysis"], fone_dict["Linear Discriminant Analysis"] = evaluate(y_test, y_pred_LDA)
+    confusion_matirx_print(classifier_LDA, x_test, y_test, model_name="Linear Discriminant Analysis")
 
     #Bernoulli
     classifier_BNB = fit_model(X_train=X_train, Y_train=Y_train, classifier="BernoulliNB", BNB_alpha=BNB_alpha)
     y_pred_BNB = predict(classifier_BNB, x_test)
     accuracy_dict["Bernoulli Naive Bayes"], fone_dict["Bernoulli Naive Bayes"] = evaluate(y_test, y_pred_BNB)
+    confusion_matirx_print(classifier_BNB, x_test, y_test, model_name="Bernoulli Naive Bayes")
 
     return accuracy_dict, fone_dict
