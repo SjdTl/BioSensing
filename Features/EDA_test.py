@@ -133,7 +133,7 @@ def EDA_figures(filepath, T =40):
     fig.savefig(os.path.join(dir_path, "plots", "EDA_plots", "phasic_tonic_fd.svg"))
 
     # PEAK detection
-    widths, widths2, peaks = peak_detection(phasic, fs/Q)
+    peaks, onset, offset50, offset63, magnitude = peak_detection(phasic,fs= fs/Q, method = "Neurokit")
 
     fig, ax = plt.subplots()
 
@@ -141,11 +141,14 @@ def EDA_figures(filepath, T =40):
 
     ax.plot(t,phasic,label='phasic')
     ax.plot(t[peaks],phasic[peaks],'o',label='peaks')
-    ax.hlines(widths[1], *widths[2:]/np.max(widths[3])*t[-1], color="C2")
-    ax.hlines(widths2[1], *widths2[2:]/np.max(widths2[3])*t[-1], color="C3")
+    ax.plot(t[onset],phasic[onset],'o',label='onset')
+    ax.plot(t[offset50],phasic[offset50],'o',label=f"50% offset")
+    ax.plot(t[offset63],phasic[offset63],'o',label=f'63% offset')
 
+    ax.vlines(t[peaks], ymax = phasic[peaks], ymin = phasic[peaks]- magnitude, linestyle = '--')
+    
     # labels and titles
-    ax.set_xlabel('Time $[s]$')
+    ax.set_xlabel('Time [$s$]')
     ax.set_ylabel('Conductivity $[\mu S]$')
     ax.legend()
 
@@ -195,35 +198,60 @@ def compare_phasic_tonic_methods(filepath, T= 100):
     fig.tight_layout()
     fig.savefig(os.path.join(dir_path, "plots", "EDA_plots", "phasic_tonic_comparison.svg"))
 
-def compare_peak_detection(filepath, T=100):
+def compare_peak_detection(filepath, T=150):
     fs=700
     eda = feat_gen.load_test_data("EDA", filepath, T=T)
     # EDA lowpass filter and downsampling
     Q = 10
+    t =np.linspace(0,T, int(fs*T/Q)) 
+
     filtered_eda = butter_EDA(eda, Q=Q)
     phasic, tonic = split_phasic_tonic(filtered_eda, fs/Q)
 
-    peaks, onset, offset50, offset67, magnitude = peak_detection(phasic, method = "Neurokit", fs=fs/Q)
+    methods = ["Neurokit", "gamboa2008", "kim2004", "vanhalem2020", "nabian2018"]
+    
+    fig, ax = plt.subplots(3,2, figsize=(13,9))
 
+    for i in range(len(methods)):
 
-    fig, ax = plt.subplots()
+        peaks, onset, offset50, offset63, magnitude = peak_detection(phasic, method = methods[i], fs=fs/Q)
 
-    t =np.linspace(0,T, int(fs*T/Q))
+        if i == 0 or i == 1:
+            k = i
+            j = 0
+        if i == 2 or i == 3:
+            k = i-2
+            j = 1
+        if i == 4 or i==5:
+            k = i-4
+            j=2
 
-    ax.plot(t,phasic,label='phasic')
-    ax.plot(t[peaks],phasic[peaks],'o',label='peaks')
-    ax.hlines(widths[1], *widths[2:]/np.max(widths[3])*t[-1], color="C2")
-    ax.hlines(widths2[1], *widths2[2:]/np.max(widths2[3])*t[-1], color="C3")
-    # labels and titles
-    ax.set_xlabel('$Time (s)$')
-    ax.set_ylabel('Conductivity $[\mu S]$')
-    ax.legend()
-    plt.show()
+        ax[j][k].plot(t,phasic,label='phasic')
+        ax[j][k].plot(t[peaks],phasic[peaks],'o',label='peaks')
+        ax[j][k].plot(t[onset],phasic[onset],'o',label='onset')
+        ax[j][k].plot(t[offset50],phasic[offset50],'o',label=f"50% offset")
+        ax[j][k].plot(t[offset63],phasic[offset63],'o',label=f'63% offset')
+
+        ax[j][k].vlines(t[peaks], ymax = phasic[peaks], ymin = phasic[peaks]- magnitude, linestyle = '--')
+        
+        # labels and titles
+        ax[j][k].set_xlabel('Time [$s$]')
+        ax[j][k].set_ylabel('Conductivity $[\mu S]$')
+        ax[j][k].set_title(str(methods[i]))
+
+    fig.suptitle("Comparison of different peak detection methods")
+    # Create the legend in ax[1][2] (which is the same as ax[2][3] in a 2x3 grid)
+    handles, labels = ax[0][0].get_legend_handles_labels()
+    ax[2][1].legend(handles, labels, loc='upper left')
+    ax[2][1].axis('off')  # Turn off the axis
+    fig.tight_layout()
+
+    fig.savefig(os.path.join(dir_path, "plots", "EDA_plots", "peak_detection_comparison.svg"))
 
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 filepath = os.path.join(dir_path, "Raw_data", "raw_data.pkl")
-# EDA_figures(filepath)
-compare_peak_detection(filepath)
+EDA_figures(filepath)
+# compare_peak_detection(filepath)
 # print(test(filepath))
 # compare_phasic_tonic_methods(filepath)

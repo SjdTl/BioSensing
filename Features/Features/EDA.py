@@ -255,19 +255,20 @@ def phasic_features(phasic, fs):
 
 
     # Peak data
-    widths, widths2, peaks = peak_detection(phasic, method="manual", fs=fs)
+    peaks, onset, offset50, offset63, magnitude = peak_detection(phasic, method="Neurokit", fs=fs)
 
     # Find features
-    out_dict["onset"] = np.mean(peaks - widths[2])/fs
-    out_dict["recovery"] = np.mean(widths2[3] - peaks)/fs
-    out_dict["RR"] = len(peaks)/len(phasic)
-    out_dict["RM"] = np.mean(phasic[peaks] - widths[1])
-    out_dict["RT"] = np.mean(widths[0])/fs
-    
+    out_dict["RT"] = np.mean(-(onset-offset63)/fs)
+    out_dict["Recovery63"] = np.mean(-(peaks-offset63)/fs)
+    out_dict["Recovery50"] = np.mean(-(peaks-offset50)/fs)
+    out_dict["Rise"] = np.mean(-(onset-peaks)/fs)
+    out_dict["RM"] = np.mean(magnitude)
+    out_dict["RR"] = peaks.size / (phasic.size/fs)
+
     # Turn dictionary into pd.DataFrame and return
     return pd.DataFrame.from_dict(out_dict, orient="index").T.add_prefix("EDA_phasic_")
 
-def peak_detection(phasic, method = "manual", fs=700):
+def peak_detection(phasic, method = "Neurokit", fs=700):
     """
     Description
     -----------
@@ -296,7 +297,7 @@ def peak_detection(phasic, method = "manual", fs=700):
         Indexes of the start of a response
     offset50 : np.array
         Index where the response has gone back to 50% of its original value
-    offset67 : np.array
+    offset63 : np.array
         Index where the response has gone back to 67% of its original value
     magnitude : np.array
         Magnitude of a peak (peak-onset usually)
@@ -310,35 +311,83 @@ def peak_detection(phasic, method = "manual", fs=700):
     -----
     
     """
-    if method == "manual":
-        rel_height=0.63
+    offset50 = []
+    offset63 = []
 
-        peaks, _ = scipy.signal.find_peaks(phasic)#your code here]
-        magnitude, _, __ = scipy.signal.peak_prominences(phasic,peaks)#your code here]
+    # if method == "manual":
+    #     rel_height=0.63
+
+    #     peaks, _ = scipy.signal.find_peaks(phasic)#your code here]
+    #     magnitude, _, __ = scipy.signal.peak_prominences(phasic,peaks)#your code here]
+
+    #     widths = np.asarray(scipy.signal.peak_widths(phasic,peaks,rel_height)) #your code here]
+    #     rel_height=0.5
+    #     widths2 = np.asarray(scipy.signal.peak_widths(phasic,peaks,rel_height)) #your code here]
+    #     # find the indices with an amplitude larger that 0.1
+    #     keep = np.full(len(peaks), True)
+    #     amplitude_min=0.1*np.max(phasic)
+    #     keep[np.where(magnitude<amplitude_min)] = False
+    #     # only keep those
+    #     peaks=peaks[keep]
+    #     magnitude=magnitude[keep]
+
+    #     widths=widths[:,keep]
+    #     widths2 = widths2[:,keep]
+
         
-        widths = np.asarray(scipy.signal.peak_widths(phasic,peaks,rel_height)) #your code here]
-        rel_height=0.5
-        widths2 = np.asarray(scipy.signal.peak_widths(phasic,peaks,rel_height)) #your code here]
-        # find the indices with an amplitude larger that 0.1
-        keep = np.full(len(peaks), True)
-        amplitude_min=0.1*np.max(phasic)
-        keep[np.where(magnitude<amplitude_min)] = False
-        # only keep those
-        peaks=peaks[keep]
-        magnitude=magnitude[keep]
-
-        widths=widths[:,keep]
-        widths2 = widths2[:,keep]
-
-        
-    else: 
+    if method != "manual": 
         t =np.linspace(0, phasic.size/fs, phasic.size)
-        df = nk.eda_findpeaks(phasic, sampling_rate=fs)
-
-        onset = df["SCR_Onsets"]
-        peaks = df["SCR_Peaks"]
-        magnitude = df["SCR_Height"]
-
+        df = nk.eda_findpeaks(phasic, sampling_rate=fs, method = method)
+        onset = np.array(df["SCR_Onsets"])
+        peaks = np.array(df["SCR_Peaks"])
+        magnitude = np.array(df["SCR_Height"])
 
 
-    return peaks, onset, offset50, offset67, magnitude
+        # Sometimes returns nan values
+        valid_indices = ~np.isnan(onset) & ~np.isnan(peaks) & ~np.isnan(magnitude)
+        onset = onset[valid_indices]
+        peaks = peaks[valid_indices]
+        magnitude = magnitude[valid_indices]
+
+
+        for i in range(onset.size):
+            height50 = 0.5 * magnitude[i]
+            height63 = (1-0.63) * magnitude[i]
+            
+            # Find the index where phasic drops below height50
+            index50 = np.argwhere(phasic[peaks[i]:] < height50)[:,0]
+            if index50.size == 0:
+                offset50.append(-1)
+            else:
+                offset50.append((index50[0] + peaks[i]))
+            
+            # Find the index where phasic drops below height67
+            index63 = np.argwhere(phasic[peaks[i]:] < height63)[:,0]
+            if index63.size == 0:
+                offset63.append(-1)
+            else:
+                offset63.append((index63[0] + peaks[i]))
+
+        offset50 = np.array(offset50)
+        offset63 = np.array(offset63)
+
+
+        valid_indices =( np.argwhere(offset50 != -1) & np.argwhere(offset50 != -1))[:,0]
+        onset = onset[valid_indices].astype(int)
+        peaks = peaks[valid_indices].astype(int)
+        magnitude = magnitude[valid_indices]
+        offset50 = offset50[valid_indices].astype(int)
+        offset63 = offset63[valid_indices].astype(int)
+
+        # print(peaks, onset, offset50, offset63, magnitude)
+        # print(peaks.shape, onset.shape, offset50.shape, offset63.shape, magnitude.shape)
+        
+        if onset.size == 0:
+            onset = np.array([0])
+            peaks = np.array([0])
+            magnitude = np.array([0])
+            offset50 = np.array([0])
+            offset63 = np.array([0])
+
+
+    return peaks, onset, offset50, offset63, magnitude
