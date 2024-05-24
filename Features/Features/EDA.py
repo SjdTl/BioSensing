@@ -290,10 +290,16 @@ def peak_detection(phasic, method = "manual", fs=700):
     
     Returns
     -------
-    widths : np.array
-        ?
     peaks : np.array
-        peaks of 
+        Indexes of the peaks
+    onset : np.array
+        Indexes of the start of a response
+    offset50 : np.array
+        Index where the response has gone back to 50% of its original value
+    offset67 : np.array
+        Index where the response has gone back to 67% of its original value
+    magnitude : np.array
+        Magnitude of a peak (peak-onset usually)
     
     Raises
     ------
@@ -308,32 +314,31 @@ def peak_detection(phasic, method = "manual", fs=700):
         rel_height=0.63
 
         peaks, _ = scipy.signal.find_peaks(phasic)#your code here]
-        heights, _, __ = scipy.signal.peak_prominences(phasic,peaks)#your code here]
+        magnitude, _, __ = scipy.signal.peak_prominences(phasic,peaks)#your code here]
+        
         widths = np.asarray(scipy.signal.peak_widths(phasic,peaks,rel_height)) #your code here]
         rel_height=0.5
         widths2 = np.asarray(scipy.signal.peak_widths(phasic,peaks,rel_height)) #your code here]
         # find the indices with an amplitude larger that 0.1
         keep = np.full(len(peaks), True)
         amplitude_min=0.1*np.max(phasic)
-        keep[np.where(heights<amplitude_min)] = False
+        keep[np.where(magnitude<amplitude_min)] = False
         # only keep those
         peaks=peaks[keep]
-        heights=heights[keep]
+        magnitude=magnitude[keep]
+
         widths=widths[:,keep]
         widths2 = widths2[:,keep]
+
+        
     else: 
         t =np.linspace(0, phasic.size/fs, phasic.size)
         df = nk.eda_findpeaks(phasic, sampling_rate=fs)
-        print(df)
-        peaks = df["SCR_Onsets"]
-        widths = df["SCR_Peaks"]
-        widths2 = df["SCR_Height"]
 
-        fig, ax = plt.subplots()
-        ax.plot(t, phasic)
-        ax.plot(t[peaks], phasic[peaks], 'o')
-        ax.plot(t[widths], phasic[widths], 'o')
-        ax.plot(t[widths], phasic[widths]-widths2, 'o')
-        plt.show()
+        onset = df["SCR_Onsets"]
+        peaks = df["SCR_Peaks"]
+        magnitude = df["SCR_Height"]
 
-    return widths, widths2, peaks
+
+
+    return peaks, onset, offset50, offset67, magnitude

@@ -145,7 +145,7 @@ def EDA_figures(filepath, T =40):
     ax.hlines(widths2[1], *widths2[2:]/np.max(widths2[3])*t[-1], color="C3")
 
     # labels and titles
-    ax.set_xlabel('$Time (s)$')
+    ax.set_xlabel('Time $[s]$')
     ax.set_ylabel('Conductivity $[\mu S]$')
     ax.legend()
 
@@ -203,10 +203,8 @@ def compare_peak_detection(filepath, T=100):
     filtered_eda = butter_EDA(eda, Q=Q)
     phasic, tonic = split_phasic_tonic(filtered_eda, fs/Q)
 
-    widths, widths2, peaks = peak_detection(phasic, method = "Neurokit", fs=fs/Q)
-    print(widths, widths2)
-    print(widths.shape)
-    print(widths2.shape)
+    peaks, onset, offset50, offset67, magnitude = peak_detection(phasic, method = "Neurokit", fs=fs/Q)
+
 
     fig, ax = plt.subplots()
 
