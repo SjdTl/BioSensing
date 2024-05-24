@@ -10,8 +10,8 @@ Put a csv file directory in, and get a dictionary back(of a single subject)
 def ReadFile(filedir='Alldata.csv'):
     ###Defining the arrays to store data
     ECGList = []
-    GSRList = []
     EMGList = []
+    GSRList = []
     LabelList = []
     ###
     ###getting data from csv file
@@ -21,8 +21,8 @@ def ReadFile(filedir='Alldata.csv'):
         for row in spamreader:
             if(len(row)!=0):
                 ECGList.append(row[1])
-                GSRList.append(row[2])
-                EMGList.append(row[3])
+                EMGList.append(row[2])
+                GSRList.append(row[3])
                 LabelList.append(row[4])
     ###
     ###Make dictionary
