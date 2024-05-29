@@ -22,14 +22,15 @@ feature_extraction = False
 
 # Current location
 dir_path = os.path.dirname(os.path.realpath(__file__))
-# Import wesad data
 if feature_extraction == True:
+    # Import wesad data
     all_data = feat_head.load_dict(os.path.join(dir_path, "Features", "Raw_data", "raw_data.pkl"))
-    # Determine features
+    # Determine features based on all_data
     features = feat_head.features_db(all_data)
     # Intermediate save
     feat_head.save_features(features, os.path.join(dir_path, "Features", "Features_out", "features"))
 else:
+    # Use a presaved dataframe
     filename = os.path.join(dir_path, "Features", "Features_out", "features_4.pkl")
     features = pd.read_pickle(filename)
 
