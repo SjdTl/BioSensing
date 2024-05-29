@@ -26,8 +26,8 @@ def test(filepath):
     """
     ecg = feat_gen.load_test_data("ECG", filepath)
 
+    feat_gen.quick_plot(preProcessing(ecg, fs=700))
     df = ECG(ecg, 700)
-    # feat_gen.quick_plot(ecg)
     return df
 
 def EMG_figures(filepath, T =10):
