@@ -47,13 +47,6 @@ def spider_data(folderpath, testing = False, T=60, fs= 100):
     
     Returns
     -------
-    IF TESTING IS FALSE
-    data : dictionary of np.arrays
-        dictionary of the form:
-            data = {RR = [the rreathing data] 
-                    ECG = [the ecg data]}
-
-    IF TESTING IS TRUE
     ecg : np.array
         ecg data of length T
     rr : np.array
@@ -74,18 +67,14 @@ def spider_data(folderpath, testing = False, T=60, fs= 100):
             i = i+1
             if testing == True and i==3:
                 break
-                
 
-    data = {"RR": rr,
-            "ECG": ecg}
-    
     if testing == True:
-        ecg_splitted = split_time(np.array([data["ECG"]]), fs, T)[0]
-        rr_splitted = split_time(np.array([data["RR"]]), fs, T)[0]
+        ecg_splitted = split_time(np.array([ecg]), fs, T)[0]
+        rr_splitted = split_time(np.array([rr]), fs, T)[0]
         random_index = np.random.randint(low=0, high = ecg_splitted.shape[0]-1, size=1)
         return ecg_splitted[random_index][0], rr_splitted[random_index][0]
     else: 
-        return data
+        return ecg, rr
 
 def preProcessRR(rr, fs=100):
     """
@@ -172,79 +161,57 @@ def plot_spider(ecg, rr, rr_extracted, rr_unprocessed, method, fs=100):
     plt.savefig(os.path.join(dirpath, "Plots", "RR_plots", "RR_"+str(method) + ".svg"))
 
 
-def determine_RR_accuracy(dataset, method="vangent2019", T=60, example = True):
+def find_all_features(rr, ecg, method="vangent2019", fs=100, T=60):
     """
     Description
     -----------
-    Determines the accuracy of an RR extraction method (RR from ECG) by comparing the extracted RR data of the
-    spider dataset ecg data and the respitory rate data from this same dataset
-    The comparison is done using the Pearson Correlation Coefficient
-    
-    The coefficient is determined for several windows of T seconds. 
-    Returns the box-plot for all coefficient and optionally a plot of one of these windows with all relevant signals if specified
 
-    Parameters
-    ----------
-    dataset : dictionary with np.arrays
-        Dictionary extracted from the spiderdata of the form:
-            dataset = {ECG : [np.array],
-                        RR : [np.array]}
-        The ECG and RR data are 1 dimensional arrays. The spiderfearful data is just lumped together without taking subjects into account
-    method : string
-        Method used to determine the RR from ECG data, options:
-            - neurokit
-    T : int
-        Size of the windows in seconds
-    example: boolean
-        Plot the ecg, RR (unprocessed and processed) and extracted RR of one of the windows (selected randomly)
-    
-    Returns
-    -------
-    CC : np.array
-        array of the correlation coefficients of all the windows
-    shift : np.array
-        array of the timeshifts of all the windows
     """
-    1==1
-    # fs = 100 # for spider fearful dataset
 
-    # # Split up data
-    # RR_split = split_time(np.array([dataset["RR"]]), fs, T)[0]
-    # ECG_split = split_time(np.array([dataset["ECG"]]), fs, T)[0]
 
-    # # For selecting a window to plot
-    # randomvalue = np.random.randint(low=0, high=RR_split.shape[0], size=1)
-    # i = 0
 
-    # max_shift = 1
-    # CC = []
-    # shift = []
-    # for rr, ecg in (zip(RR_split, ECG_split)):
-    #     processed_RR = preProcessRR(rr, fs)
-    #     ecg = nk.ecg_clean(ecg, sampling_rate=fs)
-    #     if method != "control":
-    #         extracted_RR = RR.ECG_to_RR(ecg, fs=fs, method = method)
-    #     if method == "control":
-    #         extracted_RR = processed_RR + np.sin(2*np.pi * np.linspace(0, T/2, processed_RR.size))
+    # For selecting a window to plot
+    randomvalue = np.random.randint(low=0, high=rr.shape[0], size=1)
+    i = 0
 
-    #     cur_CC, cur_shift = compare_extracted_vs_real(extracted_RR, processed_RR, max_shift=max_shift)
-    #     CC.append(cur_CC)
-    #     shift.append(cur_shift)
+    features = pd.DataFrame()
 
-    #     if example == True and i==randomvalue:
-    #         plot_spider(ecg, processed_RR, extracted_RR, rr, cur_shift+max_shift, cur_CC, method)
-    #     i += 1
 
-    # return CC, shift
+    if method == 'Original':
+        for rr in rr:
+            current_feature = RR.RR(preProcessRR(rr), fs=fs)
+            # Add to dataframe
+            features = pd.concat([features, current_feature], ignore_index=True)
+        return features
+    else:
+        for rr, ecg in (zip(rr, ecg)):
+            processed_RR = preProcessRR(rr, fs)
+            ecg = nk.ecg_clean(ecg, sampling_rate=fs)
+            extracted_RR = RR.ECG_to_RR(ecg, fs=fs, method=method)
+
+            current_feature=RR.RR(extracted_RR, fs=fs)
+            features = pd.concat([features, current_feature], ignore_index=True)
+
+            if i==randomvalue:
+                plot_spider(ecg, processed_RR, extracted_RR, rr, method, fs=fs)
+            i += 1
+        return features
     
 
-def compare_methods(methods=["Original", "vangent2019", "soni2019", "charlton2016", "sarkar2015"], T=60):
-    rr = preProcessRR(rr)
-    rr_extracted = 
+def compare_methods(methods=["Original", "vangent2019", "soni2019", "charlton2016", "sarkar2015"], T=60, fs=100):
 
-    features = {}
+    ecg, rr = spider_data(os.path.join(dirpath, "spiderfearful"), testing = False, fs=100)
 
-    features["Original"] = 
+    RR_split = split_time(np.array([rr]), fs, T)[0]
+    ECG_split = split_time(np.array([ecg]), fs, T)[0]
+
+    features_methods = {}
+
+    for method in methods:
+        features_methods[method] = find_all_features(RR_split, ECG_split, method, fs=fs, T=T)
+        print(features_methods[method])
+
+    print(features_methods)
     # all_CC = []
     # all_shift = []
 
@@ -265,7 +232,6 @@ def compare_methods(methods=["Original", "vangent2019", "soni2019", "charlton201
     # ax[1].set_xticklabels(methods, rotation=60)
     # plt.tight_layout()
     # plt.savefig(os.path.join(dirpath, "Plots", "RR_plots", "RR_method_comparison.svg"))
-    1==1
 
 
 def testRR(fs=100):
@@ -287,14 +253,13 @@ def testRR(fs=100):
     # feat_gen.quick_plot(rr, preProcessRR(rr))
 
     rr = preProcessRR(rr)
-
     # signals, info = nk.rsp_process(rr, sampling_rate=fs)
     # feat_gen.quick_plot(signals["RSP_Raw"], signals["RSP_Clean"], signals["RSP_Amplitude"])
     # feat_gen.quick_plot(signals["RSP_Clean"], signals["RSP_Rate"], signals["RSP_RVT"])
     # feat_gen.quick_plot(signals["RSP_Clean"], signals["RSP_Symmetry_PeakTrough"], signals["RSP_Symmetry_RiseDecay"])
     # feat_gen.quick_plot(signals["RSP_Clean"], signals["RSP_Peaks"], signals["RSP_Troughs"])
 
-    df = RR.rr_peak_features(rr, 100)
+    df = RR.RR(rr, fs=fs)
     return df
 
 def testECG(ecg):
@@ -386,12 +351,12 @@ def RR_figures(T =40, fs = 100):
 
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
-print(testRR())
+# print(testRR())
 # RR_figures()
 
 
-filepath = os.path.join(dir_path, "Raw_data", "raw_data.pkl")
+# filepath = os.path.join(dir_path, "Raw_data", "raw_data.pkl")
 # print(test(filepath))
 
-# compare_methods(data)
+compare_methods()
 

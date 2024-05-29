@@ -75,10 +75,11 @@ def filename_exists(filepath, extension):
     etc.
     """
     while os.path.exists((filepath + "." + str(extension))):
-        if filepath[-2] != "_" and ~(filepath[-1].isdigit()):
+        if not(((filepath.split("_")[-1]).isdigit())):
             filepath = filepath + str("_1")
         else:
-            filepath = filepath[:-1] + str(int(filepath[-1]) + 1)
+            old_digit = filepath.split("_")[-1]
+            filepath = filepath[:-len(old_digit)] + str(int(old_digit) + 1)
     return str(filepath) + "." + str(extension)
 
 
