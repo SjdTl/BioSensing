@@ -51,11 +51,13 @@ def RR(processed_rr, fs=700):
     >>>
     """
 
-    rr = normalize(processed_rr)
-    rr = normalize(np.log(1 + 0.1 *rr)) * 2 -1
-    df_specific = rr_peak_features(rr, fs)
+    rr = normalize(processed_rr) * 2 -1
+    rr = cut_extreme_peaks(rr)
 
-    features = pd.concat([df_specific], axis=1)
+    df_specific = rr_peak_features(rr, fs)
+    df_general = general_rr_features(rr, fs)
+
+    features = pd.concat([df_specific, df_general], axis=1)
 
     # Error messages
     if features.isnull().values.any():
@@ -75,8 +77,37 @@ def ECG_to_RR(ecg, fs=100, method = "vangent2019"):
 
         edr = nk.ecg_rsp(ecg_rate, sampling_rate=fs, method = method)
 
-        edr = np.log(1 + 0.1 * normalize(edr))
         return normalize(edr) * 2 - 1
+    
+def general_rr_features(rr, fs=700):
+    """
+    Description
+    -----------
+    Calculate the general features (mean, std, etc) of RR signal
+    
+    Parameters
+    ----------
+    rr : np.array
+        processed rr signal
+    fs : float or int
+        sampling frequency of rr signal
+    
+    Returns
+    -------
+    out : pd.DataFrame
+        dataframe containing the features mentioned in the docstring of RR()
+    """
+
+    # Find features
+    out_dict = {}
+
+    out_dict["Mean"] = np.mean(rr)
+    out_dict["STD"] = np.std(rr)
+    out_dict["Median"] = np.median(rr)
+    out_dict["RMS"] = np.sqrt(np.mean(np.square(rr)))
+
+    # Turn dictionary into pd.DataFrame and return
+    return pd.DataFrame.from_dict(out_dict, orient="index").T.add_prefix("RR_")
     
 def rr_peak_features(rr, fs=700):
     """
@@ -108,23 +139,111 @@ def rr_peak_features(rr, fs=700):
     # Turn dictionary into pd.DataFrame and return
     return pd.DataFrame.from_dict(out_dict, orient="index").T.add_prefix("RR_")
 
-def peak_detection_RR(rr, fs=700, method = "biosppy"):
-    if method == "biosppy":
+def cut_extreme_peaks(rr, fs=700):
+    """
+    Description
+    -----------
+    Take in normalized (-1,1) rr and cut of small extreme peaks
+    """
 
+    T = rr.size / fs
+
+    mean = np.mean(rr)
+
+    limit = 0.5
+    a =  10
+    upper_range = rr > (limit+mean)
+    # Only if there are extreme peaks, which are of course not common
+    if np.count_nonzero(upper_range) < T / 15 * fs:
+        peaks = rr[upper_range]
+        relative_peaks = peaks - limit - mean
+        rr[upper_range] = limit + mean + np.log(1+a * relative_peaks)/a
+
+    lower_range = (rr < -limit + mean)
+    # Only if there are extreme peaks, which are of course not common
+    if np.count_nonzero(lower_range) < T / 15 * fs:
+        peaks = rr[lower_range]
+        relative_peaks = np.abs(peaks + limit - mean)
+        rr[lower_range] = -limit + mean - np.log(1+a * relative_peaks) /a
+
+    return normalize(rr) * 2 -1
+
+def peak_detection_RR(rr, fs=700, peak_prominence = 0.5, peak_distance = 0.8, method = "scipy"):
+    """
+    Code copied from Neurokit: https://neuropsychology.github.io/NeuroKit/_modules/neurokit2/rsp/rsp_findpeaks.html#rsp_findpeaks
+    Neurokit isn't used since this gives an error if there are no peaks (e.g. straight line) or a 
+    trough is higher than a peak (even if they are completely unrelated)
+    """
+
+    if method == "scipy":
+
+        peak_distance = fs * peak_distance
+        peaks, _ = scipy.signal.find_peaks(
+            rr, distance=peak_distance, prominence=peak_prominence
+        )
+        troughs, _ = scipy.signal.find_peaks(
+            -rr, distance=peak_distance, prominence=peak_prominence
+        )
+
+        # Combine peaks and troughs and sort them.
+        extrema = np.sort(np.concatenate((peaks, troughs)))
+        # Sanitize.
+        extrema, amplitudes = _rsp_findpeaks_outliers(rr, extrema, amplitude_min=0)
+        if extrema.size != 0:
+            peaks, troughs = _rsp_findpeaks_sanitize(extrema, amplitudes)
+        else:
+            peaks = [0]
+            troughs = [0]
+
+        # dir_path = os.path.dirname(os.path.realpath(__file__))
         # fig, ax = plt.subplots()
         # ax.plot(rr)
+        # ax.plot(np.linspace(0,rr.size, rr.size)[peaks], rr[peaks], 'o')
+        # ax.plot(np.linspace(0,rr.size, rr.size)[troughs], rr[troughs], 'o')
         # path = os.path.join(dir_path, "rr_testing")
         # path = filename_exists(path, "svg")
         # fig.savefig(path)
+    return peaks, troughs
+
+def _rsp_findpeaks_outliers(rsp_cleaned, extrema, amplitude_min=0.3):
+    """From Neurokit"""
+    # Only consider those extrema that have a minimum vertical distance to
+    # their direct neighbor, i.e., define outliers in absolute amplitude
+    # difference between neighboring extrema.
+    vertical_diff = np.abs(np.diff(rsp_cleaned[extrema]))
+    median_diff = np.median(vertical_diff)
+    min_diff = np.where(vertical_diff > (median_diff * amplitude_min))[0]
+    extrema = extrema[min_diff]
+
+    # Make sure that the alternation of peaks and troughs is unbroken. If
+    # alternation of sign in extdiffs is broken, remove the extrema that
+    # cause the breaks.
+    amplitudes = rsp_cleaned[extrema]
+    extdiffs = np.sign(np.diff(amplitudes))
+    extdiffs = np.add(extdiffs[0:-1], extdiffs[1:])
+    removeext = np.where(extdiffs != 0)[0] + 1
+    extrema = np.delete(extrema, removeext)
+    amplitudes = np.delete(amplitudes, removeext)
+
+    return extrema, amplitudes
+
+def _rsp_findpeaks_sanitize(extrema, amplitudes):
+    """From Neurokit"""
+    # To be able to consistently calculate breathing amplitude, make sure that
+    # the extrema always start with a trough and end with a peak, since
+    # breathing amplitude will be defined as vertical distance between each
+    # peak and the preceding trough. Note that this also ensures that the
+    # number of peaks and troughs is equal.
+    # if amplitudes[0] > amplitudes[1]:
+    #     extrema = np.delete(extrema, 0)
+    # if amplitudes[-1] < amplitudes[-2]:
+    #     extrema = np.delete(extrema, -1)
+    peaks = extrema[1::2]
+    troughs = extrema[0:-1:2]
+
+    return peaks, troughs
 
 
 
-        info, data = nk.rsp_peaks(rr, sampling_rate = fs)
-        peak_index = (data["RSP_Peaks"])
-        through_index = (data["RSP_Troughs"])
-
-    return peak_index, through_index
-
-dir_path = os.path.dirname(os.path.realpath(__file__))
 # filepath = os.path.join(dir_path, "Raw_data", "raw_small_test_data.pkl")
 # print(test(filepath))

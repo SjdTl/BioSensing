@@ -146,11 +146,17 @@ def plot_spider(ecg, rr, rr_extracted, rr_unprocessed, method, fs=100):
 
 
     ax[2].plot(t, rr)
+    peak_index, through_index = RR.peak_detection_RR(rr, fs=fs)
+    ax[2].plot(t[peak_index], rr[peak_index], 'o')
+    ax[2].plot(t[through_index], rr[through_index], 'o')
     ax[2].set_xlabel("Time ($s$)")
     ax[2].set_title("Processed RR")
     ax[2].set_ylabel("RR")
 
     ax[3].plot(t, rr_extracted)
+    peak_index, through_index = RR.peak_detection_RR(rr_extracted, fs=fs)
+    ax[3].plot(t[peak_index], rr_extracted[peak_index], 'o')
+    ax[3].plot(t[through_index], rr_extracted[through_index], 'o')
     ax[3].set_xlabel("Time ($s$)")
     ax[3].set_title("Extracted RR")
     ax[3].set_ylabel("RR")
@@ -168,8 +174,8 @@ def find_all_features(rr, ecg, method="vangent2019", fs=100, T=60):
 
     """
 
-
-
+    rr = split_time(np.array([rr]), fs, T)[0]
+    ecg = split_time(np.array([ecg]), fs, T)[0]
     # For selecting a window to plot
     randomvalue = np.random.randint(low=0, high=rr.shape[0], size=1)
     i = 0
@@ -191,47 +197,48 @@ def find_all_features(rr, ecg, method="vangent2019", fs=100, T=60):
 
             current_feature=RR.RR(extracted_RR, fs=fs)
             features = pd.concat([features, current_feature], ignore_index=True)
-
+            
             if i==randomvalue:
                 plot_spider(ecg, processed_RR, extracted_RR, rr, method, fs=fs)
             i += 1
         return features
     
 
-def compare_methods(methods=["Original", "vangent2019", "soni2019", "charlton2016", "sarkar2015"], T=60, fs=100):
-
-    ecg, rr = spider_data(os.path.join(dirpath, "spiderfearful"), testing = False, fs=100)
-
-    RR_split = split_time(np.array([rr]), fs, T)[0]
-    ECG_split = split_time(np.array([ecg]), fs, T)[0]
+def compare_methods(methods=["Original", "soni2019", "vangent2019", "charlton2016", "sarkar2015"], T=60, fs=100):
+    ecg, rr = spider_data(os.path.join(dirpath, "spiderfearful"), testing=False, fs=100)
 
     features_methods = {}
 
     for method in methods:
-        features_methods[method] = find_all_features(RR_split, ECG_split, method, fs=fs, T=T)
-        print(features_methods[method])
+        features_methods[method] = find_all_features(rr, ecg, method, fs=fs, T=T)
 
-    print(features_methods)
-    # all_CC = []
-    # all_shift = []
+    original = features_methods.pop("Original")
 
-    # for method in methods:
-    #     cur_CC, cur_shift = determine_RR_accuracy(dataset, method, T, example)
-    #     all_CC.append(cur_CC)
-    #     all_shift.append(cur_shift)
+    feature_labels = original.columns
+    x = np.arange(len(feature_labels))
+    width = 0.1  # Width of bar
 
-    # # PLOT
-    # fig, ax = plt.subplots(1,2)
-    # ax[0].boxplot(all_CC, labels=methods)
-    # ax[0].set_ylabel("CC")
-    # ax[1].boxplot(all_shift, labels=methods)
-    # ax[1].set_ylabel("Time (s)")
-    # ax[0].set_title("CC of RR extraction")
-    # ax[1].set_title("Timeshift")
-    # ax[0].set_xticklabels(methods, rotation=60)
-    # ax[1].set_xticklabels(methods, rotation=60)
-    # plt.tight_layout()
-    # plt.savefig(os.path.join(dirpath, "Plots", "RR_plots", "RR_method_comparison.svg"))
+    fig, ax = plt.subplots()
+    
+    for i, (method, features) in enumerate(features_methods.items()):
+        # % change = (new - old) / old
+        percentage_change = (features - original) / original * 100
+        mean_percentage_change = percentage_change.mean()
+
+        ax.bar(x + i * width, mean_percentage_change, width, label=method)
+
+    ax.set_ylabel('Percentage Change (%)')
+    ax.set_title('Percentage Change per Feature')
+    ax.set_xticks(x + width * (len(features_methods) - 1) / 2)
+    ax.set_xticklabels(feature_labels, rotation=90)
+    ax.set_ylim(-200,200)
+    ax.legend()
+    plt.tight_layout()
+
+    plt.savefig(os.path.join(dirpath, "Plots", "RR_plots", "RR_method_comparison.svg"))
+    print(original)
+    print(features_methods["soni2019"])
+    print(features_methods["sarkar2015"])
 
 
 def testRR(fs=100):
@@ -250,14 +257,8 @@ def testRR(fs=100):
         
     """
     ecg, rr = spider_data(os.path.join(dirpath, "spiderfearful"), testing = True)
-    # feat_gen.quick_plot(rr, preProcessRR(rr))
 
     rr = preProcessRR(rr)
-    # signals, info = nk.rsp_process(rr, sampling_rate=fs)
-    # feat_gen.quick_plot(signals["RSP_Raw"], signals["RSP_Clean"], signals["RSP_Amplitude"])
-    # feat_gen.quick_plot(signals["RSP_Clean"], signals["RSP_Rate"], signals["RSP_RVT"])
-    # feat_gen.quick_plot(signals["RSP_Clean"], signals["RSP_Symmetry_PeakTrough"], signals["RSP_Symmetry_RiseDecay"])
-    # feat_gen.quick_plot(signals["RSP_Clean"], signals["RSP_Peaks"], signals["RSP_Troughs"])
 
     df = RR.RR(rr, fs=fs)
     return df
