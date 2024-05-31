@@ -10,7 +10,7 @@ import tqdm
 from sklearn.preprocessing import minmax_scale as normalize
 import neurokit2 as nk
 from scipy.fft import fft, fftfreq, fftshift
-from scipy.signal import freqz
+from scipy.signal import freqz, sosfreqz
 
 from Features import ECG
 from Features import RR
@@ -76,45 +76,9 @@ def spider_data(folderpath, testing = False, T=60, fs= 100):
     else: 
         return ecg, rr
 
-def preProcessRR(rr, fs=100):
-    """
-    Description
-    -----------
-    Filter the breathing signal using a highpass and a lowpass filter
-    Most rreathing will always happen between 4-60 rreaths per minute.
-    See also Peter H Charlton et al 2017 Physiol. Meas. 38 669, Chapter 3.6
-    This corresponds to 4/60 and 60/60 rreath/s or Hz, since rreathing follows a sinusoidal pattern
-
-    Parameters
-    ----------
-    rr : np.array
-        A respitory rate signal (unit does not really matter)
-    fs : float or int
-        Sampling frequency of the device
-    
-    Returns
-    -------
-    RR_hl : np.array
-         high- and lowpassed respitory rate signal. 
-    """
-
-    order=5
-
-    # highpass filter
-    lowcut= 4 #breaths/min
-    lowcut = lowcut/(60) #Hz
-    b, a = butter(5, lowcut, btype = 'highpass', fs=fs)
-    rr_h = lfilter(b,a,rr)
-
-    # lowpass filter
-    highcut=60 # breaths/min
-    highcut= highcut/(60) # Hz 
-    b, a = butter(5, highcut, btype="lowpass", fs=fs)
-    rr_hl = lfilter(b,a,rr_h)
-    return rr_hl
 
 
-def plot_spider(ecg, rr, rr_extracted, rr_unprocessed, method, fs=100):
+def plot_spider(ecg, rr_unprocessed, method, fs=100):
     """
     Description
     -----------
@@ -125,10 +89,11 @@ def plot_spider(ecg, rr, rr_extracted, rr_unprocessed, method, fs=100):
     """
  
     # normalize
-    rr_extracted = normalize(rr_extracted)
-    rr_unprocessed = normalize(rr_unprocessed)
-    rr = normalize(rr)
-    ecg = normalize(ecg)
+    rr_extracted = RR.ECG_to_RR(ecg)
+    rr_unprocessed = normalize(rr_unprocessed) * 2 -1
+    rr_extracted = normalize(rr_extracted) * 2-1
+    rr = normalize(RR.preProcessRR(rr_unprocessed)) * 2 -1
+    ecg = normalize(ecg) * 2 -1
 
     t = np.arange(0, ecg.size * (1/fs), 1/fs)
 
@@ -146,17 +111,17 @@ def plot_spider(ecg, rr, rr_extracted, rr_unprocessed, method, fs=100):
 
 
     ax[2].plot(t, rr)
-    peak_index, through_index = RR.peak_detection_RR(rr, fs=fs)
+    peak_index, trough_index = RR.peak_detection_RR(rr, fs=fs)
     ax[2].plot(t[peak_index], rr[peak_index], 'o')
-    ax[2].plot(t[through_index], rr[through_index], 'o')
+    ax[2].plot(t[trough_index], rr[trough_index], 'o')
     ax[2].set_xlabel("Time ($s$)")
     ax[2].set_title("Processed RR")
     ax[2].set_ylabel("RR")
 
     ax[3].plot(t, rr_extracted)
-    peak_index, through_index = RR.peak_detection_RR(rr_extracted, fs=fs)
+    peak_index, trough_index = RR.peak_detection_RR(rr_extracted, fs=fs)
     ax[3].plot(t[peak_index], rr_extracted[peak_index], 'o')
-    ax[3].plot(t[through_index], rr_extracted[through_index], 'o')
+    ax[3].plot(t[trough_index], rr_extracted[trough_index], 'o')
     ax[3].set_xlabel("Time ($s$)")
     ax[3].set_title("Extracted RR")
     ax[3].set_ylabel("RR")
@@ -185,21 +150,19 @@ def find_all_features(rr, ecg, method="vangent2019", fs=100, T=60):
 
     if method == 'Original':
         for rr in rr:
-            current_feature = RR.RR(preProcessRR(rr), fs=fs)
+            current_feature = RR.RR(rr, fs=fs)
             # Add to dataframe
             features = pd.concat([features, current_feature], ignore_index=True)
         return features
     else:
         for rr, ecg in (zip(rr, ecg)):
-            processed_RR = preProcessRR(rr, fs)
-            ecg = nk.ecg_clean(ecg, sampling_rate=fs)
-            extracted_RR = RR.ECG_to_RR(ecg, fs=fs, method=method)
-
+            ecg = ECG.preProcessing(ecg, fs=fs)
+            extracted_RR = (RR.ECG_to_RR(ecg, fs=fs, method=method))
             current_feature=RR.RR(extracted_RR, fs=fs)
             features = pd.concat([features, current_feature], ignore_index=True)
             
             if i==randomvalue:
-                plot_spider(ecg, processed_RR, extracted_RR, rr, method, fs=fs)
+                plot_spider(ecg, rr, method, fs=fs)
             i += 1
         return features
     
@@ -222,24 +185,23 @@ def compare_methods(methods=["Original", "soni2019", "vangent2019", "charlton201
     
     for i, (method, features) in enumerate(features_methods.items()):
         # % change = (new - old) / old
-        percentage_change = (features - original) / original * 100
+        percentage_change = ((features - original) / original * 100).abs()
         mean_percentage_change = percentage_change.mean()
 
         ax.bar(x + i * width, mean_percentage_change, width, label=method)
 
     ax.set_ylabel('Percentage Change (%)')
-    ax.set_title('Percentage Change per Feature')
+    ax.set_title('$\dfrac{\text{extracted feature}-\text{original feature}}{\text{original feature}}$')
     ax.set_xticks(x + width * (len(features_methods) - 1) / 2)
     ax.set_xticklabels(feature_labels, rotation=90)
-    ax.set_ylim(-200,200)
+    ax.set_ylim(0,50)
     ax.legend()
     plt.tight_layout()
 
     plt.savefig(os.path.join(dirpath, "Plots", "RR_plots", "RR_method_comparison.svg"))
-    print(original)
-    print(features_methods["soni2019"])
-    print(features_methods["sarkar2015"])
 
+    original.to_excel(os.path.join(dir_path, "Plots", "RR_plots", "Original.xlsx"))
+    features_methods["sarkar2015"].to_excel(os.path.join(dir_path, "Plots", "RR_plots", "sarkar2015.xlsx"))
 
 def testRR(fs=100):
     """
@@ -258,8 +220,6 @@ def testRR(fs=100):
     """
     ecg, rr = spider_data(os.path.join(dirpath, "spiderfearful"), testing = True)
 
-    rr = preProcessRR(rr)
-
     df = RR.RR(rr, fs=fs)
     return df
 
@@ -277,6 +237,34 @@ def RR_figures(T =40, fs = 100):
         - Depends on how the preprocessing is done
     """
     ecg, rr = spider_data(os.path.join(dir_path, "spiderfearful"), testing = True, T=T)
+    processed_ecg = ECG.preProcessing(ecg, fs=fs)
+    rr = RR.ECG_to_RR(processed_ecg, fs=fs)
+    # -----------------------------------------------
+    # PROCESSED ECG
+    # -----------------------------------------------
+    # ECG processed timedomain
+    fig, ax = plt.subplots()
+    ax.plot(np.linspace(0,T, fs*T), processed_ecg)
+    ax.set_xlabel("Time [$s$]")
+    ax.set_ylabel("?")
+
+    fig.savefig(os.path.join(dir_path, "plots", "RR_plots", "Flowchart","rr_processed_ecg_td.svg"))
+
+
+    # RR unprocessed frequency domain
+    yf = fftshift(fft(processed_ecg))
+    xf = fftshift(fftfreq(processed_ecg.size, d= 1/fs))
+
+    fig, ax = plt.subplots()
+
+    ax.plot(xf, 10 * np.log10(np.abs(yf)))
+    ax.set_xlim(xmin=-fs/2, xmax=fs/2)
+    ax.set_xlabel("Frequency [$Hz$]")
+    ax.set_ylabel("Amplitude [dB]")
+    ax.set_ylim(ymin = -25)
+
+    fig.savefig(os.path.join(dir_path, "plots", "RR_plots", "Flowchart","rr_processed_ecg_fd.svg"))
+
 
     # -----------------------------------------------
     # UNPROCESSED
@@ -288,7 +276,7 @@ def RR_figures(T =40, fs = 100):
     ax.set_xlabel("Time [$s$]")
     ax.set_ylabel("?")
 
-    fig.savefig(os.path.join(dir_path, "plots", "RR_plots", "rr_unprocessed_td.svg"))
+    fig.savefig(os.path.join(dir_path, "plots", "RR_plots","Flowchart", "rr_unprocessed_td.svg"))
 
 
     # RR unprocessed frequency domain
@@ -298,39 +286,73 @@ def RR_figures(T =40, fs = 100):
     fig, ax = plt.subplots()
 
     ax.plot(xf, 10 * np.log10(np.abs(yf)))
+    ax.set_xlim(xmin=-10, xmax=10)
     ax.set_xlabel("Frequency [$Hz$]")
     ax.set_ylabel("Amplitude [dB]")
     ax.set_ylim(ymin = -25)
 
-    fig.savefig(os.path.join(dir_path, "plots", "RR_plots", "rr_unprocessed_fd.svg"))
+    fig.savefig(os.path.join(dir_path, "plots", "RR_plots", "Flowchart", "rr_unprocessed_fd.svg"))
 
     # -----------------------------------------------
     # PROCESSED
     # -----------------------------------------------
     # RR processed timedomain
-    rr = preProcessRR(rr)
+    # Bandpass processing
+    rrlow, blow, alow = RR.lowpassrr(rr, fs) 
+    wlow, hlow = freqz(blow, alow, fs=fs)
+    bprr, sos = RR.highpassrr(rrlow, fs) 
+    whigh, hhigh = sosfreqz(sos, fs=fs, worN = 512 * 4)
+
 
     fig, ax = plt.subplots()
 
-    ax.plot(np.linspace(0,T, fs*T), rr)
+    ax.plot(np.linspace(0,T, fs*T), bprr)
     ax.set_xlabel("Time [$s$]")
     ax.set_ylabel("?")
 
-    fig.savefig(os.path.join(dir_path, "plots", "RR_plots", "rr_processed_td.svg"))
+    fig.savefig(os.path.join(dir_path, "plots", "RR_plots", "Flowchart", "rr_bp_td.svg"))
 
 
     # RR processed frequency domain
-    yf = fftshift(fft(rr))
-    xf = fftshift(fftfreq(rr.size, d= 1/fs))
+    yf = fftshift(fft(bprr))
+    xf = fftshift(fftfreq(bprr.size, d= 1/fs))
 
     fig, ax = plt.subplots()
 
     ax.plot(xf, 10 * np.log10(np.abs(yf)))
     ax.set_xlabel("Frequency [$Hz$]")
     ax.set_ylabel("Amplitude [dB]")
+    ax.set_xlim(xmin=-10, xmax=10)
     ax.set_ylim(ymin = -25)
 
-    fig.savefig(os.path.join(dir_path, "plots", "RR_plots", "rr_processed_fd.svg"))
+    fig.savefig(os.path.join(dir_path, "plots", "RR_plots","Flowchart","rr_bp_fd.svg"))
+
+    # -----------------------------------------------
+    # Extreme peaks
+    # -----------------------------------------------
+    rr_processed = RR.preProcessRR(rr, fs)
+    fig, ax = plt.subplots()
+
+    ax.plot(np.linspace(0,T, fs*T), rr_processed)
+    ax.set_xlabel("Time [$s$]")
+    ax.set_ylabel("?")
+
+    fig.savefig(os.path.join(dir_path, "plots", "RR_plots", "Flowchart", "rr_processed_td.svg"))
+
+
+    # RR processed frequency domain
+    yf = fftshift(fft(rr_processed))
+    xf = fftshift(fftfreq(bprr.size, d= 1/fs))
+
+    fig, ax = plt.subplots()
+
+    ax.plot(xf, 10 * np.log10(np.abs(yf)))
+    ax.set_xlabel("Frequency [$Hz$]")
+    ax.set_ylabel("Amplitude [dB]")
+    ax.set_xlim(xmin=-fs/5, xmax=fs/5)
+    ax.set_ylim(ymin = -25)
+
+    fig.savefig(os.path.join(dir_path, "plots", "RR_plots", "Flowchart", "rr_processed_fd.svg"))
 
     # -----------------------------------------------
     # Peak detection
@@ -338,16 +360,29 @@ def RR_figures(T =40, fs = 100):
     # RR peak detection timedomain
     fig, ax = plt.subplots()
 
-    peak_index, through_index = RR.peak_detection_RR(rr, fs, method = "Neurokit")
+    peak_index, trough_index = RR.peak_detection_RR(rr_processed, fs)
 
     t = np.linspace(0,T, fs*T)
     ax.plot(t, rr, label = "RR signal")
-    ax.plot(t[peak_index], rr[peak_index], 'o', label="Peaks")
-    ax.plot(t[through_index], rr[through_index], 'o', label="Throughs")
+    ax.plot(t[peak_index], rr_processed[peak_index], 'o', label="Peaks")
+    ax.plot(t[trough_index], rr_processed[trough_index], 'o', label="Throughs")
     ax.set_xlabel("Time [$s$]")
     ax.set_ylabel("?")
 
-    fig.savefig(os.path.join(dir_path, "plots", "RR_plots", "rr_peak_detection_td.svg"))
+    fig.savefig(os.path.join(dir_path, "plots", "RR_plots", "Flowchart", "rr_peak_detection_td.svg"))
+
+    # Butterworth bandpass
+
+    fig, ax = plt.subplots()
+    ax.semilogx(wlow, 20 * np.log10(abs(hlow)), label="Lowpass filter")
+    ax.semilogx(whigh, 20 * np.log10(abs(hhigh)), label="Highpass filter")
+    ax.set_xlabel('Frequency [radians / second]')
+    ax.set_ylabel('Amplitude [dB]')
+    ax.set_xlim(xmax = fs/2, xmin = 0.005)
+    ax.set_ylim(ymin = -20, ymax = 5)
+    ax.grid(which='both', axis='both')
+    ax.legend()
+    fig.savefig(os.path.join(dir_path, "plots", "RR_plots", "Flowchart", "rr_bpbutterworth.svg"))
 
 
 

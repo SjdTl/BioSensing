@@ -8,12 +8,13 @@ import matplotlib.pyplot as plt
 import tqdm
 import neurokit2 as nk
 from sklearn.preprocessing import minmax_scale as normalize
+from scipy.signal import butter, iirnotch, lfilter, sosfilt, sosfiltfilt
 
 from . import feat_gen
 from .feat_head import filename_exists
 from .ECG import preProcessing
 
-def RR(processed_rr, fs=700):
+def RR(unprocessed_rr, fs=700):
     """
     Description
     -----------
@@ -21,8 +22,8 @@ def RR(processed_rr, fs=700):
 
     Parameters
     ----------
-    processed_rr : np.array
-        procesed rr signal, is already processed since it is extracted from ecg
+    unprocessed_rr : np.array
+        unprocessed rr data, the data coming from the ecg-to-rr extracter is considered unprocessed
     fs : int or float
         sampling frequency of the sensors
     
@@ -50,9 +51,7 @@ def RR(processed_rr, fs=700):
     --------
     >>>
     """
-
-    rr = normalize(processed_rr) * 2 -1
-    rr = cut_extreme_peaks(rr)
+    rr = preProcessRR(unprocessed_rr)
 
     df_specific = rr_peak_features(rr, fs)
     df_general = general_rr_features(rr, fs)
@@ -64,7 +63,7 @@ def RR(processed_rr, fs=700):
         raise ValueError("The feature array of EDA contains a NaN value")
     return features
 
-def ECG_to_RR(ecg, fs=100, method = "vangent2019"):
+def ECG_to_RR(ecg, fs=100, method = "sarkar2015"):
     if method == "vangent2019" or method == "soni2019" or method == "charlton2016" or method == "sarkar2015":
         # Extract peaks
         if len(ecg) == 0:
@@ -78,6 +77,49 @@ def ECG_to_RR(ecg, fs=100, method = "vangent2019"):
         edr = nk.ecg_rsp(ecg_rate, sampling_rate=fs, method = method)
 
         return normalize(edr) * 2 - 1
+    
+def preProcessRR(rr, fs=100):
+    """
+    Description
+    -----------
+    Filter the breathing signal using a highpass and a lowpass filter
+    Most rreathing will always happen between 4-60 rreaths per minute.
+    See also Peter H Charlton et al 2017 Physiol. Meas. 38 669, Chapter 3.6
+    This corresponds to 4/60 and 60/60 rreath/s or Hz, since rreathing follows a sinusoidal pattern
+
+    Parameters
+    ----------
+    rr : np.array
+        A respitory rate signal (unit does not really matter)
+    fs : float or int
+        Sampling frequency of the device
+    
+    Returns
+    -------
+    RR_hl : np.array
+         high- and lowpassed respitory rate signal. 
+    """
+
+
+    # highpass filter
+    rr_hp, _ = highpassrr(rr, fs)
+    # lowpass filter
+    rr_lp, _, _ = lowpassrr(rr_hp, fs)
+
+    rr_cut = cut_extreme_peaks(rr_lp)
+    return rr_cut
+def highpassrr(rr, fs, N=8):
+    lowcut= 4 #breaths/min
+    lowcut = lowcut/(60) #Hz
+    sos = butter(N, lowcut, btype = 'highpass', fs=fs, output = 'sos')
+    filtered = sosfiltfilt(sos,rr)
+    return filtered, sos
+def lowpassrr(rr, fs, N = 5):
+    highcut=60 # breaths/min
+    highcut= highcut/(60) # Hz 
+    b, a = butter(N, highcut, btype = 'lowpass', fs=fs)
+    filtered = lfilter(b,a,rr)
+    return filtered, b,a
     
 def general_rr_features(rr, fs=700):
     """
@@ -166,7 +208,8 @@ def cut_extreme_peaks(rr, fs=700):
         relative_peaks = np.abs(peaks + limit - mean)
         rr[lower_range] = -limit + mean - np.log(1+a * relative_peaks) /a
 
-    return normalize(rr) * 2 -1
+    rr_normalized = normalize(rr) * 2 -1
+    return rr_normalized - np.mean(rr_normalized)
 
 def peak_detection_RR(rr, fs=700, peak_prominence = 0.5, peak_distance = 0.8, method = "scipy"):
     """
@@ -195,14 +238,6 @@ def peak_detection_RR(rr, fs=700, peak_prominence = 0.5, peak_distance = 0.8, me
             peaks = [0]
             troughs = [0]
 
-        # dir_path = os.path.dirname(os.path.realpath(__file__))
-        # fig, ax = plt.subplots()
-        # ax.plot(rr)
-        # ax.plot(np.linspace(0,rr.size, rr.size)[peaks], rr[peaks], 'o')
-        # ax.plot(np.linspace(0,rr.size, rr.size)[troughs], rr[troughs], 'o')
-        # path = os.path.join(dir_path, "rr_testing")
-        # path = filename_exists(path, "svg")
-        # fig.savefig(path)
     return peaks, troughs
 
 def _rsp_findpeaks_outliers(rsp_cleaned, extrema, amplitude_min=0.3):

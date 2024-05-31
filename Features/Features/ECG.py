@@ -87,6 +87,9 @@ def preProcessing(unprocessed_ecg, fs):
 def lowpassecg(ecg, fs):
     N = 5
     cut=90
+    if fs < 180:
+        cut = fs/2 * 0.9
+
     b, a = butter(N, cut, fs=fs)
     filtered = lfilter(b,a,ecg)
     return filtered, b, a
