@@ -34,7 +34,7 @@ void loop() {
   sendSize = myTransfer.txObj(testData, sendSize);
   ///////////////////////////////////////// Send buffer
   myTransfer.sendData(sendSize);
-  delay(10);
+  delay(2);
   testData.Timestamp += 1;
 
 }
