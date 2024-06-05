@@ -18,9 +18,9 @@ def plot_data(inputfile = 'ECGdata.csv'):
     CorrectedData = ChronologicalTimeStamps(importData)
 
     ecg_plot = CorrectedData.plot(x = 'TimeStamp', subplots = True)
-    Frequency = ecg_plot.add_subplot()
-    f, t, Sxx = signal.spectrogram(CorrectedData['EDA Data'], 100)
-    Frequency.pcolormesh(t, f, Sxx, shading='gouraud')
-    Frequency.ylabel('Frequency [Hz]')
+    # Frequency = ecg_plot.add_subplot()
+    # f, t, Sxx = signal.spectrogram(CorrectedData['EDA Data'], 100)
+    # Frequency.pcolormesh(t, f, Sxx, shading='gouraud')
+    # Frequency.ylabel('Frequency [Hz]')
     plt.show()
 
