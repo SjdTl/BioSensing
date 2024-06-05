@@ -267,7 +267,7 @@ def predict(model, x_test):
     y_pred = model.predict(x_test)
     return y_pred
 
-def evaluate(y_test, y_pred):
+def evaluate(y_test, y_pred, two_label=False):
     """
     Description
     -----------
@@ -300,8 +300,11 @@ def evaluate(y_test, y_pred):
     --------
     >>>
     """
-    accuracy = balanced_accuracy_score(y_test, y_pred)
-    fone = f1_score(y_test, y_pred, labels=[1,2,3,4], average="weighted")
+    accuracy = accuracy_score(y_test, y_pred)
+    if two_label == True:
+        fone = f1_score(y_test, y_pred, labels=[1,2], average="weighted")
+    else:
+        fone = f1_score(y_test, y_pred, labels=[1,2,3,4], average="weighted")
     return accuracy, fone
 
 def importances(model, classifier="RandomForest"):
@@ -533,3 +536,79 @@ def fit_predict_evaluate(X_train, Y_train, x_test, y_test, features_array, RFC_n
     confusion_matirx_print(classifier_BNB, x_test, y_test, model_name="Bernoulli Naive Bayes")
 
     return accuracy_dict, fone_dict
+
+def eval_all(features):
+    classifier_name_list = ["Random Forrest", "K-Nearest Neighbors", "AdaBoost", "Decision Tree", "Support Vector Machine", "Linear Discriminant Analysis", "Bernoulli Naive Bayes"]
+    
+    #Drop random feature
+    features_data = features.drop(columns=['random_feature'])
+
+    #Redo numbering of subjects
+    features_data.loc[features_data['subject'] == 16, 'subject'] = 1
+    features_data.loc[features_data['subject'] == 17, 'subject'] = 12
+    features_data.loc[features_data['label'] == 3, 'label'] = 1
+    features_data.loc[features_data['label'] == 4, 'label'] = 1
+
+    #Remove the subject and label collums and normalize
+    features_data_turncated = features_data.drop(columns=['label', 'subject'])
+    scaler = preprocessing.StandardScaler()
+    features_data_scaled = pd.DataFrame(scaler.fit_transform(features_data_turncated))
+    features_data_scaled = features_data_scaled.join(features_data['label'])
+    features_data_scaled = features_data_scaled.join(features_data['subject'])
+
+    logo = LeaveOneGroupOut()
+    features = features_data_scaled.drop(columns=['label', 'subject']).to_numpy()
+    labels = features_data_scaled['label'].to_numpy()
+    groups = features_data_scaled['subject'].to_numpy()
+
+    for classifier_name in classifier_name_list:
+        cm = 0
+        accuracy_total = 0
+        balanced_total = 0
+
+        for train_index, test_index in logo.split(features, labels, groups):
+            X_train, x_test = features[train_index], features[test_index]
+            Y_train, y_test = labels[train_index], labels[test_index]
+
+            #Scale split data
+            scaler = preprocessing.StandardScaler().fit(X_train)
+            X_train = scaler.transform(X_train)
+            x_test = scaler.transform(x_test)
+
+            classifier = fit_model(X_train=X_train, Y_train=Y_train, classifier=classifier_name)
+            #print(classifier)
+            y_pred = predict(classifier, x_test)
+            accuracy, fone = evaluate(y_test, y_pred, two_label=True)
+            balanced_total += balanced_accuracy_score(y_true=y_test, y_pred=y_pred)
+            
+            accuracy_total += accuracy
+
+            cm += confusion_matrix(y_test, y_pred)
+
+        print('{}--balanced, regular: {}, {}'.format(classifier, balanced_total/15, accuracy_total/15))
+
+        if classifier_name == "Random Forrest" or classifier_name == "AdaBoost" or classifier_name == "Decision Tree" or classifier_name == "Linear Discriminant Analysis"or classifier_name == "Bernoulli Naive Bayes":
+            importance = importances(classifier, classifier_name)
+            # Sort feature importances in descending order
+            indices = np.argsort(importance)[::-1]
+            #print(importances)
+
+            # Plot the feature importances
+            plt.figure(figsize=(30, 15))
+            plt.title(" ".join(["Feature importances", classifier_name]))
+            plt.bar(range(X_train.shape[1]), importance[indices], align="center")
+            plt.xticks(range(X_train.shape[1]), list(features_data_turncated.columns))
+            plt.xticks(rotation=90, fontsize=9)
+            plt.xlabel("Feature index")
+            plt.ylabel("Feature importance") 
+            plt.savefig(os.path.join(dir_path, "Feature_importance", ".".join([classifier_name, "svg"])))
+
+        plt.figure(figsize=(6,6))
+        sns.heatmap(cm, annot=True, fmt=".3f", linewidths=.5, square = True, cmap = 'Blues', xticklabels=["Baseline", "Stress", "Amusement", "Meditation"], yticklabels=["Baseline", "Stress", "Amusement", "Meditation"])
+        plt.ylabel('Actual label')
+        plt.xlabel('Predicted label')
+        all_sample_title = 'Accuracy Score: {0}, {1}'.format(round((accuracy_total/15)*100, 3), classifier_name)
+        plt.title(all_sample_title, size = 10)
+        plt.savefig(os.path.join(dir_path, "ConfusionMatrix", ".".join([classifier_name, "svg"])))
+
+    plt.show()
