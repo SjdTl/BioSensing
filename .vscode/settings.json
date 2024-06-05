@@ -1,3 +1,6 @@
 {
-    "workbench.iconTheme": "bearded-icons"
+    "workbench.iconTheme": "bearded-icons",
+    "files.associations": {
+        "cstring": "cpp"
+    }
 }
