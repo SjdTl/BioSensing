@@ -34,6 +34,16 @@ if feature_extraction == True:
 else:
     filename = os.path.join(dir_path, "Features", "Features_out", "features.pkl")
     features = pd.read_pickle(filename)
+def general_feature_testing(data, classify = True, feature_extraction = True):
+    if feature_extraction == True:
+        # Determine features based on all_data
+        features = feat_head.features_db(data)
+        # Intermediate save
+        feat_head.save_features(features, os.path.join(dir_path, "Features", "Features_out", "features"))
+    else:
+        # Use a presaved dataframe
+        filename = os.path.join(dir_path, "Features", "Features_out", "features_1.pkl")
+        features = pd.read_pickle(filename)
 
 if neural == True:
     #Test full
