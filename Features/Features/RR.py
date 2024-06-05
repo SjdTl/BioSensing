@@ -14,7 +14,7 @@ from . import feat_gen
 from .feat_head import filename_exists
 from .ECG import preProcessing
 
-def RR(unprocessed_rr, fs=700):
+def RR(unprocessed_rr, fs=700, peak_prominence = 0.15):
     """
     Description
     -----------
@@ -51,9 +51,10 @@ def RR(unprocessed_rr, fs=700):
     --------
     >>>
     """
+    unprocessed_rr = normalize(unprocessed_rr) * 2 - 1
     rr = preProcessRR(unprocessed_rr)
 
-    df_specific = rr_peak_features(rr, fs)
+    df_specific = rr_peak_features(rr, fs, peak_prominence=peak_prominence)
     df_general = general_rr_features(rr, fs)
 
     features = pd.concat([df_specific, df_general], axis=1)
@@ -85,7 +86,7 @@ def preProcessRR(rr, fs=100):
     Filter the breathing signal using a highpass and a lowpass filter
     Most rreathing will always happen between 4-60 rreaths per minute.
     See also Peter H Charlton et al 2017 Physiol. Meas. 38 669, Chapter 3.6
-    This corresponds to 4/60 and 60/60 rreath/s or Hz, since rreathing follows a sinusoidal pattern
+    This corresponds to 4/60 and 60/60 breath/s or Hz, since rreathing follows a sinusoidal pattern
 
     Parameters
     ----------
@@ -104,22 +105,22 @@ def preProcessRR(rr, fs=100):
     # highpass filter
     rr_hp, _ = highpassrr(rr, fs)
     # lowpass filter
-    rr_lp, _, _ = lowpassrr(rr_hp, fs)
+    rr_lp, _ = lowpassrr(rr_hp, fs)
 
     rr_cut = cut_extreme_peaks(rr_lp)
     return rr_cut
 def highpassrr(rr, fs, N=8):
-    lowcut= 4 #breaths/min
+    lowcut= 3 #breaths/min
     lowcut = lowcut/(60) #Hz
     sos = butter(N, lowcut, btype = 'highpass', fs=fs, output = 'sos')
     filtered = sosfiltfilt(sos,rr)
     return filtered, sos
 def lowpassrr(rr, fs, N = 5):
-    highcut=60 # breaths/min
+    highcut=25 # breaths/min
     highcut= highcut/(60) # Hz 
-    b, a = butter(N, highcut, btype = 'lowpass', fs=fs)
-    filtered = lfilter(b,a,rr)
-    return filtered, b,a
+    sos = butter(N, highcut, btype = 'lowpass', fs=fs, output = 'sos')
+    filtered = sosfiltfilt(sos,rr)
+    return filtered, sos
     
 def general_rr_features(rr, fs=700):
     """
@@ -151,7 +152,7 @@ def general_rr_features(rr, fs=700):
     # Turn dictionary into pd.DataFrame and return
     return pd.DataFrame.from_dict(out_dict, orient="index").T.add_prefix("RR_")
     
-def rr_peak_features(rr, fs=700):
+def rr_peak_features(rr, fs=700, peak_prominence = 0.15):
     """
     Description
     -----------
@@ -170,13 +171,36 @@ def rr_peak_features(rr, fs=700):
         dataframe containing the features mentioned in the docstring of RR()
     """
 
-    peak_index, through_index = peak_detection_RR(rr, fs=fs)
+    peak_index, through_index = peak_detection_RR(rr, fs=fs, peak_prominence=peak_prominence)
 
     # Find features
+    diff_peaks = np.diff(peak_index) / fs
+    diff_diff_peaks = np.diff(diff_peaks)
     out_dict = {}
     T = np.size(rr) / fs
 
-    out_dict["Breathing_rate"] = np.size(peak_index) / T * 60
+    # Direct breathing rate
+    out_dict["Breathing_rate1"] = np.size(peak_index) / T * 60
+    out_dict["Breathing_rate2"] = 60 / np.mean(diff_peaks)
+    out_dict["Max_breath"] = np.max(diff_peaks) / T * 60
+    out_dict["Min_breath"] = np.min(diff_peaks) / T * 60
+
+    # Deviation
+    out_dict["RMSSD"] = np.sqrt(np.mean(diff_diff_peaks ** 2))
+    out_dict["SDBB"] = np.nanstd(diff_peaks, ddof=1)
+    out_dict["SDSD"] = np.nanstd(diff_diff_peaks, ddof=1)
+    meanBB = np.mean(diff_peaks)
+    out_dict["CVBB"] = out_dict["SDBB"] / meanBB
+    out_dict["CVSD"] = out_dict["RMSSD"] / meanBB
+
+    # Robust
+    out_dict["MedianBB"] = np.nanmedian(diff_peaks)
+    # out_dict["MadBB"] = 
+
+    nn50 = np.sum(np.abs(diff_diff_peaks) > 0.5)
+    nn20 = np.sum(np.abs(diff_diff_peaks) > 0.2)
+    out_dict["pNN50"] = nn50 / len(rr)
+    out_dict["pNN20"] = nn20 / len(rr)
 
     # Turn dictionary into pd.DataFrame and return
     return pd.DataFrame.from_dict(out_dict, orient="index").T.add_prefix("RR_")
@@ -211,12 +235,13 @@ def cut_extreme_peaks(rr, fs=700):
     rr_normalized = normalize(rr) * 2 -1
     return rr_normalized - np.mean(rr_normalized)
 
-def peak_detection_RR(rr, fs=700, peak_prominence = 0.5, peak_distance = 0.8, method = "scipy"):
+def peak_detection_RR(rr, fs=700, peak_prominence = 0.15, peak_distance = 1, method = "scipy"):
     """
     Code copied from Neurokit: https://neuropsychology.github.io/NeuroKit/_modules/neurokit2/rsp/rsp_findpeaks.html#rsp_findpeaks
     Neurokit isn't used since this gives an error if there are no peaks (e.g. straight line) or a 
     trough is higher than a peak (even if they are completely unrelated)
     """
+
 
     if method == "scipy":
 
@@ -233,7 +258,8 @@ def peak_detection_RR(rr, fs=700, peak_prominence = 0.5, peak_distance = 0.8, me
         # Sanitize.
         extrema, amplitudes = _rsp_findpeaks_outliers(rr, extrema, amplitude_min=0)
         if extrema.size != 0:
-            peaks, troughs = _rsp_findpeaks_sanitize(extrema, amplitudes)
+            # peaks, troughs = _rsp_findpeaks_sanitize(extrema, amplitudes)
+            1==1
         else:
             peaks = [0]
             troughs = [0]

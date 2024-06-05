@@ -16,6 +16,7 @@ from Features import ECG
 from Features import RR
 from Features.feat_head import split_time
 from Features import feat_gen
+from Features import feat_head
 
 dirpath = (os.path.dirname(os.path.realpath(__file__)))
 
@@ -52,7 +53,7 @@ def spider_data(folderpath, testing = False, T=60, fs= 100):
     rr : np.array
         rr data of length T 
     """
-
+    print("Extracting spider dataset...")
 
     rr = np.array([])
     ecg = np.array([])
@@ -87,12 +88,14 @@ def plot_spider(ecg, rr_unprocessed, method, fs=100):
         - Respitory rate (processed and preprocessed)
         - Extracted respitory rate using method method
     """
- 
+    T = rr_unprocessed.size / fs
     # normalize
-    rr_extracted = RR.ECG_to_RR(ecg)
-    rr_unprocessed = normalize(rr_unprocessed) * 2 -1
-    rr_extracted = normalize(rr_extracted) * 2-1
-    rr = normalize(RR.preProcessRR(rr_unprocessed)) * 2 -1
+    rr_extracted = RR.ECG_to_RR(ecg, fs=fs, method = method)
+    rr_extracted = normalize(rr_extracted) * 2 - 1
+    rr_extracted = RR.preProcessRR(rr_extracted)
+
+    rr_unprocessed = normalize(rr_unprocessed) * 2 - 1
+    rr = RR.preProcessRR(rr_unprocessed)
     ecg = normalize(ecg) * 2 -1
 
     t = np.arange(0, ecg.size * (1/fs), 1/fs)
@@ -112,27 +115,32 @@ def plot_spider(ecg, rr_unprocessed, method, fs=100):
 
     ax[2].plot(t, rr)
     peak_index, trough_index = RR.peak_detection_RR(rr, fs=fs)
-    ax[2].plot(t[peak_index], rr[peak_index], 'o')
-    ax[2].plot(t[trough_index], rr[trough_index], 'o')
+    br = round(np.size(peak_index) / T * 60, 2)
+    ax[2].plot(t[peak_index], rr[peak_index], 'o', color='green')
+    ax[2].plot(t[trough_index], rr[trough_index], 'o', color='red')
     ax[2].set_xlabel("Time ($s$)")
-    ax[2].set_title("Processed RR")
+    ax[2].set_title(f"Processed RR with {br} breaths/min detected")
     ax[2].set_ylabel("RR")
 
     ax[3].plot(t, rr_extracted)
     peak_index, trough_index = RR.peak_detection_RR(rr_extracted, fs=fs)
-    ax[3].plot(t[peak_index], rr_extracted[peak_index], 'o')
-    ax[3].plot(t[trough_index], rr_extracted[trough_index], 'o')
+    br = round(np.size(peak_index) / T * 60, 2)
+    ax[3].plot(t[peak_index], rr_extracted[peak_index], 'o', color='green')
+    ax[3].plot(t[trough_index], rr_extracted[trough_index], 'o', color='red')
     ax[3].set_xlabel("Time ($s$)")
-    ax[3].set_title("Extracted RR")
+    ax[3].set_title(f"Extracted RR with {br} breaths/min detected")
     ax[3].set_ylabel("RR")
 
     plt.suptitle(f"Respiration rate extracted from ecg")
 
     plt.tight_layout()
-    plt.savefig(os.path.join(dirpath, "Plots", "RR_plots", "RR_"+str(method) + ".svg"))
+    name = os.path.join(dirpath, "Plots", "RR_plots", "Method_plots", "RR_" + str(method))
+    name = feat_head.filename_exists(name, 'svg')
+    plt.savefig(name)
+    plt.close('all')
 
 
-def find_all_features(rr, ecg, method="vangent2019", fs=100, T=60):
+def find_all_features(rr, ecg, random_value, method="vangent2019", fs=100, T=60, peak_prominence = 0.15):
     """
     Description
     -----------
@@ -142,7 +150,7 @@ def find_all_features(rr, ecg, method="vangent2019", fs=100, T=60):
     rr = split_time(np.array([rr]), fs, T)[0]
     ecg = split_time(np.array([ecg]), fs, T)[0]
     # For selecting a window to plot
-    randomvalue = np.random.randint(low=0, high=rr.shape[0], size=1)
+    
     i = 0
 
     features = pd.DataFrame()
@@ -150,7 +158,7 @@ def find_all_features(rr, ecg, method="vangent2019", fs=100, T=60):
 
     if method == 'Original':
         for rr in rr:
-            current_feature = RR.RR(rr, fs=fs)
+            current_feature = RR.RR(rr, fs=fs, peak_prominence = peak_prominence)
             # Add to dataframe
             features = pd.concat([features, current_feature], ignore_index=True)
         return features
@@ -158,28 +166,33 @@ def find_all_features(rr, ecg, method="vangent2019", fs=100, T=60):
         for rr, ecg in (zip(rr, ecg)):
             ecg = ECG.preProcessing(ecg, fs=fs)
             extracted_RR = (RR.ECG_to_RR(ecg, fs=fs, method=method))
-            current_feature=RR.RR(extracted_RR, fs=fs)
+            current_feature=RR.RR(extracted_RR, fs=fs, peak_prominence = peak_prominence)
             features = pd.concat([features, current_feature], ignore_index=True)
             
-            if i==randomvalue:
+            if i in random_value:
                 plot_spider(ecg, rr, method, fs=fs)
             i += 1
         return features
     
 
-def compare_methods(methods=["Original", "soni2019", "vangent2019", "charlton2016", "sarkar2015"], T=60, fs=100):
+def compare_methods(methods=["Original", "soni2019", "vangent2019", "charlton2016", "sarkar2015"], T=60, fs=100, examples = 1, peak_prominence = 0.15, name = "RR_methods_comparison"):
     ecg, rr = spider_data(os.path.join(dirpath, "spiderfearful"), testing=False, fs=100)
+    print("Calculating features per method...")
 
     features_methods = {}
 
-    for method in methods:
-        features_methods[method] = find_all_features(rr, ecg, method, fs=fs, T=T)
+    randomvalue = np.random.randint(low=0, high=int(rr.size / (fs * T) * 0.9), size=examples)
+    for method in tqdm.tqdm(methods):
+        features_methods[method] = find_all_features(rr = rr, ecg = ecg, random_value =  randomvalue, method = method, fs=fs, T=T, peak_prominence = peak_prominence)
+
+    print("Comparing methods...")
 
     original = features_methods.pop("Original")
 
     feature_labels = original.columns
     x = np.arange(len(feature_labels))
     width = 0.1  # Width of bar
+
 
     fig, ax = plt.subplots()
     
@@ -191,14 +204,14 @@ def compare_methods(methods=["Original", "soni2019", "vangent2019", "charlton201
         ax.bar(x + i * width, mean_percentage_change, width, label=method)
 
     ax.set_ylabel('Percentage Change (%)')
-    ax.set_title('$\dfrac{\text{extracted feature}-\text{original feature}}{\text{original feature}}$')
+    ax.set_title('Relative difference between extracted and measured feature')
     ax.set_xticks(x + width * (len(features_methods) - 1) / 2)
     ax.set_xticklabels(feature_labels, rotation=90)
     ax.set_ylim(0,50)
     ax.legend()
     plt.tight_layout()
 
-    plt.savefig(os.path.join(dirpath, "Plots", "RR_plots", "RR_method_comparison.svg"))
+    plt.savefig(os.path.join(dirpath, "Plots", "RR_plots", str(name) + ".svg"))
 
     original.to_excel(os.path.join(dir_path, "Plots", "RR_plots", "Original.xlsx"))
     features_methods["sarkar2015"].to_excel(os.path.join(dir_path, "Plots", "RR_plots", "sarkar2015.xlsx"))
@@ -246,9 +259,9 @@ def RR_figures(T =40, fs = 100):
     fig, ax = plt.subplots()
     ax.plot(np.linspace(0,T, fs*T), processed_ecg)
     ax.set_xlabel("Time [$s$]")
-    ax.set_ylabel("?")
+    ax.set_ylabel("Normalized amplitude")
 
-    fig.savefig(os.path.join(dir_path, "plots", "RR_plots", "Flowchart","rr_processed_ecg_td.svg"))
+    fig.savefig(os.path.join(dir_path, "plots", "RR_plots", "Flowchart", "rr_processed_ecg_td.svg"))
 
 
     # RR unprocessed frequency domain
@@ -274,7 +287,7 @@ def RR_figures(T =40, fs = 100):
 
     ax.plot(np.linspace(0,T, fs*T), rr)
     ax.set_xlabel("Time [$s$]")
-    ax.set_ylabel("?")
+    ax.set_ylabel("Normalized amplitude")
 
     fig.savefig(os.path.join(dir_path, "plots", "RR_plots","Flowchart", "rr_unprocessed_td.svg"))
 
@@ -298,8 +311,8 @@ def RR_figures(T =40, fs = 100):
     # -----------------------------------------------
     # RR processed timedomain
     # Bandpass processing
-    rrlow, blow, alow = RR.lowpassrr(rr, fs) 
-    wlow, hlow = freqz(blow, alow, fs=fs)
+    rrlow, sos = RR.lowpassrr(rr, fs) 
+    wlow, hlow = sosfreqz(sos, fs=fs)
     bprr, sos = RR.highpassrr(rrlow, fs) 
     whigh, hhigh = sosfreqz(sos, fs=fs, worN = 512 * 4)
 
@@ -308,7 +321,7 @@ def RR_figures(T =40, fs = 100):
 
     ax.plot(np.linspace(0,T, fs*T), bprr)
     ax.set_xlabel("Time [$s$]")
-    ax.set_ylabel("?")
+    ax.set_ylabel("Normalized amplitude")
 
     fig.savefig(os.path.join(dir_path, "plots", "RR_plots", "Flowchart", "rr_bp_td.svg"))
 
@@ -335,7 +348,7 @@ def RR_figures(T =40, fs = 100):
 
     ax.plot(np.linspace(0,T, fs*T), rr_processed)
     ax.set_xlabel("Time [$s$]")
-    ax.set_ylabel("?")
+    ax.set_ylabel("Normalized amplitude")
 
     fig.savefig(os.path.join(dir_path, "plots", "RR_plots", "Flowchart", "rr_processed_td.svg"))
 
@@ -349,7 +362,7 @@ def RR_figures(T =40, fs = 100):
     ax.plot(xf, 10 * np.log10(np.abs(yf)))
     ax.set_xlabel("Frequency [$Hz$]")
     ax.set_ylabel("Amplitude [dB]")
-    ax.set_xlim(xmin=-fs/5, xmax=fs/5)
+    ax.set_xlim(xmin=-10, xmax=10)
     ax.set_ylim(ymin = -25)
 
     fig.savefig(os.path.join(dir_path, "plots", "RR_plots", "Flowchart", "rr_processed_fd.svg"))
@@ -363,11 +376,11 @@ def RR_figures(T =40, fs = 100):
     peak_index, trough_index = RR.peak_detection_RR(rr_processed, fs)
 
     t = np.linspace(0,T, fs*T)
-    ax.plot(t, rr, label = "RR signal")
+    ax.plot(t, rr_processed, label = "RR signal")
     ax.plot(t[peak_index], rr_processed[peak_index], 'o', label="Peaks")
     ax.plot(t[trough_index], rr_processed[trough_index], 'o', label="Throughs")
     ax.set_xlabel("Time [$s$]")
-    ax.set_ylabel("?")
+    ax.set_ylabel("Normalized amplitude")
 
     fig.savefig(os.path.join(dir_path, "plots", "RR_plots", "Flowchart", "rr_peak_detection_td.svg"))
 
@@ -385,7 +398,6 @@ def RR_figures(T =40, fs = 100):
     fig.savefig(os.path.join(dir_path, "plots", "RR_plots", "Flowchart", "rr_bpbutterworth.svg"))
 
 
-
 dir_path = os.path.dirname(os.path.realpath(__file__))
 # print(testRR())
 # RR_figures()
@@ -394,5 +406,4 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 # filepath = os.path.join(dir_path, "Raw_data", "raw_data.pkl")
 # print(test(filepath))
 
-compare_methods()
-
+compare_methods(T=60, examples = 5)
