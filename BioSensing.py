@@ -109,4 +109,4 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 # Import wesad data
 all_data = feat_head.load_dict(os.path.join(dir_path, "Features", "Raw_data", "raw_data.pkl"))
 
-general_feature_testing(data = all_data, classify = True, feature_extraction = True)
+general_feature_testing(data = all_data, classify = False, feature_extraction = True)

@@ -1,4 +1,7 @@
+import numpy as np
+
 dictd = {'a' : [12,3,3,4,2],
         'b' : [12,3,3,4,2]}
 
-print(*dictd.values())
+for i in dictd:
+    print(i)
