@@ -12,7 +12,7 @@ from scipy.signal import butter, iirnotch, lfilter, sosfilt, sosfiltfilt
 
 from . import feat_gen
 from .feat_head import filename_exists
-from .ECG import preProcessing
+from .ECG import preProcessing, rpeak_detector
 
 def RR(unprocessed_rr, fs=700, peak_prominence = 0.15):
     """
@@ -72,6 +72,7 @@ def ECG_to_RR(ecg, fs=100, method = "sarkar2015"):
 
 
         rpeaks, info = nk.ecg_peaks(ecg, sampling_rate=fs)
+        rpeaks = rpeak_detector(ecg = ecg, fs = fs)
         # Compute rate
         ecg_rate = nk.signal_rate(rpeaks, sampling_rate=fs, desired_length=len(ecg))
 

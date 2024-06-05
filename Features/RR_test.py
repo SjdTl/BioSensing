@@ -198,8 +198,8 @@ def compare_methods(methods=["Original", "soni2019", "vangent2019", "charlton201
     
     for i, (method, features) in enumerate(features_methods.items()):
         # % change = (new - old) / old
-        percentage_change = ((features - original) / original * 100).abs()
-        mean_percentage_change = percentage_change.mean()
+        percentage_change = ((features - original) / (original + 10**(-4)) * 100).abs()
+        mean_percentage_change = percentage_change.mean(skipna = True, numeric_only = True)
 
         ax.bar(x + i * width, mean_percentage_change, width, label=method)
 
@@ -207,11 +207,13 @@ def compare_methods(methods=["Original", "soni2019", "vangent2019", "charlton201
     ax.set_title('Relative difference between extracted and measured feature')
     ax.set_xticks(x + width * (len(features_methods) - 1) / 2)
     ax.set_xticklabels(feature_labels, rotation=90)
-    ax.set_ylim(0,50)
+    ax.set_ylim(0,75)
     ax.legend()
     plt.tight_layout()
 
-    plt.savefig(os.path.join(dirpath, "Plots", "RR_plots", str(name) + ".svg"))
+    name = os.path.join(dirpath, "Plots", "RR_plots", str(name))
+    name = feat_head.filename_exists(name, 'svg')
+    plt.savefig(name)
 
     original.to_excel(os.path.join(dir_path, "Plots", "RR_plots", "Original.xlsx"))
     features_methods["sarkar2015"].to_excel(os.path.join(dir_path, "Plots", "RR_plots", "sarkar2015.xlsx"))

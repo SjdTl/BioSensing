@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import os
-from scipy.signal import butter, iirnotch, lfilter, sosfilt
+from scipy.signal import butter, iirnotch, lfilter, sosfiltfilt
 from scipy.stats import iqr
 from ecgdetectors import Detectors
 import matplotlib.pyplot as plt
@@ -96,7 +96,7 @@ def lowpassecg(ecg, fs):
 def highpassecg(ecg, fs, N = 8):
     cut=0.5
     sos = butter(N, cut, btype = 'highpass', fs=fs, output = 'sos')
-    filtered = sosfilt(sos, ecg)
+    filtered = sosfiltfilt(sos, ecg)
     return filtered, sos
 def notchecg(ecg, fs):
     cut=50
@@ -112,12 +112,13 @@ def ECG_specific_features(ecg, fs):
     -----------
     Calculate features specific to ecg signal
         - pNN50: The proportion of RR intervals greater than 50ms, out of the total number of
-          RR intervals.
+          RR intervals
         - pNN20: The proportion of RR intervals greater than 20ms, out of the total number of
-          RR intervals.
+          RR intervals
         - RMSSD: The square root of the mean of the squared successive differences between
           adjacent RR intervals. It is equivalent (although on another scale) to SD1, and
           therefore it is redundant to report correlations with both (Ciccone, 2017)
+
     Parameters
     ----------
     ecg : np.array
@@ -171,9 +172,9 @@ def ECG_specific_features(ecg, fs):
     out_dict["Prc20NN"] = np.nanpercentile(rri, q=20)
     out_dict["Prc80NN"] = np.nanpercentile(rri, q=80)
 
-    nn50 = np.sum(np.abs(diff_rri) > 50)
+    nn40 = np.sum(np.abs(diff_rri) > 40)
     nn20 = np.sum(np.abs(diff_rri) > 20)
-    out_dict["pNN50"] = nn50 / (len(diff_rri) + 1) * 100
+    out_dict["pNN50"] = nn40 / (len(diff_rri) + 1) * 100
     out_dict["pNN20"] = nn20 / (len(diff_rri) + 1) * 100
     out_dict["MinNN"] = np.nanmin(rri)
     out_dict["MaxNN"] = np.nanmax(rri)

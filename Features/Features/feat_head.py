@@ -148,10 +148,13 @@ def get_features(ecg, eda, emg, fs):
     ecg_features = ECG.ECG(ecg, fs)
     eda_features = EDA.EDA(eda, fs)
     emg_features = EMG.EMG(emg, fs)
-    # rr_features = RR.RR(ecg, fs)
+
+    processed_ecg = ECG.preProcessing(ecg, fs=fs)
+    rr = RR.ECG_to_RR(processed_ecg, fs=fs)
+    rr_features = RR.RR(rr, fs)
 
     # Combine features
-    features = pd.concat([ecg_features, eda_features, emg_features], axis=1)
+    features = pd.concat([ecg_features, eda_features, emg_features, rr_features], axis=1)
 
     # Errors
     if features.shape[0] != 1:
