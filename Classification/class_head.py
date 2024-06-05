@@ -610,5 +610,3 @@ def eval_all(features):
         all_sample_title = 'Accuracy Score: {0}, {1}'.format(round((accuracy_total/15)*100, 3), classifier_name)
         plt.title(all_sample_title, size = 10)
         plt.savefig(os.path.join(dir_path, "ConfusionMatrix", ".".join([classifier_name, "svg"])))
-
-    plt.show()

@@ -32,17 +32,9 @@ def general_feature_testing(data, classify = True, feature_extraction = True, ne
                       "Dataset used" : dataset_name}
         feat_head.save_features(df = features, properties_df= pd.DataFrame(properties), filepath=os.path.join(dir_path, "Features", "Features_out", "features"))
     else:
-        filename = os.path.join(dir_path, "Features", "Features_out", "features.pkl")
+        # Use a presaved dataframe
+        filename = os.path.join(dir_path, "Features", "Features_out", "features_5.pkl")
         features = pd.read_pickle(filename)
-        if feature_extraction == True:
-            # Determine features based on all_data
-            features = feat_head.features_db(data)
-            # Intermediate save
-            feat_head.save_features(features, os.path.join(dir_path, "Features", "Features_out", "features"))
-        else:
-            # Use a presaved dataframe
-            filename = os.path.join(dir_path, "Features", "Features_out", "features_4.pkl")
-            features = pd.read_pickle(filename)
 
     if neural == True:
         X_train, Y_train, x_test, y_test = class_head.train_test_split(features_data=features, num_subjects=15, test_percentage=0.6)
@@ -54,5 +46,5 @@ def general_feature_testing(data, classify = True, feature_extraction = True, ne
 dir_path = os.path.dirname(os.path.realpath(__file__))
 all_data = feat_head.load_dict(os.path.join(dir_path, "Features", "Raw_data", "raw_data.pkl"))
 
-general_feature_testing(data = all_data, feature_extraction=True, classify=True, neural=False,
+general_feature_testing(data = all_data, feature_extraction=False, classify=True, neural=False,
                         Fs=700, sensors = ["EDA", "EMG"], T=60, dataset_name="WESAD")
