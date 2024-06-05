@@ -215,7 +215,7 @@ def split_time(data, Fs, t=60):
     return np.array(np.split(data[:,:int(np.floor(amount_of_splits)*size_of_split)], int(np.floor(amount_of_splits)), axis=1)).transpose(1,0,2)
 
 
-def features_db(data, Fs=float(700)):
+def features_db(data, Fs=float(700), sensors = ["ECG", "EMG", "EDA", "RR"]):
     """
     Description
     -----------
@@ -271,6 +271,8 @@ def features_db(data, Fs=float(700)):
         for label in range(1,5):
             # Take the current label, split into smaller timeframes and find the features 
             label_array = np.asarray([idx for idx,val in enumerate(data[subject]["labels"]) if val == label])
+            for sensor in sensors:
+                perlabel_persubject_data[sensor] = data[subject][sensors][label_array]
             ECG = data[subject]["ECG"][label_array]
             EDA = data[subject]["EDA"][label_array]
             EMG = data[subject]["EMG"][label_array]
@@ -288,7 +290,6 @@ def features_db(data, Fs=float(700)):
 
                 df_length += 1
 
-    print(features.head())
 
     # Error messages
     # Check row length
