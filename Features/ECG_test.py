@@ -155,5 +155,5 @@ def EMG_figures(filepath, T =10):
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 filepath = os.path.join(dir_path, "Raw_data", "raw_data.pkl")
-print(test(filepath))
+print(test(filepath).to_string())
 # EMG_figures(filepath)

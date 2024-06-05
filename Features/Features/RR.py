@@ -11,7 +11,6 @@ from sklearn.preprocessing import minmax_scale as normalize
 from scipy.signal import butter, iirnotch, lfilter, sosfilt, sosfiltfilt
 
 from . import feat_gen
-from .feat_head import filename_exists
 from .ECG import preProcessing, rpeak_detector
 
 def RR(unprocessed_rr, fs=700, peak_prominence = 0.15):
@@ -61,12 +60,15 @@ def RR(unprocessed_rr, fs=700, peak_prominence = 0.15):
 
     # Error messages
     if features.isnull().values.any():
-        raise ValueError("The feature array of EDA contains a NaN value")
+        print(features.to_string())
+        feat_gen.quick_plot(rr)
+        raise ValueError("The feature array of RR contains a NaN value")
     return features
 
-def ECG_to_RR(ecg, fs=100, method = "sarkar2015"):
+def ECG_to_RR(ecg, fs=100, method = "vangent2019"):
     if method == "vangent2019" or method == "soni2019" or method == "charlton2016" or method == "sarkar2015":
         # Extract peaks
+        
         if len(ecg) == 0:
             raise ValueError("The input ECG signal is empty.")
 
@@ -85,7 +87,7 @@ def preProcessRR(rr, fs=100):
     Description
     -----------
     Filter the breathing signal using a highpass and a lowpass filter
-    Most rreathing will always happen between 4-60 rreaths per minute.
+    Most breathing will always happen between 3-25 rreaths per minute.
     See also Peter H Charlton et al 2017 Physiol. Meas. 38 669, Chapter 3.6
     This corresponds to 4/60 and 60/60 breath/s or Hz, since rreathing follows a sinusoidal pattern
 
@@ -145,10 +147,10 @@ def general_rr_features(rr, fs=700):
     # Find features
     out_dict = {}
 
-    out_dict["Mean"] = np.mean(rr)
-    out_dict["STD"] = np.std(rr)
-    out_dict["Median"] = np.median(rr)
-    out_dict["RMS"] = np.sqrt(np.mean(np.square(rr)))
+    out_dict["Mean"] = np.nanmean(rr)
+    out_dict["STD"] = np.nanstd(rr)
+    out_dict["Median"] = np.nanmedian(rr)
+    out_dict["RMS"] = np.sqrt(np.nanmean(np.square(rr)))
 
     # Turn dictionary into pd.DataFrame and return
     return pd.DataFrame.from_dict(out_dict, orient="index").T.add_prefix("RR_")
@@ -173,7 +175,6 @@ def rr_peak_features(rr, fs=700, peak_prominence = 0.15):
     """
 
     peak_index, through_index = peak_detection_RR(rr, fs=fs, peak_prominence=peak_prominence)
-
     # Find features
     diff_peaks = np.diff(peak_index) / fs
     diff_diff_peaks = np.diff(diff_peaks)
@@ -182,15 +183,15 @@ def rr_peak_features(rr, fs=700, peak_prominence = 0.15):
 
     # Direct breathing rate
     out_dict["Breathing_rate1"] = np.size(peak_index) / T * 60
-    out_dict["Breathing_rate2"] = 60 / np.mean(diff_peaks)
+    out_dict["Breathing_rate2"] = 60 / np.nanmean(diff_peaks)
     out_dict["Max_breath"] = np.max(diff_peaks) / T * 60
     out_dict["Min_breath"] = np.min(diff_peaks) / T * 60
 
     # Deviation
-    out_dict["RMSSD"] = np.sqrt(np.mean(diff_diff_peaks ** 2))
-    out_dict["SDBB"] = np.nanstd(diff_peaks, ddof=1)
-    out_dict["SDSD"] = np.nanstd(diff_diff_peaks, ddof=1)
-    meanBB = np.mean(diff_peaks)
+    out_dict["RMSSD"] = np.sqrt(np.nanmean(diff_diff_peaks ** 2))
+    out_dict["SDBB"] = np.nanstd(diff_peaks)
+    out_dict["SDSD"] = np.nanstd(diff_diff_peaks)
+    meanBB = np.nanmean(diff_peaks)
     out_dict["CVBB"] = out_dict["SDBB"] / meanBB
     out_dict["CVSD"] = out_dict["RMSSD"] / meanBB
 
@@ -264,7 +265,6 @@ def peak_detection_RR(rr, fs=700, peak_prominence = 0.15, peak_distance = 1, met
         else:
             peaks = [0]
             troughs = [0]
-
     return peaks, troughs
 
 def _rsp_findpeaks_outliers(rsp_cleaned, extrema, amplitude_min=0.3):
@@ -288,23 +288,6 @@ def _rsp_findpeaks_outliers(rsp_cleaned, extrema, amplitude_min=0.3):
     amplitudes = np.delete(amplitudes, removeext)
 
     return extrema, amplitudes
-
-def _rsp_findpeaks_sanitize(extrema, amplitudes):
-    """From Neurokit"""
-    # To be able to consistently calculate breathing amplitude, make sure that
-    # the extrema always start with a trough and end with a peak, since
-    # breathing amplitude will be defined as vertical distance between each
-    # peak and the preceding trough. Note that this also ensures that the
-    # number of peaks and troughs is equal.
-    # if amplitudes[0] > amplitudes[1]:
-    #     extrema = np.delete(extrema, 0)
-    # if amplitudes[-1] < amplitudes[-2]:
-    #     extrema = np.delete(extrema, -1)
-    peaks = extrema[1::2]
-    troughs = extrema[0:-1:2]
-
-    return peaks, troughs
-
 
 
 # filepath = os.path.join(dir_path, "Raw_data", "raw_small_test_data.pkl")

@@ -6,6 +6,7 @@ import os as os
 import pickle as pickle
 import numpy as np
 import tqdm
+from scipy.signal import decimate
 
 from . import ECG
 from . import EDA
@@ -149,6 +150,9 @@ def get_features(ecg, eda, emg, fs):
     eda_features = EDA.EDA(eda, fs)
     emg_features = EMG.EMG(emg, fs)
 
+    Q = 7
+    fs = int(fs/Q)
+    ecg = decimate(ecg, Q)
     processed_ecg = ECG.preProcessing(ecg, fs=fs)
     rr = RR.ECG_to_RR(processed_ecg, fs=fs)
     rr_features = RR.RR(rr, fs)

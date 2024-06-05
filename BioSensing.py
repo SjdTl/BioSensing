@@ -31,7 +31,7 @@ if feature_extraction == True:
     feat_head.save_features(features, os.path.join(dir_path, "Features", "Features_out", "features"))
 else:
     # Use a presaved dataframe
-    filename = os.path.join(dir_path, "Features", "Features_out", "features_4.pkl")
+    filename = os.path.join(dir_path, "Features", "Features_out", "features_1.pkl")
     features = pd.read_pickle(filename)
 
 if classify == True:

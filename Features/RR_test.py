@@ -11,6 +11,7 @@ from sklearn.preprocessing import minmax_scale as normalize
 import neurokit2 as nk
 from scipy.fft import fft, fftfreq, fftshift
 from scipy.signal import freqz, sosfreqz
+from scipy.signal import decimate
 
 from Features import ECG
 from Features import RR
@@ -218,42 +219,38 @@ def compare_methods(methods=["Original", "soni2019", "vangent2019", "charlton201
     original.to_excel(os.path.join(dir_path, "Plots", "RR_plots", "Original.xlsx"))
     features_methods["sarkar2015"].to_excel(os.path.join(dir_path, "Plots", "RR_plots", "sarkar2015.xlsx"))
 
-def testRR(fs=100):
-    """
-    Description
-    -----------
-    Function to test the feature extraction
-    
-    Parameters
-    ----------
 
-    Returns
-    -------
-    df: pd.DataFrame
-        Dataframe containing the features 
-        
-    """
-    ecg, rr = spider_data(os.path.join(dirpath, "spiderfearful"), testing = True)
-
-    df = RR.RR(rr, fs=fs)
-    return df
-
-def testECG(ecg):
+def testECG(filepath, fs=700):
     """
     Description
     -----------
     Same as testRR, except that the RR extraction from ECG is also tested
     """
+    ecg = feat_gen.load_test_data("ECG", filepath)
+    Q = 7
+    ecg = decimate(ecg, Q)
+    fs = int(fs/Q)
+    processed_ecg = ECG.preProcessing(ecg, fs=fs)
+    rr = RR.ECG_to_RR(processed_ecg, fs=fs)
 
-def RR_figures(T =40, fs = 100):
+    feat_gen.quick_plot(rr, fs = fs)
+    feat_gen.quick_plot(RR.preProcessRR(rr), rr, fs=fs)
+    df = RR.RR(ecg, fs)
+    return df
+
+def RR_figures(filepath, T = 60, fs = 700):
     """
     Plots used for the processing flowchart in chapter four
     Returns x plots:
         - Depends on how the preprocessing is done
     """
-    ecg, rr = spider_data(os.path.join(dir_path, "spiderfearful"), testing = True, T=T)
+    ecg = feat_gen.load_test_data("ECG", filepath, T=T)
+    Q = 7
+    fs = int(fs/Q)
+    ecg = decimate(ecg, Q)
     processed_ecg = ECG.preProcessing(ecg, fs=fs)
     rr = RR.ECG_to_RR(processed_ecg, fs=fs)
+
     # -----------------------------------------------
     # PROCESSED ECG
     # -----------------------------------------------
@@ -266,7 +263,7 @@ def RR_figures(T =40, fs = 100):
     fig.savefig(os.path.join(dir_path, "plots", "RR_plots", "Flowchart", "rr_processed_ecg_td.svg"))
 
 
-    # RR unprocessed frequency domain
+    # ECG processed frequency domain
     yf = fftshift(fft(processed_ecg))
     xf = fftshift(fftfreq(processed_ecg.size, d= 1/fs))
 
@@ -401,11 +398,8 @@ def RR_figures(T =40, fs = 100):
 
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
-# print(testRR())
-# RR_figures()
+filepath = os.path.join(dir_path, "Raw_data", "raw_data.pkl")
+# RR_figures(filepath)
+print(testECG(filepath).to_string())
 
-
-# filepath = os.path.join(dir_path, "Raw_data", "raw_data.pkl")
-# print(test(filepath))
-
-compare_methods(T=60, examples = 5)
+# compare_methods(T=60, examples = 5)
