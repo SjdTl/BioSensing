@@ -36,6 +36,8 @@ def EDA_figures(filepath, T =40):
         - Unprocessed and processed EMG signal in the timedomain
         - Unprocessed and processed EMG signal in the frequency domain
         - Plot of the filter used to process
+        - Plot of the tonic and phasic split
+        - Plot of the peak detection
     The code is connected to the EDA such that changing some parameters their would simply 
     require this to run again to obtain the updated plots (with different cutoff frequencies e.g.)
     EXCEPT THE BUTTERWORTH FILTER PLOT
@@ -199,6 +201,9 @@ def compare_phasic_tonic_methods(filepath, T= 100):
     fig.savefig(os.path.join(dir_path, "plots", "EDA_plots", "phasic_tonic_comparison.svg"))
 
 def compare_peak_detection(filepath, T=150):
+    """
+    Plots used to compare the peak detection algorithms
+    """
     fs=700
     eda = feat_gen.load_test_data("EDA", filepath, T=T)
     # EDA lowpass filter and downsampling
@@ -251,7 +256,7 @@ def compare_peak_detection(filepath, T=150):
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 filepath = os.path.join(dir_path, "Raw_data", "raw_data.pkl")
-EDA_figures(filepath)
+# EDA_figures(filepath)
 # compare_peak_detection(filepath)
-# print(test(filepath))
+print(test(filepath))
 # compare_phasic_tonic_methods(filepath)

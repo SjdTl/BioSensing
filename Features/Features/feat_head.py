@@ -6,6 +6,7 @@ import os as os
 import pickle as pickle
 import numpy as np
 import tqdm
+from scipy.signal import decimate
 
 from . import ECG
 from . import EDA
@@ -75,10 +76,11 @@ def filename_exists(filepath, extension):
     etc.
     """
     while os.path.exists((filepath + "." + str(extension))):
-        if filepath[-2] != "_" and ~(filepath[-1].isdigit()):
+        if not(((filepath.split("_")[-1]).isdigit())):
             filepath = filepath + str("_1")
         else:
-            filepath = filepath[:-1] + str(int(filepath[-1]) + 1)
+            old_digit = filepath.split("_")[-1]
+            filepath = filepath[:-len(old_digit)] + str(int(old_digit) + 1)
     return str(filepath) + "." + str(extension)
 
 
@@ -147,7 +149,13 @@ def get_features(ecg, eda, emg, fs):
     ecg_features = ECG.ECG(ecg, fs)
     eda_features = EDA.EDA(eda, fs)
     emg_features = EMG.EMG(emg, fs)
-    # rr_features = RR.RR(ecg, fs)
+
+    Q = 7
+    fs = int(fs/Q)
+    ecg = decimate(ecg, Q)
+    processed_ecg = ECG.preProcessing(ecg, fs=fs)
+    rr = RR.ECG_to_RR(processed_ecg, fs=fs)
+    rr_features = RR.RR(rr, fs)
 
     # Combine features
     features = pd.concat([ecg_features, eda_features, emg_features, rr_features], axis=1)
@@ -207,7 +215,7 @@ def split_time(data, Fs, t=60):
     return np.array(np.split(data[:,:int(np.floor(amount_of_splits)*size_of_split)], int(np.floor(amount_of_splits)), axis=1)).transpose(1,0,2)
 
 
-def features_db(data, Fs=float(700)):
+def features_db(data, Fs=float(700), sensors = ["ECG", "EMG", "EDA", "RR"]):
     """
     Description
     -----------
@@ -263,6 +271,8 @@ def features_db(data, Fs=float(700)):
         for label in range(1,5):
             # Take the current label, split into smaller timeframes and find the features 
             label_array = np.asarray([idx for idx,val in enumerate(data[subject]["labels"]) if val == label])
+            for sensor in sensors:
+                perlabel_persubject_data[sensor] = data[subject][sensors][label_array]
             ECG = data[subject]["ECG"][label_array]
             EDA = data[subject]["EDA"][label_array]
             EMG = data[subject]["EMG"][label_array]
@@ -280,7 +290,6 @@ def features_db(data, Fs=float(700)):
 
                 df_length += 1
 
-    print(features.head())
 
     # Error messages
     # Check row length
