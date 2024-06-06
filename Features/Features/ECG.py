@@ -1,11 +1,8 @@
 import numpy as np
 import pandas as pd
-import os
 from scipy.signal import butter, iirnotch, lfilter, sosfiltfilt
 from scipy.stats import iqr
 from ecgdetectors import Detectors
-import matplotlib.pyplot as plt
-import neurokit2 as nk
 from scipy.stats import mode
 
 from . import feat_gen
@@ -53,7 +50,7 @@ def ECG(unprocessed_ecg, fs= 700):
 
     # Error messages
     if features.isnull().values.any():
-        raise ValueError("The feature array of EMG contains a NaN value")
+        raise ValueError("The feature array of ECG contains a NaN value")
     return features
 
 def preProcessing(unprocessed_ecg, fs):

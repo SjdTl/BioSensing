@@ -2,8 +2,8 @@
 # And processing the resulting features into a pandas array to save
 
 import pandas as pd
-import os as os
-import pickle as pickle
+import os
+import pickle
 import numpy as np
 import tqdm
 from scipy.signal import decimate
@@ -160,21 +160,13 @@ def get_features(data, fs):
             feature_list.append(emg_features)
         if sensor == "RR":
             Q = 7
-            fs = int(fs/Q)
             ecg = decimate(data["RR"], Q)
-            processed_ecg = ECG.preProcessing(ecg, fs=fs)
-            rr = RR.ECG_to_RR(processed_ecg, fs=fs)
-            rr_features = RR.RR(rr, fs)
+            processed_ecg = ECG.preProcessing(ecg, fs=int(fs/Q))
+            rr = RR.ECG_to_RR(processed_ecg, fs=int(fs/Q))
+            rr_features = RR.RR(rr, int(fs/Q))
             feature_list.append(rr_features)
 
-    # Combine features
-    features = pd.concat(feature_list, axis=1)
-
-    # Errors
-    if features.shape[0] != 1:
-        raise ValueError("After concat ECG, EDA and EMG features, the pandas array has more than 1 row")
-
-    return features
+    return feature_list
 
 
 # Possible extension: do something with the data that is cut off.
@@ -233,13 +225,20 @@ def process_subject_label(subject, label, data, sensors, Fs, T):
     sensor_arrays = np.array([sensor_data[sensor] for sensor in sensor_data])
     splitted_data = split_time(sensor_arrays, Fs, T)
     features = []
-    for iframe in range(splitted_data.shape[1]):
+
+    out_size = splitted_data.shape[1]
+
+    for iframe in range(out_size):
         current_data = {sensor: splitted_data[idx][iframe] for idx, sensor in enumerate(sensors)}
         current_feature = get_features(current_data, fs=Fs)
-        current_feature = pd.concat([current_feature, pd.DataFrame({'random_feature': np.random.rand(1),
-                                                                    'label': [label], 
-                                                                    'subject': [subject]})], axis=1)
-        features.append(current_feature)
+        current_properties = pd.DataFrame({
+                                            "random_feature" : np.random.rand(1),
+                                            "label" : [label],
+                                            "subject" : [subject] 
+                                            })
+        current_feature.append(current_properties)
+        features.append(pd.concat(current_feature, axis=1))
+
     return features
 
 def features_db(data, Fs=700, sensors=["ECG", "EMG", "EDA", "RR"], T=60, print_messages = True):
@@ -299,7 +298,7 @@ def features_db(data, Fs=700, sensors=["ECG", "EMG", "EDA", "RR"], T=60, print_m
             subject_label_features = process_subject_label(subject, label, data, sensors, Fs, T)
             features.extend(subject_label_features)
 
-    features_df = pd.concat(features, ignore_index=True)
+    features_df = pd.concat(features, axis = 0, ignore_index=True)
 
     if print_messages == True:
         print(features_df.head())
