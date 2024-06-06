@@ -6,4 +6,5 @@ Features/Raw_data
 *.fdb_latexmk
 *.synctex.gz
 Features/spiderfearful
-*/__pycache__
+**/__pycache__/
+.vscode

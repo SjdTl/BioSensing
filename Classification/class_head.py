@@ -537,10 +537,8 @@ def fit_predict_evaluate(X_train, Y_train, x_test, y_test, features_array, RFC_n
 
     return accuracy_dict, fone_dict
 
-def eval_all(features, print_messages = True, save_figures = True):
-    metrics = {'Classifier': [],
-               'Balanced_accuracy': [],
-               'Regular_accuracy': []}
+def eval_all(features, print_messages = True, save_figures = True, two_label = True):
+    metrics = pd.DataFrame()
 
 
     classifier_name_list = ["Random Forrest", "K-Nearest Neighbors", "AdaBoost", "Decision Tree", "Support Vector Machine", "Linear Discriminant Analysis", "Bernoulli Naive Bayes"]
@@ -567,6 +565,7 @@ def eval_all(features, print_messages = True, save_figures = True):
     groups = features_data_scaled['subject'].to_numpy()
 
     for classifier_name in classifier_name_list:
+        
         cm = 0
         accuracy_total = 0
         balanced_total = 0
@@ -583,7 +582,7 @@ def eval_all(features, print_messages = True, save_figures = True):
             classifier = fit_model(X_train=X_train, Y_train=Y_train, classifier=classifier_name)
             #print(classifier)
             y_pred = predict(classifier, x_test)
-            accuracy, fone = evaluate(y_test, y_pred, two_label=True)
+            accuracy, fone = evaluate(y_test, y_pred, two_label=two_label)
             balanced_total += balanced_accuracy_score(y_true=y_test, y_pred=y_pred)
             
             accuracy_total += accuracy
@@ -592,15 +591,14 @@ def eval_all(features, print_messages = True, save_figures = True):
 
         if print_messages == True:
             print('{}--balanced, regular: {}, {}'.format(classifier, balanced_total/15, accuracy_total/15))
-        metrics["Classifier"].append(classifier)
-        metrics["Balanced_accuracy"].append(balanced_total/15)
-        metrics["Regular_accuracy"].append(accuracy_total/15)
 
         if classifier_name == "Random Forrest" or classifier_name == "AdaBoost" or classifier_name == "Decision Tree" or classifier_name == "Linear Discriminant Analysis"or classifier_name == "Bernoulli Naive Bayes":
             importance = importances(classifier, classifier_name)
             # Sort feature importances in descending order
             indices = np.argsort(importance)[::-1]
             #print(importances)
+
+
 
             # Plot the feature importances
             if save_figures == True:
@@ -613,6 +611,21 @@ def eval_all(features, print_messages = True, save_figures = True):
                 plt.ylabel("Feature importance") 
                 plt.savefig(os.path.join(dir_path, "Feature_importance", ".".join([classifier_name, "svg"])))
 
+            new_row = {
+                'Classifier': [classifier],
+                'Balanced_accuracy': [balanced_total/15],
+                'Regular_accuracy': [accuracy_total/15],
+                'Most important feature': [list(features_data_turncated.columns)[0]],
+                "Second most important feature": [list(features_data_turncated.columns)[1]],
+                "Third most important feature": [list(features_data_turncated.columns)[2]]
+            }
+        else:
+            new_row = {
+                'Classifier': [classifier],
+                'Balanced_accuracy': [balanced_total/15],
+                'Regular_accuracy': [accuracy_total/15]
+            }
+
         if save_figures == True:
             plt.figure(figsize=(6,6))
             sns.heatmap(cm, annot=True, fmt=".3f", linewidths=.5, square = True, cmap = 'Blues', xticklabels=["Baseline", "Stress", "Amusement", "Meditation"], yticklabels=["Baseline", "Stress", "Amusement", "Meditation"])
@@ -621,5 +634,8 @@ def eval_all(features, print_messages = True, save_figures = True):
             all_sample_title = 'Accuracy Score: {0}, {1}'.format(round((accuracy_total/15)*100, 3), classifier_name)
             plt.title(all_sample_title, size = 10)
             plt.savefig(os.path.join(dir_path, "ConfusionMatrix", ".".join([classifier_name, "svg"])))
+        
+        metrics = pd.concat([metrics, pd.DataFrame(new_row)], ignore_index = True)
 
-    return pd.DataFrame(metrics)
+
+    return metrics

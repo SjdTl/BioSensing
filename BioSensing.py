@@ -38,18 +38,41 @@ def general_feature_testing(data, classify = True, feature_extraction = True, ne
         filename = os.path.join(dir_path, "Features", "Features_out", "features_5.pkl")
         features = pd.read_pickle(filename)
 
+    metrics = pd.DataFrame()
+    
     if neural == True:
         X_train, Y_train, x_test, y_test = class_head.train_test_split(features_data=features, num_subjects=15, test_percentage=0.6)
         neural_head.mlp(X_train=X_train, Y_train=Y_train, x_test=x_test, y_test=y_test)
 
     if classify == True:
-        metrics = class_head.eval_all(features, print_messages=print_messages, save_figures=save_figures)
+        classify_metrics = class_head.eval_all(features, print_messages=print_messages, save_figures=save_figures, two_label=two_label)
+        metrics = pd.concat([metrics, classify_metrics], ignore_index = True)
     
-    feat_head.save_features(df = metrics, properties_df= pd.DataFrame(properties), filepath=os.path.join(dir_path, "Accuracy data", "Metrics"))
+    if neural == True or classify == True:
+        classify_properties = {
+            "Sampling frequency":Fs,
+            "ECG used": "ECG" in sensors,
+            "EMG used": "EMG" in sensors,
+            "EDA used": "EDA" in sensors,
+            "EEG used": "EEG" in sensors,
+            "RR used": "RR" in sensors,
+            "Timeframe length": T,
+            "Dataset used": dataset_name,
+            "Two_label": two_label,
+            "Used_presaved_feature_file": not(feature_extraction)
+        }
+
+        classify_properties_df = pd.DataFrame([classify_properties] * len(metrics))
+
+        metrics = pd.concat([metrics, classify_properties_df], axis=1)
+
+        feat_head.save_features(df = metrics, properties_df= pd.DataFrame(properties), filepath=os.path.join(dir_path, "Accuracy data", "Metrics"))
+
+
     return metrics
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 all_data = feat_head.load_dict(os.path.join(dir_path, "Features", "Raw_data", "raw_data.pkl"))
 
-metrics = general_feature_testing(data = all_data, feature_extraction=False, classify=True, neural=False,
+metrics = general_feature_testing(data = all_data, feature_extraction=True, classify=True, neural=False,
                         Fs=700, sensors = ["ECG", "EMG", "EDA", "RR"], T=60, dataset_name="WESAD")
