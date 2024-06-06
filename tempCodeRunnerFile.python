@@ -1,4 +1,14 @@
-dictd = {'a' : [12,3,3,4,2],
-        'b' : [12,3,3,4,2]}
+import itertools
 
-print(*dictd.values())
+input_list = ['a', 'b', 'c']
+
+# Generate all combinations of length 1 to len(input_list)
+all_combinations = []
+for r in range(1, len(input_list) + 1):
+    all_combinations.extend(itertools.combinations(input_list, r))
+
+# Convert tuples to lists
+all_combinations = [list(comb) for comb in all_combinations]
+
+# Print the result
+print(all_combinations)

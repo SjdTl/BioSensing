@@ -28,6 +28,7 @@ def test(filepath):
 
     feat_gen.quick_plot(preProcessing(ecg, fs=700))
     df = ECG(ecg, 700)
+    # feat_gen.quick_plot(ecg)
     return df
 
 def EMG_figures(filepath, T =10):
@@ -155,5 +156,5 @@ def EMG_figures(filepath, T =10):
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 filepath = os.path.join(dir_path, "Raw_data", "raw_data.pkl")
-print(test(filepath).to_string())
+print(test(filepath))
 # EMG_figures(filepath)

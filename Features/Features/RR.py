@@ -1,17 +1,12 @@
 import numpy as np
 import pandas as pd
-import os
-from scipy.signal import butter, filtfilt, get_window, sosfiltfilt
-from scipy.ndimage import uniform_filter1d
-import scipy
-import matplotlib.pyplot as plt
-import tqdm
+from scipy.signal import butter, sosfiltfilt, find_peaks
 import neurokit2 as nk
 from sklearn.preprocessing import minmax_scale as normalize
-from scipy.signal import butter, iirnotch, lfilter, sosfilt, sosfiltfilt
+from scipy.signal import butter, sosfiltfilt
 
 from . import feat_gen
-from .ECG import preProcessing, rpeak_detector
+from .ECG import rpeak_detector
 
 def RR(unprocessed_rr, fs=700, peak_prominence = 0.15):
     """
@@ -248,10 +243,10 @@ def peak_detection_RR(rr, fs=700, peak_prominence = 0.15, peak_distance = 1, met
     if method == "scipy":
 
         peak_distance = fs * peak_distance
-        peaks, _ = scipy.signal.find_peaks(
+        peaks, _ = find_peaks(
             rr, distance=peak_distance, prominence=peak_prominence
         )
-        troughs, _ = scipy.signal.find_peaks(
+        troughs, _ = find_peaks(
             -rr, distance=peak_distance, prominence=peak_prominence
         )
 

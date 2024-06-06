@@ -1,112 +1,116 @@
 # Top level document
 import os as os
 import sys as sys
+import itertools
 
 from Features.Features import feat_head
 from Classification import class_head
-from matplotlib import pyplot as plt
-from tqdm import tqdm
+from Neural_Network import neural_head
+import tqdm
 import pandas as pd
-import numpy as np
+import time
 
 
-import seaborn as sns
-from sklearn.metrics import f1_score, balanced_accuracy_score, accuracy_score, confusion_matrix
-from sklearn import preprocessing
-from sklearn.model_selection import LeaveOneGroupOut
+def general_feature_testing(data, classify = True, feature_extraction = True, neural = True, 
+                            Fs=700, sensors=["ECG", "EMG", "EDA", "RR"], T=60, dataset_name = "WESAD", two_label = True,
+                            print_messages = True, save_figures = True):
+    """
+    When using a presaved feature (feature_extraction = False), the other options (Fs, sensor, T, dataset_name) of course don't do anything and the properties tab in the excel file of Metrics might give the wrong data
+    """
 
 
 
-
-def general_feature_testing(data, classify = True, feature_extraction = True):
     if feature_extraction == True:
-        # Determine features based on all_data
-        features = feat_head.features_db(data)
+        st = time.time()
+        features = feat_head.features_db(data, Fs = Fs, sensors=sensors, T=T, print_messages=print_messages)
         # Intermediate save
-        feat_head.save_features(features, os.path.join(dir_path, "Features", "Features_out", "features"))
+        et = time.time()
+        properties = {"Sampling frequency": Fs,
+                        "Sensors used": sensors,
+                        "Timeframes length": T,
+                        "Dataset used" : dataset_name,
+                        "Total execution time (s)" : round(et - st,2),
+                        "Current time": time.ctime()}
+        feat_head.save_features(df = features, properties_df= pd.DataFrame(properties), filepath=os.path.join(dir_path, "Features", "Features_out", "features"))
     else:
         # Use a presaved dataframe
-        filename = os.path.join(dir_path, "Features", "Features_out", "features_1.pkl")
+        filename = os.path.join(dir_path, "Features", "Features_out", "features_5.pkl")
         features = pd.read_pickle(filename)
 
+    metrics = pd.DataFrame()
+
+    if neural == True:
+        X_train, Y_train, x_test, y_test = class_head.train_test_split(features_data=features, num_subjects=15, test_percentage=0.6)
+        neural_head.mlp(X_train=X_train, Y_train=Y_train, x_test=x_test, y_test=y_test)
+
     if classify == True:
+        classify_metrics = class_head.eval_all(features, print_messages=print_messages, save_figures=save_figures, two_label=two_label)
+        metrics = pd.concat([metrics, classify_metrics], ignore_index = True)
 
-        classifier_name_list = ["Random Forrest", "K-Nearest Neighbors", "AdaBoost", "Decision Tree", "Support Vector Machine", "Linear Discriminant Analysis", "Bernoulli Naive Bayes"]
-        #Drop random feature
-        features_data = features.drop(columns=['random_feature'])
+        mean_regular_accuracy = metrics["Regular_accuracy"].mean()
+        mean_balanced_accuracy = metrics["Balanced_accuracy"].mean()
+        mean_row = pd.DataFrame({'Classifier': 'mean_classifier', 'Regular_accuracy': mean_regular_accuracy, 'Balanced_accuracy': mean_balanced_accuracy}, index=[0])
+        metrics = pd.concat([metrics, mean_row], axis=0, ignore_index=True)
 
-        #Redo numbering of subjects
-        features_data.loc[features_data['subject'] == 16, 'subject'] = 1
-        features_data.loc[features_data['subject'] == 17, 'subject'] = 12
+    if neural == True or classify == True:
+        classify_properties = {
+            "Sampling frequency":Fs,
+            "ECG used": "ECG" in sensors,
+            "EMG used": "EMG" in sensors,
+            "EDA used": "EDA" in sensors,
+            "EEG used": "EEG" in sensors,
+            "RR used": "RR" in sensors,
+            "Timeframe length": T,
+            "Dataset used": dataset_name,
+            "Two_label": two_label,
+            "Used_presaved_feature_file": not(feature_extraction),
+        }
 
-        #Remove the subject and label collums and normalize
-        features_data_turncated = features_data.drop(columns=['label', 'subject'])
-        scaler = preprocessing.StandardScaler()
-        features_data_scaled = pd.DataFrame(scaler.fit_transform(features_data_turncated))
-        features_data_scaled = features_data_scaled.join(features_data['label'])
-        features_data_scaled = features_data_scaled.join(features_data['subject'])
+        classify_properties_df = pd.DataFrame([classify_properties] * len(metrics))
 
-        logo = LeaveOneGroupOut()
-        features = features_data_scaled.drop(columns=['label', 'subject']).to_numpy()
-        labels = features_data_scaled['label'].to_numpy()
-        groups = features_data_scaled['subject'].to_numpy()
+        metrics = pd.concat([metrics, classify_properties_df], axis=1)
 
-        for classifier_name in classifier_name_list:
-            cm = 0
-            accuracy_total = 0
-            for train_index, test_index in logo.split(features, labels, groups):
-                X_train, x_test = features[train_index], features[test_index]
-                Y_train, y_test = labels[train_index], labels[test_index]
 
-                #Scale split data
-                scaler = preprocessing.StandardScaler().fit(X_train)
-                X_train = scaler.transform(X_train)
-                x_test = scaler.transform(x_test)
+        feat_head.save_features(df = metrics, 
+                                properties_df= pd.DataFrame({"Sampling frequency": Fs,
+                                                            "Sensors used": sensors,
+                                                            "Timeframes length": T,
+                                                            "Dataset used" : dataset_name,
+                                                            "Current time": time.ctime()}), 
+                                filepath=os.path.join(dir_path, "Metrics", "Metrics"))
 
-                classifier = class_head.fit_model(X_train=X_train, Y_train=Y_train, classifier=classifier_name)
-                print(classifier)
-                y_pred = class_head.predict(classifier, x_test)
-                accuracy, fone = class_head.evaluate(y_test, y_pred)
-                accuracy_total += accuracy
 
-                cm += confusion_matrix(y_test, y_pred)
+    return metrics
 
-                # Here you can train your model using X_train, Y_train and evaluate using X_test, Y_test
-                # Example:
-                # model.fit(X_train, Y_train)
-                # predictions = model.predict(X_test)
-                # evaluate_model(predictions, Y_test)
-                # For demonstration, let's just print the sizes of the train and test sets
-                print(f"Train size: {X_train.shape[0]}, Test size: {x_test.shape[0]}")
+def compare_sensor_combinations(data, Fs=700, sensors=["ECG", "EMG", "EDA", "RR"], T=60, dataset_name = "WESAD", two_label = True):
+    """The time of this function can probably be 20% of what it is now by handling the data in a smart way"""
 
-            if classifier_name == "Random Forrest" or classifier_name == "AdaBoost" or classifier_name == "Decision Tree" or classifier_name == "Linear Discriminant Analysis"or classifier_name == "Bernoulli Naive Bayes":
-                importances = class_head.importances(classifier, classifier_name)
-                # Sort feature importances in descending order
-                indices = np.argsort(importances)[::-1]
-                print(importances)
+    sensor_combinations = []
+    for r in range(1, len(sensors) + 1):
+        sensor_combinations.extend(itertools.combinations(sensors, r))
+    # Convert tuples to lists
+    sensor_combinations = [list(comb) for comb in sensor_combinations]
 
-                # Plot the feature importances
-                plt.figure()
-                plt.rcParams['figure.figsize'] = [35, 4]
-                plt.title(" ".join(["Feature importances", classifier_name]))
-                plt.bar(range(X_train.shape[1]), importances[indices], align="center")
-                plt.xticks(range(X_train.shape[1]), list(features_data_turncated.columns))
-                plt.xticks(rotation=90)
-                plt.xlabel("Feature index")
-                plt.ylabel("Feature importance") 
-                plt.savefig(os.path.join(dir_path, "Classification", "Feature_importance", ".".join([classifier_name, "svg"])))
+    metrics = []
+    for sensor_combination in tqdm.tqdm(sensor_combinations):
+        current_metric = general_feature_testing(data=data, classify=True, feature_extraction=True, neural=False, Fs=Fs, sensors = sensor_combination, T=T, dataset_name=dataset_name, two_label=two_label, print_messages=False, save_figures=False)        
+        metrics.append(current_metric)
+    
+    metrics = pd.concat(metrics, axis=0)
 
-            plt.figure(figsize=(6,6))
-            sns.heatmap(cm, annot=True, fmt=".3f", linewidths=.5, square = True, cmap = 'Blues', xticklabels=["Baseline", "Stress", "Amusement", "Meditation"], yticklabels=["Baseline", "Stress", "Amusement", "Meditation"])
-            plt.ylabel('Actual label')
-            plt.xlabel('Predicted label')
-            all_sample_title = 'Accuracy Score: {0}, {1}'.format(round((accuracy_total/15)*100, 3), classifier_name)
-            plt.title(all_sample_title, size = 10)
-            plt.savefig(os.path.join(dir_path, "Classification", "ConfusionMatrix", ".".join([classifier_name, "svg"])))
+    feat_head.save_features(df = metrics, 
+                            properties_df= pd.DataFrame({"Sampling frequency": [Fs],
+                                                        "Sensors used": ["Mixed"],
+                                                        "Timeframes length": [T],
+                                                        "Dataset used" : [dataset_name],
+                                                        "Current time": [time.ctime()]}), 
+                            filepath=os.path.join(dir_path, "Metrics", "SENSOR_COMBINATIONS_METRICS"))
 
-# Current location
+
 dir_path = os.path.dirname(os.path.realpath(__file__))
-# Import wesad data
 all_data = feat_head.load_dict(os.path.join(dir_path, "Features", "Raw_data", "raw_data.pkl"))
 
-general_feature_testing(data = all_data, classify = True, feature_extraction = True)
+compare_sensor_combinations(all_data)
+
+# metrics = general_feature_testing(data = all_data, feature_extraction=True, classify=True, neural=False,
+                        # Fs=700, sensors=["EMG"], T=60, dataset_name="WESAD")
