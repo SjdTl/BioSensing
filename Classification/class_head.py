@@ -537,7 +537,12 @@ def fit_predict_evaluate(X_train, Y_train, x_test, y_test, features_array, RFC_n
 
     return accuracy_dict, fone_dict
 
-def eval_all(features):
+def eval_all(features, print_messages = True, save_figures = True):
+    metrics = {'Classifier': [],
+               'Balanced_accuracy': [],
+               'Regular_accuracy': []}
+
+
     classifier_name_list = ["Random Forrest", "K-Nearest Neighbors", "AdaBoost", "Decision Tree", "Support Vector Machine", "Linear Discriminant Analysis", "Bernoulli Naive Bayes"]
     
     #Drop random feature
@@ -585,7 +590,11 @@ def eval_all(features):
 
             cm += confusion_matrix(y_test, y_pred)
 
-        print('{}--balanced, regular: {}, {}'.format(classifier, balanced_total/15, accuracy_total/15))
+        if print_messages == True:
+            print('{}--balanced, regular: {}, {}'.format(classifier, balanced_total/15, accuracy_total/15))
+        metrics["Classifier"].append(classifier)
+        metrics["Balanced_accuracy"].append(balanced_total/15)
+        metrics["Regular_accuracy"].append(accuracy_total/15)
 
         if classifier_name == "Random Forrest" or classifier_name == "AdaBoost" or classifier_name == "Decision Tree" or classifier_name == "Linear Discriminant Analysis"or classifier_name == "Bernoulli Naive Bayes":
             importance = importances(classifier, classifier_name)
@@ -594,19 +603,23 @@ def eval_all(features):
             #print(importances)
 
             # Plot the feature importances
-            plt.figure(figsize=(30, 15))
-            plt.title(" ".join(["Feature importances", classifier_name]))
-            plt.bar(range(X_train.shape[1]), importance[indices], align="center")
-            plt.xticks(range(X_train.shape[1]), list(features_data_turncated.columns))
-            plt.xticks(rotation=90, fontsize=9)
-            plt.xlabel("Feature index")
-            plt.ylabel("Feature importance") 
-            plt.savefig(os.path.join(dir_path, "Feature_importance", ".".join([classifier_name, "svg"])))
+            if save_figures == True:
+                plt.figure(figsize=(30, 15))
+                plt.title(" ".join(["Feature importances", classifier_name]))
+                plt.bar(range(X_train.shape[1]), importance[indices], align="center")
+                plt.xticks(range(X_train.shape[1]), list(features_data_turncated.columns))
+                plt.xticks(rotation=90, fontsize=9)
+                plt.xlabel("Feature index")
+                plt.ylabel("Feature importance") 
+                plt.savefig(os.path.join(dir_path, "Feature_importance", ".".join([classifier_name, "svg"])))
 
-        plt.figure(figsize=(6,6))
-        sns.heatmap(cm, annot=True, fmt=".3f", linewidths=.5, square = True, cmap = 'Blues', xticklabels=["Baseline", "Stress", "Amusement", "Meditation"], yticklabels=["Baseline", "Stress", "Amusement", "Meditation"])
-        plt.ylabel('Actual label')
-        plt.xlabel('Predicted label')
-        all_sample_title = 'Accuracy Score: {0}, {1}'.format(round((accuracy_total/15)*100, 3), classifier_name)
-        plt.title(all_sample_title, size = 10)
-        plt.savefig(os.path.join(dir_path, "ConfusionMatrix", ".".join([classifier_name, "svg"])))
+        if save_figures == True:
+            plt.figure(figsize=(6,6))
+            sns.heatmap(cm, annot=True, fmt=".3f", linewidths=.5, square = True, cmap = 'Blues', xticklabels=["Baseline", "Stress", "Amusement", "Meditation"], yticklabels=["Baseline", "Stress", "Amusement", "Meditation"])
+            plt.ylabel('Actual label')
+            plt.xlabel('Predicted label')
+            all_sample_title = 'Accuracy Score: {0}, {1}'.format(round((accuracy_total/15)*100, 3), classifier_name)
+            plt.title(all_sample_title, size = 10)
+            plt.savefig(os.path.join(dir_path, "ConfusionMatrix", ".".join([classifier_name, "svg"])))
+
+    return pd.DataFrame(metrics)

@@ -226,7 +226,7 @@ def split_time(data, Fs, t=60):
     return np.array(np.split(data[:,:int(np.floor(amount_of_splits)*size_of_split)], int(np.floor(amount_of_splits)), axis=1)).transpose(1,0,2)
 
 
-def features_db(data, Fs=700, sensors=["ECG", "EMG", "EDA", "RR"], T=60):
+def features_db(data, Fs=700, sensors=["ECG", "EMG", "EDA", "RR"], T=60, print_messages = True):
     """
     Description
     -----------
@@ -280,7 +280,7 @@ def features_db(data, Fs=700, sensors=["ECG", "EMG", "EDA", "RR"], T=60):
     features = pd.DataFrame()
     df_length = 0
     # Loop through all subjects, split their data and store the feature data
-    for subject in tqdm.tqdm(data):
+    for subject in tqdm.tqdm(data, disable=not(print_messages)):
         # Loop through labels 1-4 (0 and 5-7 are already removed)
         for label in range(1, 5):
             # Take the current label, split into smaller timeframes and find the features 
@@ -294,7 +294,6 @@ def features_db(data, Fs=700, sensors=["ECG", "EMG", "EDA", "RR"], T=60):
             
             if "RR" in sensors:
                 sensor_data["RR"] = data[subject]["ECG"][label_array]
-
             # Change to array for splitting and split
             sensor_arrays = np.array([sensor_data[sensor] for sensor in sensor_data])
             splitted_data = split_time(sensor_arrays, Fs = Fs, t = T)
@@ -314,7 +313,8 @@ def features_db(data, Fs=700, sensors=["ECG", "EMG", "EDA", "RR"], T=60):
 
                 df_length += 1
 
-    print(features.head())
+    if print_messages == True:
+        print(features.head())
 
     # Error messages
     # Check row length
