@@ -75,13 +75,12 @@ def filename_exists(filepath, extension):
     C://../name_2.txt 
     etc.
     """
-    while os.path.exists((filepath + "." + str(extension))):
-        if not(((filepath.split("_")[-1]).isdigit())):
-            filepath = filepath + str("_1")
-        else:
-            old_digit = filepath.split("_")[-1]
-            filepath = filepath[:-len(old_digit)] + str(int(old_digit) + 1)
-    return str(filepath) + "." + str(extension)
+    counter = 0
+    new_filepath = f"{filepath}.{extension}"
+    while os.path.exists(new_filepath):
+        counter += 1
+        new_filepath = f"{filepath}_{counter}.{extension}"
+    return new_filepath
 
 
 def save_features(df, properties_df, filepath):
@@ -162,7 +161,7 @@ def get_features(data, fs):
         if sensor == "RR":
             Q = 7
             fs = int(fs/Q)
-            ecg = decimate(data["ECG"], Q)
+            ecg = decimate(data["RR"], Q)
             processed_ecg = ECG.preProcessing(ecg, fs=fs)
             rr = RR.ECG_to_RR(processed_ecg, fs=fs)
             rr_features = RR.RR(rr, fs)
@@ -225,6 +224,23 @@ def split_time(data, Fs, t=60):
     amount_of_splits = total_size/size_of_split
     return np.array(np.split(data[:,:int(np.floor(amount_of_splits)*size_of_split)], int(np.floor(amount_of_splits)), axis=1)).transpose(1,0,2)
 
+def process_subject_label(subject, label, data, sensors, Fs, T):
+    label_array = np.where(data[subject]["labels"] == label)[0]
+    sensor_data = {sensor: data[subject][sensor][label_array] for sensor in sensors if sensor in data[subject] and sensor != "RR"}
+    if "RR" in sensors:
+        sensor_data["RR"] = data[subject]["ECG"][label_array]
+
+    sensor_arrays = np.array([sensor_data[sensor] for sensor in sensor_data])
+    splitted_data = split_time(sensor_arrays, Fs, T)
+    features = []
+    for iframe in range(splitted_data.shape[1]):
+        current_data = {sensor: splitted_data[idx][iframe] for idx, sensor in enumerate(sensors)}
+        current_feature = get_features(current_data, fs=Fs)
+        current_feature = pd.concat([current_feature, pd.DataFrame({'random_feature': np.random.rand(1),
+                                                                    'label': [label], 
+                                                                    'subject': [subject]})], axis=1)
+        features.append(current_feature)
+    return features
 
 def features_db(data, Fs=700, sensors=["ECG", "EMG", "EDA", "RR"], T=60, print_messages = True):
     """
@@ -265,8 +281,6 @@ def features_db(data, Fs=700, sensors=["ECG", "EMG", "EDA", "RR"], T=60, print_m
 
     Raises
     ------
-    ValueError for row length
-        Each timeframe should return 1 row of the dataframe. If this is not the case, an error is raised.
     ValueError for NaN
         Each feature should have returned a value. If this is not the case, an error is raised.
     ValueError for features
@@ -277,56 +291,25 @@ def features_db(data, Fs=700, sensors=["ECG", "EMG", "EDA", "RR"], T=60, print_m
     Also prints the head of the dataframe and has a progress bar
     """
 
-    features = pd.DataFrame()
-    df_length = 0
+    features = []
     # Loop through all subjects, split their data and store the feature data
     for subject in tqdm.tqdm(data, disable=not(print_messages)):
         # Loop through labels 1-4 (0 and 5-7 are already removed)
         for label in range(1, 5):
-            # Take the current label, split into smaller timeframes and find the features 
-            # -----
-            # Create an array of the same size which is True (1) for values with the current label
-            label_array = np.asarray([idx for idx, val in enumerate(data[subject]["labels"]) if val == label])
-            # Create dictionary with current subject, sensor and labels in order of the provided sensors
-            sensor_data = {sensor: data[subject][sensor][label_array] 
-                           for sensor in sensors 
-                           if (sensor in data[subject] and sensor != "RR")}
-            
-            if "RR" in sensors:
-                sensor_data["RR"] = data[subject]["ECG"][label_array]
-            # Change to array for splitting and split
-            sensor_arrays = np.array([sensor_data[sensor] for sensor in sensor_data])
-            splitted_data = split_time(sensor_arrays, Fs = Fs, t = T)
+            subject_label_features = process_subject_label(subject, label, data, sensors, Fs, T)
+            features.extend(subject_label_features)
 
-            for iframe in range(0, splitted_data.shape[1]):
-                # Prepare the data for the current timeframe
-                current_data = {sensor: splitted_data[idx][iframe] for idx, sensor in enumerate(sensors)}
-
-                # Get feature of current timeframe
-                current_feature = get_features(current_data, fs=Fs)
-                # Add label and subject
-                current_feature = pd.concat([current_feature, pd.DataFrame({'random_feature': np.random.rand(1),
-                                                                            'label': [label], 
-                                                                            'subject': [subject]})], axis=1)
-                # Add to dataframe
-                features = pd.concat([features, current_feature], ignore_index=True)
-
-                df_length += 1
+    features_df = pd.concat(features, ignore_index=True)
 
     if print_messages == True:
-        print(features.head())
+        print(features_df.head())
 
     # Error messages
-    # Check row length
-    if features.shape[0] < df_length:
-        raise ValueError(f"The expected amount of rows in the DataFrame is {df_length}, the true length is {features.shape[0]}. A feature extraction has probably returned an empty dataframe")
-    if features.shape[0] > df_length:
-        raise ValueError(f"The expected amount of rows in the DataFrame is {df_length}, the true length is {features.shape[0]}. One feature has probably returned an array with size > 1")
     # Check NaN values
-    if features.isnull().values.any():
+    if features_df.isnull().values.any():
         raise ValueError("The feature array contains a NaN value")
     # Check if all names are unique
-    if any(features.columns.duplicated()):
+    if any(features_df.columns.duplicated()):
         raise ValueError(f"Two features have the same name")
 
-    return features
+    return features_df

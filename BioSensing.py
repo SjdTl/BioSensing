@@ -9,6 +9,7 @@ from matplotlib import pyplot as plt
 from tqdm import tqdm
 import pandas as pd
 import numpy as np
+import time
 
 
 import seaborn as sns
@@ -24,14 +25,19 @@ def general_feature_testing(data, classify = True, feature_extraction = True, ne
     When using a presaved feature (feature_extraction = False), the other options (Fs, sensor, T, dataset_name) of course don't do anything and the properties tab in the excel file of Metrics might give the wrong data
     """
 
-    properties = {"Sampling frequency": Fs,
-                    "Sensors used": sensors,
-                    "Timeframes length": T,
-                    "Dataset used" : dataset_name}
+
 
     if feature_extraction == True:
+        st = time.time()
         features = feat_head.features_db(data, Fs = Fs, sensors=sensors, T=T, print_messages=print_messages)
         # Intermediate save
+        et = time.time()
+        properties = {"Sampling frequency": Fs,
+                        "Sensors used": sensors,
+                        "Timeframes length": T,
+                        "Dataset used" : dataset_name,
+                        "Total execution time (s)" : round(et - st,2),
+                        "Current time": time.ctime()}
         feat_head.save_features(df = features, properties_df= pd.DataFrame(properties), filepath=os.path.join(dir_path, "Features", "Features_out", "features"))
     else:
         # Use a presaved dataframe
@@ -39,7 +45,7 @@ def general_feature_testing(data, classify = True, feature_extraction = True, ne
         features = pd.read_pickle(filename)
 
     metrics = pd.DataFrame()
-    
+
     if neural == True:
         X_train, Y_train, x_test, y_test = class_head.train_test_split(features_data=features, num_subjects=15, test_percentage=0.6)
         neural_head.mlp(X_train=X_train, Y_train=Y_train, x_test=x_test, y_test=y_test)
@@ -59,14 +65,20 @@ def general_feature_testing(data, classify = True, feature_extraction = True, ne
             "Timeframe length": T,
             "Dataset used": dataset_name,
             "Two_label": two_label,
-            "Used_presaved_feature_file": not(feature_extraction)
+            "Used_presaved_feature_file": not(feature_extraction),
         }
 
         classify_properties_df = pd.DataFrame([classify_properties] * len(metrics))
 
         metrics = pd.concat([metrics, classify_properties_df], axis=1)
 
-        feat_head.save_features(df = metrics, properties_df= pd.DataFrame(properties), filepath=os.path.join(dir_path, "Accuracy data", "Metrics"))
+        feat_head.save_features(df = metrics, 
+                                properties_df= pd.DataFrame({"Sampling frequency": Fs,
+                                                            "Sensors used": sensors,
+                                                            "Timeframes length": T,
+                                                            "Dataset used" : dataset_name,
+                                                            "Current time": time.ctime()}), 
+                                filepath=os.path.join(dir_path, "Metrics", "Metrics"))
 
 
     return metrics
@@ -74,5 +86,5 @@ def general_feature_testing(data, classify = True, feature_extraction = True, ne
 dir_path = os.path.dirname(os.path.realpath(__file__))
 all_data = feat_head.load_dict(os.path.join(dir_path, "Features", "Raw_data", "raw_data.pkl"))
 
-metrics = general_feature_testing(data = all_data, feature_extraction=True, classify=True, neural=False,
-                        Fs=700, sensors = ["ECG", "EMG", "EDA", "RR"], T=60, dataset_name="WESAD")
+metrics = general_feature_testing(data = all_data, feature_extraction=True, classify=False, neural=False,
+                        Fs=700, sensors = ["RR"], T=60, dataset_name="WESAD")
