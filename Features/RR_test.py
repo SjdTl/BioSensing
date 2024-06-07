@@ -159,7 +159,7 @@ def find_all_features(rr, ecg, random_value, method="vangent2019", fs=100, T=60,
 
     if method == 'Original':
         for rr in rr:
-            current_feature = RR.RR(rr, fs=fs, peak_prominence = peak_prominence)
+            current_feature = RR.RR(rr, fs=fs, peak_prominence = peak_prominence, drop_bad_features = False)
             # Add to dataframe
             features = pd.concat([features, current_feature], ignore_index=True)
         return features
@@ -167,7 +167,7 @@ def find_all_features(rr, ecg, random_value, method="vangent2019", fs=100, T=60,
         for rr, ecg in (zip(rr, ecg)):
             ecg = ECG.preProcessing(ecg, fs=fs)
             extracted_RR = (RR.ECG_to_RR(ecg, fs=fs, method=method))
-            current_feature=RR.RR(extracted_RR, fs=fs, peak_prominence = peak_prominence)
+            current_feature=RR.RR(extracted_RR, fs=fs, peak_prominence = peak_prominence, drop_bad_features = False)
             features = pd.concat([features, current_feature], ignore_index=True)
             
             if i in random_value:
@@ -235,7 +235,7 @@ def testECG(filepath, fs=700):
 
     feat_gen.quick_plot(rr, fs = fs)
     feat_gen.quick_plot(RR.preProcessRR(rr), rr, fs=fs)
-    df = RR.RR(ecg, fs)
+    df = RR.RR(ecg, fs, drop_bad_features= False)
     return df
 
 def RR_figures(filepath, T = 60, fs = 700):

@@ -149,8 +149,7 @@ def ECG_specific_features(ecg, fs):
     diff_rri = np.diff(rri)
 
     # RR peak based
-    out_dict["Heart_rate1"] = r_peaks_pan.size / (ecg.size / fs) * 60
-    out_dict["Heart_rate2"] = 60 / np.mean(rri) * 1000
+    out_dict["Heart_rate"] = 60 / np.mean(rri) * 1000
     out_dict["MeanNN"] = np.mean(rri)
     out_dict["SDNN"] = np.std(rri)
 
