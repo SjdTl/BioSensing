@@ -83,7 +83,7 @@ def filename_exists(filepath, extension):
     return new_filepath
 
 
-def save_features(df, properties_df, filepath):
+def save_features(output, filepath, key = "features"):
     """
     Description
     -----------
@@ -91,7 +91,11 @@ def save_features(df, properties_df, filepath):
 
     Parameters
     ----------
-    df : pd.DataFrame
+    output : dictionary of two pd.DataFrames
+        output = {"properties": dataframe with properties,
+                "features" : dataframe with the features}
+
+    features : pd.DataFrame
          Can be any dataframe, but for our usecases it will probably look something like:
         | index |  feature1  |  feature2  | label | subject | 
         |   -   |      -     |     -      |   -   | -       |
@@ -106,12 +110,12 @@ def save_features(df, properties_df, filepath):
     Notes
     -----
     """
-    
+    with open(filename_exists(filepath, "pkl"), 'wb') as handle:
+        pickle.dump(output, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-    df.to_pickle(filename_exists(filepath, "pkl"))
     with pd.ExcelWriter(filename_exists(filepath, "xlsx")) as writer:
-        properties_df.to_excel(writer, sheet_name = "Properties")
-        df.to_excel(writer, sheet_name='Dataframe')
+        output["properties"].to_excel(writer, sheet_name = "properties")
+        output[key].to_excel(writer, sheet_name=key)
 
 
 def get_features(data, fs):
