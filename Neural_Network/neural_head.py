@@ -64,6 +64,16 @@ def mlp(X_train, Y_train, x_test, y_test, hidden_layer_1_nodes = 50, hidden_laye
     if print_messages:
         print(accuracy, balanced_accuracy, fone)
 
+    new_row = {
+        'Classifier': ["Nueral"],
+        'Balanced_accuracy': [balanced_accuracy],
+        'Regular_accuracy': [accuracy],
+        'Most important feature': [list(features_data_turncated.columns)[0]],
+        "Second most important feature": [list(features_data_turncated.columns)[1]],
+        "Third most important feature": [list(features_data_turncated.columns)[2]]
+    }
+    metrics = pd.concat([metrics, pd.DataFrame(new_row)], ignore_index = True)
+
     # Display some predictions on test data
     if save_figures == True:
         fig, axes = plt.subplots(ncols=10, sharex=False, sharey=True, figsize=(20, 4))

@@ -278,8 +278,8 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 # all_data = feat_head.load_dict(os.path.join(dir_path, "Features", "Raw_data", "raw_data.pkl"))
 
 # compare_sensor_combinations(all_data)
-compare_timeframes(all_data, sensors = ["EDA"])
+# compare_timeframes(all_data, sensors = ["EDA"])
 
 # feature_path = os.path.join(dir_path, "Features", "Features_out", "features_12.pkl")
-# metrics = general_feature_testing(data = all_data, feature_extraction=True, classify=True, neural=False,
-                        # Fs=700, sensors=["EDA"], T=60, dataset_name="WESAD", features_path=feature_path)
+metrics = general_feature_testing(data = all_data, feature_extraction=True, classify=False, neural=True,
+                        Fs=700, sensors=["EDA"], T=60, dataset_name="WESAD", features_path=feature_path)
