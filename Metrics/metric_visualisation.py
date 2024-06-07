@@ -52,12 +52,16 @@ def change_timeframes(df):
     balanced_accuracies = []
     regular_accuracies = []
     timeframe_length = []
+    balanced_variance = []
+    regular_variance = []
     sensor = []
 
     for index, row in mean_classifier_df.iterrows():
         balanced_accuracies.append(row['Balanced_accuracy'])
         regular_accuracies.append(row['Regular_accuracy'])
         timeframe_length.append(row["Timeframes length"])
+        balanced_variance.append(row["Balanced_variance"])
+        regular_variance.append(row["Regular_variance"])
 
         # List of sensor columns
         sensor_columns = ['ECG used', 'EMG used', 'EDA used', 'EEG used', 'RR used']
@@ -69,6 +73,8 @@ def change_timeframes(df):
     
     ax.plot(timeframe_length, balanced_accuracies, label = "Balanced accuracies")
     ax.plot(timeframe_length, regular_accuracies, label = "Regular accuracies")
+    ax.errorbar(timeframe_length, balanced_accuracies, balanced_variance, linestyle='None')
+    ax.errorbar(timeframe_length, regular_accuracies, regular_variance, linestyle='None')
 
     ax.set_xlabel('Timeframes (s)')
     ax.set_ylabel('Average Performance')

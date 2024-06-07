@@ -10,6 +10,7 @@ import tqdm
 import pandas as pd
 import time
 import pickle
+import numpy as np
 
 def feature_extraction_func(data, Fs = 700, sensors = ["ECG", "EMG", "EDA", "RR"], T=60, dataset_name = "WESAD",  print_messages = True):
     st = time.time()
@@ -42,7 +43,13 @@ def classify_func(features, print_messages = True, save_figures = True, two_labe
 
     mean_regular_accuracy = metrics["Regular_accuracy"].mean()
     mean_balanced_accuracy = metrics["Balanced_accuracy"].mean()
-    mean_row = pd.DataFrame({'Classifier': 'mean_classifier', 'Regular_accuracy': mean_regular_accuracy, 'Balanced_accuracy': mean_balanced_accuracy}, index=[0])
+    mean_balanced_variance = metrics["Balanced_variance"].mean()
+    mean_regular_variance = metrics["Regular_variance"].mean()
+    mean_row = pd.DataFrame({'Classifier': 'mean_classifier', 
+                             'Regular_accuracy': mean_regular_accuracy, 
+                             'Balanced_accuracy': mean_balanced_accuracy, 
+                             'Balanced_variance': mean_balanced_variance, 
+                             'Regular_variance' : mean_regular_variance}, index=[0])
     metrics = pd.concat([metrics, mean_row], axis=0, ignore_index=True)
 
     return metrics
@@ -135,12 +142,19 @@ def general_feature_testing(data=None, classify = True, feature_extraction = Tru
     properties = features_properties["properties"]
 
     if neural == True or classify == True:
+        metrics = []
+        st = time.time()
+
         if neural == True:
             X_train, Y_train, x_test, y_test = class_head.train_test_split(features_data=features_properties["features"], num_subjects=15, test_percentage=0.6)
-            neural_head.mlp(X_train=X_train, Y_train=Y_train, x_test=x_test, y_test=y_test, print_messages = print_messages, save_figures=save_figures)
+            metrics_neural =  neural_head.mlp(X_train=X_train, Y_train=Y_train, x_test=x_test, y_test=y_test, two_label=two_label, print_messages = print_messages, save_figures=save_figures)
+            metrics.append(metrics_neural)
 
         if classify == True:
-            metrics = classify_func(features, print_messages = print_messages, save_figures = save_figures, two_label = two_label)
+            metrics_classify = metrics = classify_func(features, print_messages = print_messages, save_figures = save_figures, two_label = two_label)
+            metrics.append(metrics_classify)
+
+        metrics = pd.concat(metrics, axis=1)
 
         # Add properties to each entry (classification algorithm) of the metrics dataframe
         classify_properties = properties
@@ -152,6 +166,8 @@ def general_feature_testing(data=None, classify = True, feature_extraction = Tru
 
         metrics = pd.concat([metrics, classify_properties], axis=1)
         # Add properties to the properties tab
+        et = time.time()
+        classify_properties["Total execution time (s)"] = round(et - st,2)
         classify_properties["Current time"] = time.ctime()
 
         output = {
@@ -193,6 +209,7 @@ def compare_sensor_combinations(data, Fs=700, sensors=["ECG", "EMG", "EDA", "RR"
     --------
     >>>
     """
+    st = time.time()
 
     sensor_combinations = []
     for r in range(1, len(sensors) + 1):
@@ -204,13 +221,16 @@ def compare_sensor_combinations(data, Fs=700, sensors=["ECG", "EMG", "EDA", "RR"
     for sensor_combination in tqdm.tqdm(sensor_combinations):
         current_metric = general_feature_testing(data=data, classify=True, feature_extraction=True, neural=False, Fs=Fs, sensors = sensor_combination, T=T, dataset_name=dataset_name, two_label=two_label, print_messages=False, save_figures=False)        
         metrics.append(current_metric)
-    
+
+    et=time.time()
+
     metrics = pd.concat(metrics, axis=0)
     properties= pd.DataFrame({"Sampling frequency": [Fs],
                                 "Sensors used": ["Mixed"],
                                 "Timeframes length": [T],
                                 "Dataset used" : [dataset_name],
-                                "Current time": [time.ctime()]})
+                                "Current time": [time.ctime()],
+                                "Execution time (min)": [round((et-st)/60, 2)]})
 
     output = {
             "properties": properties,
@@ -219,11 +239,11 @@ def compare_sensor_combinations(data, Fs=700, sensors=["ECG", "EMG", "EDA", "RR"
 
     feat_head.save_features(output = output, filepath=os.path.join(dir_path, "Metrics", "SENSOR_COMBINATIONS_METRICS"), key = metrics)
     
-def compare_timeframes(data, Fs=700, sensors = ["ECG", "EMG", "EDA", "RR"], dataset_name = "WESAD", two_label = True):
+def compare_timeframes(data, Fs=700, sensors = ["ECG", "EMG", "EDA", "RR"], dataset_name = "WESAD", two_label = True, tstart = 5, tend = 125, runs = 10):
     """
     Description
     -----------
-    Calculate for all timeframes in range 10-120 in steps of 10s
+    Calculate for all timeframes in range tstart-tend 
 
     Parameters
     ----------
@@ -248,15 +268,14 @@ def compare_timeframes(data, Fs=700, sensors = ["ECG", "EMG", "EDA", "RR"], data
     >>>
     """
     st = time.time()
-    t = [40,50,60,70,80,90,100,110,120, 130, 140, 150]
-
+    t = np.linspace(tstart, tend, runs, dtype=np.int32)
     metrics = []
     for T in tqdm.tqdm(t):
         current_metric = general_feature_testing(data=data, classify=True, feature_extraction=True, neural=False, Fs=Fs, sensors = sensors, T=T, dataset_name=dataset_name, two_label=two_label, print_messages=False, save_figures=False)        
         metrics.append(current_metric)
  
     metrics = pd.concat(metrics, axis=0)
-
+    et = time.time()
     properties= pd.DataFrame({"Sampling frequency": [Fs],
                                 "ECG used": ["ECG" in sensors],
                                 "EMG used": ["EMG" in sensors],
@@ -265,7 +284,8 @@ def compare_timeframes(data, Fs=700, sensors = ["ECG", "EMG", "EDA", "RR"], data
                                 "RR used": ["RR" in sensors],
                                 "Timeframes length": ["Mixed"],
                                 "Dataset used" : [dataset_name],
-                                "Current time": [time.ctime()]})
+                                "Current time": [time.ctime()],
+                                "Execution time (min)": [round((et-st)/60, 2)]})
 
     output = {
             "properties": properties,
@@ -275,10 +295,10 @@ def compare_timeframes(data, Fs=700, sensors = ["ECG", "EMG", "EDA", "RR"], data
     feat_head.save_features(output = output, filepath=os.path.join(dir_path, "Metrics", "TIME_WINDOW_CHANGE_METRICS"), key = "metrics")
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
-# all_data = feat_head.load_dict(os.path.join(dir_path, "Features", "Raw_data", "raw_data.pkl"))
+all_data = feat_head.load_dict(os.path.join(dir_path, "Features", "Raw_data", "raw_data.pkl"))
 
 # compare_sensor_combinations(all_data)
-# compare_timeframes(all_data, sensors = ["EDA"])
+compare_timeframes(all_data, sensors = ["ECG"])
 
 feature_path = os.path.join(dir_path, "Features", "Features_out", "features_12.pkl")
 metrics = general_feature_testing(data = None, feature_extraction=False, classify=False, neural=True,
