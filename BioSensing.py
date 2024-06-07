@@ -155,7 +155,7 @@ def general_feature_testing(data=None, classify = True, feature_extraction = Tru
         classify_properties["Current time"] = time.ctime()
 
         output = {
-            "properties": properties,
+            "properties": classify_properties.iloc[0],
             "metrics" : metrics
             }
 
@@ -247,8 +247,8 @@ def compare_timeframes(data, Fs=700, sensors = ["ECG", "EMG", "EDA", "RR"], data
     --------
     >>>
     """
-
-    t = [5, 10,20,30,40,50,60,70,80,90,100,110,120, 130, 140, 150]
+    st = time.time()
+    t = [40,50,60,70,80,90,100,110,120, 130, 140, 150]
 
     metrics = []
     for T in tqdm.tqdm(t):
@@ -278,8 +278,8 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 # all_data = feat_head.load_dict(os.path.join(dir_path, "Features", "Raw_data", "raw_data.pkl"))
 
 # compare_sensor_combinations(all_data)
-# compare_timeframes(all_data, sensors = ["ECG"])
+compare_timeframes(all_data, sensors = ["EDA"])
 
-feature_path = os.path.join(dir_path, "Features", "Features_out", "features.pkl")
-metrics = general_feature_testing(data = None, feature_extraction=False, classify=True, neural=False,
-                        Fs=700, sensors=["ECG", "EMG", "EDA", "RR"], T=60, dataset_name="WESAD", features_path=feature_path)
+# feature_path = os.path.join(dir_path, "Features", "Features_out", "features_12.pkl")
+# metrics = general_feature_testing(data = all_data, feature_extraction=True, classify=True, neural=False,
+                        # Fs=700, sensors=["EDA"], T=60, dataset_name="WESAD", features_path=feature_path)
