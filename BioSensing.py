@@ -13,7 +13,7 @@ import pickle
 
 def feature_extraction_func(data, Fs = 700, sensors = ["ECG", "EMG", "EDA", "RR"], T=60, dataset_name = "WESAD",  print_messages = True):
     st = time.time()
-    features = feat_head.features_db(data, Fs = Fs, seÑnsors=sensors, T=T, print_messages=print_messages)
+    features = feat_head.features_db(data, Fs = Fs, sensors=sensors, T=T, print_messages=print_messages)
     et = time.time()
 
     properties = pd.DataFrame({"Sampling frequency": [Fs],
@@ -137,7 +137,7 @@ def general_feature_testing(data=None, classify = True, feature_extraction = Tru
     if neural == True or classify == True:
         if neural == True:
             X_train, Y_train, x_test, y_test = class_head.train_test_split(features_data=features_properties["features"], num_subjects=15, test_percentage=0.6)
-            neural_head.mlp(X_train=X_train, Y_train=Y_train, x_test=x_test, y_test=y_test, two_label=two_label, print_messages = print_messages, save_figures=save_figures)
+            neural_head.mlp(X_train=X_train, Y_train=Y_train, x_test=x_test, y_test=y_test, print_messages = print_messages, save_figures=save_figures)
 
         if classify == True:
             metrics = classify_func(features, print_messages = print_messages, save_figures = save_figures, two_label = two_label)
@@ -280,6 +280,6 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 # compare_sensor_combinations(all_data)
 # compare_timeframes(all_data, sensors = ["EDA"])
 
-# feature_path = os.path.join(dir_path, "Features", "Features_out", "features_12.pkl")
-metrics = general_feature_testing(data = all_data, feature_extraction=True, classify=False, neural=True,
-                        Fs=700, sensors=["EDA"], T=60, dataset_name="WESAD", features_path=feature_path)
+feature_path = os.path.join(dir_path, "Features", "Features_out", "features_12.pkl")
+metrics = general_feature_testing(data = None, feature_extraction=False, classify=False, neural=True,
+                        Fs=700, sensors=["ECG", "EMG", "EDA"], T=60, dataset_name="WESAD", features_path=feature_path)
