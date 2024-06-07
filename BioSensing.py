@@ -135,30 +135,23 @@ def general_feature_testing(data=None, classify = True, feature_extraction = Tru
     properties = features_properties["properties"]
 
     if neural == True or classify == True:
-        metrics = []
-        st = time.time()
-
         if neural == True:
             X_train, Y_train, x_test, y_test = class_head.train_test_split(features_data=features_properties["features"], num_subjects=15, test_percentage=0.6)
-            metrics_neural = neural_head.mlp(X_train=X_train, Y_train=Y_train, x_test=x_test, y_test=y_test, two_label=two_label, print_messages = print_messages, save_figures=save_figures)
-            metrics.append(metrics_neural)
+            neural_head.mlp(X_train=X_train, Y_train=Y_train, x_test=x_test, y_test=y_test, two_label=two_label, print_messages = print_messages, save_figures=save_figures)
 
         if classify == True:
-            metrics_classify = classify_func(features, print_messages = print_messages, save_figures = save_figures, two_label = two_label)
-            metrics.append(metrics_classify)
-
-        metrics = pd.concat(metrics, axis=1)
+            metrics = classify_func(features, print_messages = print_messages, save_figures = save_figures, two_label = two_label)
 
         # Add properties to each entry (classification algorithm) of the metrics dataframe
-        classify_properties = properties.drop(["Total execution time (s)", "Current time"], axis=1)
+        classify_properties = properties
+        classify_properties.drop("Total execution time (s)", axis=1)
+        classify_properties.drop("Current time", axis=1)
 
         classify_properties_list = [classify_properties] * len(metrics)
         classify_properties = pd.concat(classify_properties_list, axis=0, ignore_index=True)
 
         metrics = pd.concat([metrics, classify_properties], axis=1)
         # Add properties to the properties tab
-        et = time.time()
-        classify_properties["Total execution time (s)"] = round(et - st,2)
         classify_properties["Current time"] = time.ctime()
 
         output = {
@@ -256,7 +249,6 @@ def compare_timeframes(data, Fs=700, sensors = ["ECG", "EMG", "EDA", "RR"], data
     """
 
     t = [5, 10,20,30,40,50,60,70,80,90,100,110,120, 130, 140, 150]
-    t = [70, 120]
 
     metrics = []
     for T in tqdm.tqdm(t):
@@ -288,6 +280,6 @@ all_data = feat_head.load_dict(os.path.join(dir_path, "Features", "Raw_data", "r
 # compare_sensor_combinations(all_data)
 compare_timeframes(all_data, sensors = ["ECG"])
 
-# feature_path = os.path.join(dir_path, "Features", "Features_out", "features_12.pkl")
+# feature_path = os.path.join(dir_path, "Features", "Features_out", "features_2.pkl")
 # metrics = general_feature_testing(data = all_data, feature_extraction=False, classify=True, neural=False,
-                        # Fs=700, sensors=["ECG", "EMG", "EDA", "RR"], T=60, dataset_name="WESAD", features_path=feature_path)
+                        # Fs=700, sensors=["EMG"], T=60, dataset_name="WESAD", features_path=feature_path)
