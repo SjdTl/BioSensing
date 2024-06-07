@@ -8,8 +8,10 @@ from keras.models import Sequential
 from tensorflow.keras import datasets, layers, models
 from tensorflow.keras.optimizers import SGD
 from tensorflow.keras.layers import Conv2D, MaxPooling2D, Dense, Dropout, Activation, Flatten
+import pandas as pd
 
-def mlp(X_train, Y_train, x_test, y_test):
+def mlp(X_train, Y_train, x_test, y_test, two_label=True, print_messages = True, save_figures=True):
+    metrics = pd.DataFrame()
     # convert from integers to floats
     X_train = X_train.astype('float32')
     x_test = x_test.astype('float32')
@@ -53,7 +55,8 @@ def mlp(X_train, Y_train, x_test, y_test):
 
 
     # Making predictions using our trained model
-    print(x_test.shape)
+    if print_messages == True:
+        print(x_test.shape)
     array_ones = np.ones((66, 1))
     # print(tf.__version__)
 
@@ -64,19 +67,15 @@ def mlp(X_train, Y_train, x_test, y_test):
     miss_class = np.where(predictions != true_labels)[0]
 
     # Display some predictions on test data
-    fig, axes = plt.subplots(ncols=10, sharex=False, sharey=True, figsize=(20, 4))
-    for i in range(10):
-        axes[i].set_title(predictions[miss_class[i]])
-        axes[i].imshow(x_test[miss_class[i]], cmap='gray')
-        axes[i].get_xaxis().set_visible(False)
-        axes[i].get_yaxis().set_visible(False)
-    plt.show()
-
-
-
-
-
-
+    if save_figures == True:
+        fig, axes = plt.subplots(ncols=10, sharex=False, sharey=True, figsize=(20, 4))
+        for i in range(10):
+            axes[i].set_title(predictions[miss_class[i]])
+            axes[i].imshow(x_test[miss_class[i]], cmap='gray')
+            axes[i].get_xaxis().set_visible(False)
+            axes[i].get_yaxis().set_visible(False)
+        plt.show()
+    return metrics
 
 
 

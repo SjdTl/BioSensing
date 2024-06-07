@@ -52,11 +52,18 @@ def change_timeframes(df):
     balanced_accuracies = []
     regular_accuracies = []
     timeframe_length = []
+    sensor = []
 
     for index, row in mean_classifier_df.iterrows():
         balanced_accuracies.append(row['Balanced_accuracy'])
         regular_accuracies.append(row['Regular_accuracy'])
         timeframe_length.append(row["Timeframes length"])
+
+        # List of sensor columns
+        sensor_columns = ['ECG used', 'EMG used', 'EDA used', 'EEG used', 'RR used']
+        
+        # Extract sensors used
+        sensor.append(", ".join([sensor.split()[0] for sensor in sensor_columns if row[sensor]]))
 
     fig, ax = plt.subplots()
     
@@ -67,7 +74,7 @@ def change_timeframes(df):
     ax.set_ylabel('Average Performance')
     ax.legend()
     ax.set_ylim(ymin=0.5, ymax=1)
-    ax.set_title('Average performance with different timeframes using ECG sensor')
+    ax.set_title(f'Average performance with different timeframes using {sensor[0]} sensor')
     plt.tight_layout()
 
     # Show plot

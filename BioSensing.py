@@ -137,7 +137,7 @@ def general_feature_testing(data=None, classify = True, feature_extraction = Tru
     if neural == True or classify == True:
         if neural == True:
             X_train, Y_train, x_test, y_test = class_head.train_test_split(features_data=features_properties["features"], num_subjects=15, test_percentage=0.6)
-            neural_head.mlp(X_train=X_train, Y_train=Y_train, x_test=x_test, y_test=y_test)
+            neural_head.mlp(X_train=X_train, Y_train=Y_train, x_test=x_test, y_test=y_test, two_label=two_label, print_messages = print_messages, save_figures=save_figures)
 
         if classify == True:
             metrics = classify_func(features, print_messages = print_messages, save_figures = save_figures, two_label = two_label)
