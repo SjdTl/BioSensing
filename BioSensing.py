@@ -278,7 +278,7 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 # all_data = feat_head.load_dict(os.path.join(dir_path, "Features", "Raw_data", "raw_data.pkl"))
 
 # compare_sensor_combinations(all_data)
-compare_timeframes(all_data, sensors = ["ECG"])
+# compare_timeframes(all_data, sensors = ["ECG"])
 
 feature_path = os.path.join(dir_path, "Features", "Features_out", "features.pkl")
 metrics = general_feature_testing(data = None, feature_extraction=False, classify=True, neural=False,
