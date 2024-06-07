@@ -142,12 +142,19 @@ def general_feature_testing(data=None, classify = True, feature_extraction = Tru
     properties = features_properties["properties"]
 
     if neural == True or classify == True:
+        metrics = []
+        st = time.time()
+
         if neural == True:
             X_train, Y_train, x_test, y_test = class_head.train_test_split(features_data=features_properties["features"], num_subjects=15, test_percentage=0.6)
-            neural_head.mlp(X_train=X_train, Y_train=Y_train, x_test=x_test, y_test=y_test, two_label=two_label, print_messages = print_messages, save_figures=save_figures)
+            metrics_neural =  neural_head.mlp(X_train=X_train, Y_train=Y_train, x_test=x_test, y_test=y_test, two_label=two_label, print_messages = print_messages, save_figures=save_figures)
+            metrics.append(metrics_neural)
 
         if classify == True:
-            metrics = classify_func(features, print_messages = print_messages, save_figures = save_figures, two_label = two_label)
+            metrics_classify = metrics = classify_func(features, print_messages = print_messages, save_figures = save_figures, two_label = two_label)
+            metrics.append(metrics_classify)
+
+        metrics = pd.concat(metrics, axis=1)
 
         # Add properties to each entry (classification algorithm) of the metrics dataframe
         classify_properties = properties
@@ -159,6 +166,8 @@ def general_feature_testing(data=None, classify = True, feature_extraction = Tru
 
         metrics = pd.concat([metrics, classify_properties], axis=1)
         # Add properties to the properties tab
+        et = time.time()
+        classify_properties["Total execution time (s)"] = round(et - st,2)
         classify_properties["Current time"] = time.ctime()
 
         output = {
@@ -200,6 +209,7 @@ def compare_sensor_combinations(data, Fs=700, sensors=["ECG", "EMG", "EDA", "RR"
     --------
     >>>
     """
+    st = time.time()
 
     sensor_combinations = []
     for r in range(1, len(sensors) + 1):
@@ -211,13 +221,16 @@ def compare_sensor_combinations(data, Fs=700, sensors=["ECG", "EMG", "EDA", "RR"
     for sensor_combination in tqdm.tqdm(sensor_combinations):
         current_metric = general_feature_testing(data=data, classify=True, feature_extraction=True, neural=False, Fs=Fs, sensors = sensor_combination, T=T, dataset_name=dataset_name, two_label=two_label, print_messages=False, save_figures=False)        
         metrics.append(current_metric)
-    
+
+    et=time.time()
+
     metrics = pd.concat(metrics, axis=0)
     properties= pd.DataFrame({"Sampling frequency": [Fs],
                                 "Sensors used": ["Mixed"],
                                 "Timeframes length": [T],
                                 "Dataset used" : [dataset_name],
-                                "Current time": [time.ctime()]})
+                                "Current time": [time.ctime()],
+                                "Execution time (min)": [round((et-st)/60, 2)]})
 
     output = {
             "properties": properties,
@@ -262,7 +275,7 @@ def compare_timeframes(data, Fs=700, sensors = ["ECG", "EMG", "EDA", "RR"], data
         metrics.append(current_metric)
  
     metrics = pd.concat(metrics, axis=0)
-
+    et = time.time()
     properties= pd.DataFrame({"Sampling frequency": [Fs],
                                 "ECG used": ["ECG" in sensors],
                                 "EMG used": ["EMG" in sensors],
@@ -271,7 +284,8 @@ def compare_timeframes(data, Fs=700, sensors = ["ECG", "EMG", "EDA", "RR"], data
                                 "RR used": ["RR" in sensors],
                                 "Timeframes length": ["Mixed"],
                                 "Dataset used" : [dataset_name],
-                                "Current time": [time.ctime()]})
+                                "Current time": [time.ctime()],
+                                "Execution time (min)": [round((et-st)/60, 2)]})
 
     output = {
             "properties": properties,
