@@ -14,7 +14,7 @@ class MindwaveMobileRawReader:
     def connectToMindWaveMobile(self):
         # First discover mindwave mobile address, then connect.
         # Headset address of my headset was'9C:B7:0D:72:CD:02';
-        # not sure if it really can be different?
+        # not sure if it really can be different? 
         # now discovering address because of https://github.com/robintibor/python-mindwave-mobile/issues/4
         if (self._mindwaveMobileAddress is None):
             self._mindwaveMobileAddress = self._findMindwaveMobileAddress()
