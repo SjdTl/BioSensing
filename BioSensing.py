@@ -162,7 +162,7 @@ def general_feature_testing(data=None, classify = True, feature_extraction = Tru
         classify_properties["Current time"] = time.ctime()
 
         output = {
-            "properties": properties,
+            "properties": classify_properties.iloc(0),
             "metrics" : metrics
             }
 
@@ -200,7 +200,7 @@ def compare_sensor_combinations(data, Fs=700, sensors=["ECG", "EMG", "EDA", "RR"
     --------
     >>>
     """
-
+    st = time.time()
     sensor_combinations = []
     for r in range(1, len(sensors) + 1):
         sensor_combinations.extend(itertools.combinations(sensors, r))
@@ -213,11 +213,13 @@ def compare_sensor_combinations(data, Fs=700, sensors=["ECG", "EMG", "EDA", "RR"
         metrics.append(current_metric)
     
     metrics = pd.concat(metrics, axis=0)
+    et=time.time()
     properties= pd.DataFrame({"Sampling frequency": [Fs],
                                 "Sensors used": ["Mixed"],
                                 "Timeframes length": [T],
                                 "Dataset used" : [dataset_name],
-                                "Current time": [time.ctime()]})
+                                "Current time": [time.ctime()],
+                                "Execution time (min)": [round((et-st)/60, 2)]})
 
     output = {
             "properties": properties,
@@ -254,15 +256,15 @@ def compare_timeframes(data, Fs=700, sensors = ["ECG", "EMG", "EDA", "RR"], data
     --------
     >>>
     """
-
+    st = time.time()
     t = [5, 10,20,30,40,50,60,70,80,90,100,110,120, 130, 140, 150]
-    t = [70, 120]
 
     metrics = []
     for T in tqdm.tqdm(t):
         current_metric = general_feature_testing(data=data, classify=True, feature_extraction=True, neural=False, Fs=Fs, sensors = sensors, T=T, dataset_name=dataset_name, two_label=two_label, print_messages=False, save_figures=False)        
         metrics.append(current_metric)
- 
+    et = time.time()
+
     metrics = pd.concat(metrics, axis=0)
 
     properties= pd.DataFrame({"Sampling frequency": [Fs],
@@ -273,7 +275,8 @@ def compare_timeframes(data, Fs=700, sensors = ["ECG", "EMG", "EDA", "RR"], data
                                 "RR used": ["RR" in sensors],
                                 "Timeframes length": ["Mixed"],
                                 "Dataset used" : [dataset_name],
-                                "Current time": [time.ctime()]})
+                                "Current time": [time.ctime()],
+                                "Execution time (min)": [round((et-st)/60, 2)]})
 
     output = {
             "properties": properties,
@@ -286,8 +289,8 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 all_data = feat_head.load_dict(os.path.join(dir_path, "Features", "Raw_data", "raw_data.pkl"))
 
 # compare_sensor_combinations(all_data)
-compare_timeframes(all_data, sensors = ["ECG"])
+# compare_timeframes(all_data, sensors = ["ECG"])
 
-# feature_path = os.path.join(dir_path, "Features", "Features_out", "features_12.pkl")
-# metrics = general_feature_testing(data = all_data, feature_extraction=False, classify=True, neural=False,
-                        # Fs=700, sensors=["ECG", "EMG", "EDA", "RR"], T=60, dataset_name="WESAD", features_path=feature_path)
+feature_path = os.path.join(dir_path, "Features", "Features_out", "features_12.pkl")
+metrics = general_feature_testing(data = all_data, feature_extraction=False, classify=True, neural=False,
+                        Fs=700, sensors=["ECG", "EMG", "EDA", "RR"], T=60, dataset_name="WESAD", features_path=feature_path)
