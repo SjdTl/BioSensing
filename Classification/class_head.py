@@ -567,8 +567,8 @@ def eval_all(features, print_messages = True, save_figures = True, two_label = T
     for classifier_name in classifier_name_list:
         
         cm = 0
-        accuracy_total = 0
-        balanced_total = 0
+        accuracy_arry = []
+        balanced_arry = []
 
         for train_index, test_index in logo.split(features, labels, groups):
             X_train, x_test = features[train_index], features[test_index]
@@ -583,22 +583,22 @@ def eval_all(features, print_messages = True, save_figures = True, two_label = T
             #print(classifier)
             y_pred = predict(classifier, x_test)
             accuracy, fone = evaluate(y_test, y_pred, two_label=two_label)
-            balanced_total += balanced_accuracy_score(y_true=y_test, y_pred=y_pred)
-            
-            accuracy_total += accuracy
+            balanced_accuracy = balanced_accuracy_score(y_true=y_test, y_pred=y_pred)
+            balanced_arry = np.append(balanced_arry, balanced_accuracy)
+            accuracy_arry = np.append(accuracy_arry, accuracy)
 
             cm += confusion_matrix(y_test, y_pred)
 
         if print_messages == True:
-            print('{}--balanced, regular: {}, {}'.format(classifier, balanced_total/15, accuracy_total/15))
+            print(classifier)
+            print('Average: balanced, regular: {}, {}'.format(classifier, np.average(balanced_arry), np.average(accuracy_arry)))
+            print('Variance: balanced, regular: {}, {}'.format(classifier, np.var(balanced_arry), np.var(accuracy_arry)))
 
         if classifier_name == "Random Forrest" or classifier_name == "AdaBoost" or classifier_name == "Decision Tree" or classifier_name == "Linear Discriminant Analysis"or classifier_name == "Bernoulli Naive Bayes":
             importance = importances(classifier, classifier_name)
             # Sort feature importances in descending order
             indices = np.argsort(importance)[::-1]
             #print(importances)
-
-
 
             # Plot the feature importances
             if save_figures == True:
@@ -613,8 +613,10 @@ def eval_all(features, print_messages = True, save_figures = True, two_label = T
 
             new_row = {
                 'Classifier': [classifier],
-                'Balanced_accuracy': [balanced_total/15],
-                'Regular_accuracy': [accuracy_total/15],
+                'Balanced_accuracy': [np.average(balanced_arry)],
+                'Regular_accuracy': [np.average(accuracy_arry)],
+                'Balanced_variance': [np.var(balanced_arry)],
+                'Regular_variance': [np.var(accuracy_arry)],
                 'Most important feature': [list(features_data_turncated.columns)[0]],
                 "Second most important feature": [list(features_data_turncated.columns)[1]],
                 "Third most important feature": [list(features_data_turncated.columns)[2]]
@@ -622,8 +624,10 @@ def eval_all(features, print_messages = True, save_figures = True, two_label = T
         else:
             new_row = {
                 'Classifier': [classifier],
-                'Balanced_accuracy': [balanced_total/15],
-                'Regular_accuracy': [accuracy_total/15]
+                'Balanced_accuracy': [np.average(balanced_arry)],
+                'Regular_accuracy': [np.average(accuracy_arry)],
+                'Balanced_variance': [np.var(balanced_arry)],
+                'Regular_variance': [np.var(accuracy_arry)]
             }
 
         if save_figures == True:
@@ -631,7 +635,7 @@ def eval_all(features, print_messages = True, save_figures = True, two_label = T
             sns.heatmap(cm, annot=True, fmt=".3f", linewidths=.5, square = True, cmap = 'Blues', xticklabels=["Baseline", "Stress", "Amusement", "Meditation"], yticklabels=["Baseline", "Stress", "Amusement", "Meditation"])
             plt.ylabel('Actual label')
             plt.xlabel('Predicted label')
-            all_sample_title = 'Accuracy Score: {0}, {1}'.format(round((accuracy_total/15)*100, 3), classifier_name)
+            all_sample_title = 'Accuracy Score: {0}, {1}'.format(round((np.average(accuracy_arry))*100, 3), classifier_name)
             plt.title(all_sample_title, size = 10)
             plt.savefig(os.path.join(dir_path, "ConfusionMatrix", ".".join([classifier_name, "svg"])))
         
