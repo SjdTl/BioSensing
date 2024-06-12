@@ -8,9 +8,12 @@ from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.models import Sequential
 from sklearn.metrics import f1_score, balanced_accuracy_score, accuracy_score, confusion_matrix
 from matplotlib import pyplot as plt
+import seaborn as sns
 import pandas as pd
 import numpy as np
 import pandas as pd
+
+dir_path = os.path.dirname(os.path.realpath(__file__))
 
 def mlp(X_train, Y_train, x_test, y_test, two_label=False, hidden_layer_1_nodes = 50, hidden_layer_2_nodes=30, print_messages = True, save_figures=True):
     metrics = pd.DataFrame()
@@ -76,13 +79,17 @@ def mlp(X_train, Y_train, x_test, y_test, two_label=False, hidden_layer_1_nodes 
 
     # Display some predictions on test data
     if save_figures == True:
-        fig, axes = plt.subplots(ncols=10, sharex=False, sharey=True, figsize=(20, 4))
-        for i in range(10):
-            axes[i].set_title(pred[miss_class[i]])
-            axes[i].imshow(x_test[miss_class[i]], cmap='gray')
-            axes[i].get_xaxis().set_visible(False)
-            axes[i].get_yaxis().set_visible(False)
-        plt.show()
+        cm = confusion_matrix(y_test, pred)
+        plt.figure(figsize=(6,6))
+        sns.heatmap(cm, annot=True, fmt=".3f", linewidths=.5, square = True, cmap = 'Blues', xticklabels=["Baseline", "Stress", "Amusement", "Meditation"], yticklabels=["Baseline", "Stress", "Amusement", "Meditation"])
+        plt.ylabel('Actual label')
+        plt.xlabel('Predicted label')
+        all_sample_title = 'Accuracy Score: {0}, {1}'.format(round(balanced_accuracy*100, 3), "MLP Neural Network")
+        plt.title(all_sample_title, size = 10)
+
+        plt.savefig(os.path.join(dir_path, "ConfusionMatrix.svg"))
+
+        plt.savefig(os.path.join(dir_path, "ConfusionMatrix", ".".join(["MLP Neural Network", "svg"])))
     return metrics
 
 

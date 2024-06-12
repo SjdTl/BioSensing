@@ -44,7 +44,7 @@ def feature_extraction_func(data, properties, sensors = ["ECG", "EMG", "EDA", "R
 
     return output
 
-def classify_func(features, print_messages = True, save_figures = True, two_label = True):
+def classify_func(features, print_messages = True, save_figures = True, two_label = True, gridsearch = False):
     """
     Description
     -----------
@@ -68,8 +68,7 @@ def classify_func(features, print_messages = True, save_figures = True, two_labe
     metrics : pd.Dataframe
         One dataframe containing the classifiers with their accuracies, most important features (when relevant) and some properties (time_window size, two_label, ...)
     """
-
-    metrics = class_head.eval_all(features, print_messages=print_messages, save_figures=save_figures, two_label=two_label)
+    metrics = class_head.eval_all(features, print_messages=print_messages, save_figures=save_figures, two_label=two_label, gridsearch=gridsearch)
 
     mean_regular_accuracy = metrics["Regular_accuracy"].mean()
     mean_balanced_accuracy = metrics["Balanced_accuracy"].mean()
@@ -113,7 +112,7 @@ def use_cache(properties, folderpath, df_name = "metrics"):
 
 def general_feature_testing(data=None, classify = True, feature_extraction = True, neural = True, 
                             Fs=700, sensors = ["ECG", "EMG", "EDA", "RR"], T=60, dataset_name = "WESAD", two_label = True,
-                            print_messages = True, save_figures = True, features_path = None):
+                            print_messages = True, save_figures = True, features_path = None, gridsearch = False):
     """
     Description
     -----------
@@ -224,7 +223,7 @@ def general_feature_testing(data=None, classify = True, feature_extraction = Tru
 
         # Classification
         if classify == True:
-            metrics_classify = classify_func(features_properties["features"], print_messages = print_messages, save_figures = save_figures, two_label = two_label)
+            metrics_classify = classify_func(features_properties["features"], print_messages = print_messages, save_figures = save_figures, two_label = two_label, gridsearch=gridsearch)
             metrics.append(metrics_classify)
 
         metrics = pd.concat(metrics, axis=1)
@@ -430,11 +429,11 @@ def compare_timeframes(data, Fs=700, sensors = ["ECG", "EMG",  "EDA", "RR"], dat
     feat_head.save_features(output = output, filepath=os.path.join(dir_path, "Metrics", "TIME_WINDOW_CHANGE_METRICS"))
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
-all_data = feat_head.load_dict(os.path.join(dir_path, "Features", "Raw_data", "raw_data.pkl"))
+# all_data = feat_head.load_dict(os.path.join(dir_path, "Features", "Raw_data", "raw_data.pkl"))
 
-compare_combinations(all_data, sensors = ["ECG", "EDA"], prefixes = ["EDA_time", "EDA_wavelet", "ECG"], name = "features_combinations_test")
+# compare_combinations(all_data, sensors = ["ECG", "EDA"], prefixes = ["EDA_time", "EDA_wavelet", "ECG"], name = "features_combinations_test")
 # compare_timeframes(all_data, sensors = ["ECG"], runs=2)
 
-# feature_path = os.path.join(dir_path, "Features", "Features_out", "features.pkl")
-# metrics = general_feature_testing(data = None, feature_extraction=False, classify=True, neural=False,
-                        # Fs=700, sensors=["ECG", "EMG", "EDA", "RR", "EEG"], T=60, dataset_name="WESAD", features_path=feature_path)
+feature_path = os.path.join(dir_path, "Features", "Features_out", "features.pkl")
+metrics = general_feature_testing(data = None, feature_extraction=False, classify=False, neural=True,
+                        Fs=700, sensors=["ECG", "EMG", "EDA", "RR", "EEG"], T=60, dataset_name="WESAD", features_path=feature_path, gridsearch=False)
