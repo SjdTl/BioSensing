@@ -12,7 +12,7 @@ import pandas as pd
 import numpy as np
 import pandas as pd
 
-def mlp(X_train, Y_train, x_test, y_test, two_label=False, hidden_layer_1_nodes = 50, hidden_layer_2_nodes=30, hidden_layer_3_nodes=50, hidden_layer_4_nodes=40, print_messages = True, save_figures=True):
+def mlp(X_train, Y_train, x_test, y_test, two_label=False, hidden_layer_1_nodes = 50, hidden_layer_2_nodes=30, print_messages = True, save_figures=True):
     metrics = pd.DataFrame()
 
     ####### Multi layer perceptron #######
@@ -46,8 +46,6 @@ def mlp(X_train, Y_train, x_test, y_test, two_label=False, hidden_layer_1_nodes 
     full_model.add(Input((input_nodes,)))  # Input layer
     full_model.add(Dense(hidden_layer_1_nodes, activation='sigmoid'))  # Hidden layer 1
     full_model.add(Dense(hidden_layer_2_nodes, activation='sigmoid'))  # Hidden layer 2
-    full_model.add(Dense(hidden_layer_3_nodes, activation='sigmoid'))  # Hidden layer 3
-    full_model.add(Dense(hidden_layer_4_nodes, activation='sigmoid'))  # Hidden layer 4
     full_model.add(Dense(output_layer, activation='softmax'))  # Output layer
 
     # Compile and fit the model
