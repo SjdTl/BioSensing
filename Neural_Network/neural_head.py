@@ -6,6 +6,7 @@ from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from tensorflow.keras.layers import Dense, Flatten, Input
 from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.models import Sequential
+from sklearn.model_selection import LeaveOneGroupOut
 from sklearn.metrics import f1_score, balanced_accuracy_score, accuracy_score, confusion_matrix
 from matplotlib import pyplot as plt
 import seaborn as sns
@@ -15,84 +16,101 @@ import pandas as pd
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
-def mlp(X_train, Y_train, x_test, y_test, two_label=False, hidden_layer_1_nodes = 50, hidden_layer_2_nodes=30, print_messages = True, save_figures=True):
+def mlp(features, two_label=False, hidden_layer_1_nodes = 50, hidden_layer_2_nodes=30, print_messages = True, save_figures=True):
     metrics = pd.DataFrame()
 
-    ####### Multi layer perceptron #######
-    # convert from integers to floats
-    X_train = X_train.astype('float32')
-    x_test = x_test.astype('float32')
+    logo = LeaveOneGroupOut()
+    features = features.drop(columns=['label', 'subject']).to_numpy()
+    labels = features['label'].to_numpy()
+    groups = features['subject'].to_numpy()
 
-    # normalize to range 0-1
-    scaler = MinMaxScaler().fit(X_train)
-    X_train = scaler.transform(X_train)
-    x_test = scaler.transform(x_test)
+    cm = 0
+    accuracy_arry = []
+    balanced_arry = []
 
-    # one hot encode target values
-    Y_train_cat = [x - 1 for x in Y_train]
-    y_test_cat = [x - 1 for x in y_test]
+    for train_index, test_index in logo.split(features, labels, groups):
+        X_train, x_test = features[train_index], features[test_index]
+        Y_train, y_test = labels[train_index], labels[test_index]
 
-    if two_label == True:
-        Y_train_cat = to_categorical(Y_train_cat, num_classes=2)
-        y_test_cat = to_categorical(y_test_cat, num_classes=2)
-    else:
-        Y_train_cat = to_categorical(Y_train_cat, num_classes=4)
-        y_test_cat = to_categorical(y_test_cat, num_classes=4)
+        ####### Multi layer perceptron #######
+        # convert from integers to floats
+        X_train = X_train.astype('float32')
+        x_test = x_test.astype('float32')
 
-    # Define the sizes of each layer
-    input_nodes = X_train.shape[1] # total number of pixels in one image of size 28*28
-    output_layer = Y_train_cat.shape[1]
+        # normalize to range 0-1
+        scaler = MinMaxScaler().fit(X_train)
+        X_train = scaler.transform(X_train)
+        x_test = scaler.transform(x_test)
 
-    full_model = Sequential()
+        # one hot encode target values
+        Y_train_cat = [x - 1 for x in Y_train]
+        y_test_cat = [x - 1 for x in y_test]
 
-    # Add the layers to the sequential model
-    full_model.add(Input((input_nodes,)))  # Input layer
-    full_model.add(Dense(hidden_layer_1_nodes, activation='sigmoid'))  # Hidden layer 1
-    full_model.add(Dense(hidden_layer_2_nodes, activation='sigmoid'))  # Hidden layer 2
-    full_model.add(Dense(output_layer, activation='softmax'))  # Output layer
+        if two_label == True:
+            Y_train_cat = to_categorical(Y_train_cat, num_classes=2)
+            y_test_cat = to_categorical(y_test_cat, num_classes=2)
+        else:
+            Y_train_cat = to_categorical(Y_train_cat, num_classes=4)
+            y_test_cat = to_categorical(y_test_cat, num_classes=4)
 
-    # Compile and fit the model
-    full_model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
-    full_model.fit(X_train, Y_train_cat, validation_data=(x_test, y_test_cat), epochs=20, batch_size=1, verbose=2)
+        # Define the sizes of each layer
+        input_nodes = X_train.shape[1] # total number of pixels in one image of size 28*28
+        output_layer = Y_train_cat.shape[1]
 
-    pred = full_model.predict(x_test, verbose=0)
-    pred = np.argmax(pred, axis = 1)
+        full_model = Sequential()
 
-    pred_cat = to_categorical(pred, num_classes=2)
-    pred = [x + 1 for x in pred]
+        # Add the layers to the sequential model
+        full_model.add(Input((input_nodes,)))  # Input layer
+        full_model.add(Dense(hidden_layer_1_nodes, activation='sigmoid'))  # Hidden layer 1
+        full_model.add(Dense(hidden_layer_2_nodes, activation='sigmoid'))  # Hidden layer 2
+        full_model.add(Dense(output_layer, activation='softmax'))  # Output layer
 
-    miss_class = np.where(pred != y_test)
+        # Compile and fit the model
+        full_model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+        full_model.fit(X_train, Y_train_cat, validation_data=(x_test, y_test_cat), epochs=20, batch_size=1, verbose=2)
 
-    accuracy = accuracy_score(y_test, pred)
-    balanced_accuracy = balanced_accuracy_score(y_true=y_test, y_pred=pred)
-    fone = f1_score(y_test, pred, labels=[1,2], average="weighted")
+        pred = full_model.predict(x_test, verbose=0)
+        pred = np.argmax(pred, axis = 1)
 
-    if print_messages:
-        print(accuracy, balanced_accuracy, fone)
+        pred_cat = to_categorical(pred, num_classes=2)
+        pred = [x + 1 for x in pred]
 
-    new_row = {
-        'Classifier': ["Nueral"],
-        'Balanced_accuracy': [balanced_accuracy],
-        'Regular_accuracy': [accuracy],
-    }
-    metrics = pd.concat([metrics, pd.DataFrame(new_row)], ignore_index = True)
+        accuracy = accuracy_score(y_test, pred)
+        fone = f1_score(y_test, pred, labels=[1,2], average="weighted")
+        balanced_accuracy = balanced_accuracy_score(y_true=y_test, y_pred=pred)
+        balanced_arry = np.append(balanced_arry, balanced_accuracy)
+        accuracy_arry = np.append(accuracy_arry, accuracy)
 
-    # Display some predictions on test data
-    if save_figures == True:
-        cm = confusion_matrix(y_test, pred)
-        plt.figure(figsize=(6,6))
-        sns.heatmap(cm, annot=True, fmt=".3f", linewidths=.5, square = True, cmap = 'Blues', xticklabels=["Baseline", "Stress", "Amusement", "Meditation"], yticklabels=["Baseline", "Stress", "Amusement", "Meditation"])
-        plt.ylabel('Actual label')
-        plt.xlabel('Predicted label')
-        all_sample_title = 'Accuracy Score: {0}, {1}'.format(round(balanced_accuracy*100, 3), "MLP Neural Network")
-        plt.title(all_sample_title, size = 10)
+        cm += confusion_matrix(y_test, pred)
 
-        plt.savefig(os.path.join(dir_path, "ConfusionMatrix.svg"))
+        if print_messages:
+            print("Nueral")
+            print('Average: balanced, regular: {}, {}'.format("Nueral", np.average(balanced_arry), np.average(accuracy_arry)))
+            print('Variance: balanced, regular: {}, {}'.format("Nueral", np.var(balanced_arry), np.var(accuracy_arry)))
 
-        plt.savefig(os.path.join(dir_path, "ConfusionMatrix", ".".join(["MLP Neural Network", "svg"])))
+        new_row = {
+            'Classifier': ["Nueral"],
+            'Balanced_accuracy': [np.average(balanced_arry)],
+            'Regular_accuracy': [np.average(accuracy_arry)],
+            'Balanced_variance': [np.var(balanced_arry)],
+            'Regular_variance': [np.var(accuracy_arry)]
+        }
+        metrics = pd.concat([metrics, pd.DataFrame(new_row)], ignore_index = True)
+
+        # Display some predictions on test data
+        if save_figures == True:
+            cm = confusion_matrix(y_test, pred)
+            plt.figure(figsize=(6,6))
+            sns.heatmap(cm, annot=True, fmt=".3f", linewidths=.5, square = True, cmap = 'Blues', xticklabels=["Baseline", "Stress", "Amusement", "Meditation"], yticklabels=["Baseline", "Stress", "Amusement", "Meditation"])
+            plt.ylabel('Actual label')
+            plt.xlabel('Predicted label')
+            all_sample_title = 'Accuracy Score: {0}, {1}'.format(round(balanced_accuracy*100, 3), "MLP Neural Network")
+            plt.title(all_sample_title, size = 10)
+
+            plt.savefig(os.path.join(dir_path, "ConfusionMatrix.svg"))
+
+            plt.savefig(os.path.join(dir_path, "ConfusionMatrix", ".".join(["MLP Neural Network", "svg"])))
     return metrics
-
-
 
 def cvnn(X_train, Y_train, x_test, y_test):
     # convert from integers to floats
