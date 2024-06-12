@@ -146,8 +146,8 @@ def general_feature_testing(data=None, classify = True, feature_extraction = Tru
         st = time.time()
 
         if neural == True:
-            X_train, Y_train, x_test, y_test = class_head.train_test_split(features_data=features_properties["features"], num_subjects=15, test_percentage=0.6)
-            metrics_neural =  neural_head.mlp(X_train=X_train, Y_train=Y_train, x_test=x_test, y_test=y_test, two_label=two_label, print_messages = print_messages, save_figures=save_figures)
+            X_train, Y_train, x_test, y_test = class_head.train_test_split(features_data=features_properties["features"], two_label=True, LeaveOneGroupOut_En=False, num_subjects=15, test_percentage=0.6, print_messages=False)
+            metrics_neural =  neural_head.mlp(X_train=X_train, Y_train=Y_train, x_test=x_test, y_test=y_test, two_label=True, print_messages = print_messages, save_figures=save_figures)
             metrics.append(metrics_neural)
 
         if classify == True:
@@ -295,11 +295,11 @@ def compare_timeframes(data, Fs=700, sensors = ["ECG", "EMG", "EDA", "RR"], data
     feat_head.save_features(output = output, filepath=os.path.join(dir_path, "Metrics", "TIME_WINDOW_CHANGE_METRICS"), key = "metrics")
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
-all_data = feat_head.load_dict(os.path.join(dir_path, "Features", "Raw_data", "raw_data.pkl"))
+#all_data = feat_head.load_dict(os.path.join(dir_path, "Features", "Raw_data", "raw_data.pkl"))
 
 # compare_sensor_combinations(all_data)
-compare_timeframes(all_data, sensors = ["ECG"])
+#compare_timeframes(all_data, sensors = ["ECG"])
 
-feature_path = os.path.join(dir_path, "Features", "Features_out", "features_12.pkl")
+feature_path = os.path.join(dir_path, "Features", "Features_out", "features.pkl")
 metrics = general_feature_testing(data = None, feature_extraction=False, classify=False, neural=True,
                         Fs=700, sensors=["ECG", "EMG", "EDA"], T=60, dataset_name="WESAD", features_path=feature_path)

@@ -12,7 +12,7 @@ import pandas as pd
 import numpy as np
 import pandas as pd
 
-def mlp(X_train, Y_train, x_test, y_test, hidden_layer_1_nodes = 50, hidden_layer_2_nodes=30, hidden_layer_3_nodes=50, hidden_layer_4_nodes=40, print_messages = True, save_figures=True):
+def mlp(X_train, Y_train, x_test, y_test, two_label=False, hidden_layer_1_nodes = 50, hidden_layer_2_nodes=30, hidden_layer_3_nodes=50, hidden_layer_4_nodes=40, print_messages = True, save_figures=True):
     metrics = pd.DataFrame()
 
     ####### Multi layer perceptron #######
@@ -28,8 +28,13 @@ def mlp(X_train, Y_train, x_test, y_test, hidden_layer_1_nodes = 50, hidden_laye
     # one hot encode target values
     Y_train_cat = [x - 1 for x in Y_train]
     y_test_cat = [x - 1 for x in y_test]
-    Y_train_cat = to_categorical(Y_train_cat, num_classes=2)
-    y_test_cat = to_categorical(y_test_cat, num_classes=2)
+
+    if two_label == True:
+        Y_train_cat = to_categorical(Y_train_cat, num_classes=2)
+        y_test_cat = to_categorical(y_test_cat, num_classes=2)
+    else:
+        Y_train_cat = to_categorical(Y_train_cat, num_classes=4)
+        y_test_cat = to_categorical(y_test_cat, num_classes=4)
 
     # Define the sizes of each layer
     input_nodes = X_train.shape[1] # total number of pixels in one image of size 28*28
@@ -58,7 +63,7 @@ def mlp(X_train, Y_train, x_test, y_test, hidden_layer_1_nodes = 50, hidden_laye
     miss_class = np.where(pred != y_test)
 
     accuracy = accuracy_score(y_test, pred)
-    balanced_accuracy = balanced_accuracy_score(y_true=y_test, y_pred=y_pred)
+    balanced_accuracy = balanced_accuracy_score(y_true=y_test, y_pred=pred)
     fone = f1_score(y_test, pred, labels=[1,2], average="weighted")
 
     if print_messages:
@@ -68,9 +73,6 @@ def mlp(X_train, Y_train, x_test, y_test, hidden_layer_1_nodes = 50, hidden_laye
         'Classifier': ["Nueral"],
         'Balanced_accuracy': [balanced_accuracy],
         'Regular_accuracy': [accuracy],
-        'Most important feature': [list(features_data_turncated.columns)[0]],
-        "Second most important feature": [list(features_data_turncated.columns)[1]],
-        "Third most important feature": [list(features_data_turncated.columns)[2]]
     }
     metrics = pd.concat([metrics, pd.DataFrame(new_row)], ignore_index = True)
 
@@ -78,7 +80,7 @@ def mlp(X_train, Y_train, x_test, y_test, hidden_layer_1_nodes = 50, hidden_laye
     if save_figures == True:
         fig, axes = plt.subplots(ncols=10, sharex=False, sharey=True, figsize=(20, 4))
         for i in range(10):
-            axes[i].set_title(predictions[miss_class[i]])
+            axes[i].set_title(pred[miss_class[i]])
             axes[i].imshow(x_test[miss_class[i]], cmap='gray')
             axes[i].get_xaxis().set_visible(False)
             axes[i].get_yaxis().set_visible(False)
