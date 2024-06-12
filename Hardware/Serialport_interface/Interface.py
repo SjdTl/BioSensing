@@ -21,11 +21,11 @@ def main(argv):
       elif opt in ("-i", "--import"):
          num = 0
          while True:
-            subject = input()
-            if(subject == "exit"):
+            test_type = input('Enter the type of test: ')
+            if(test_type == "exit"):
                break
             else:
-               ImportData.import_all("S"+str(num),arg)
+               ImportData.import_all("S"+str(num), test_type ,arg)
             num += 1
       elif opt in ("-p", "--plot"):
          if(".csv" in arg):
