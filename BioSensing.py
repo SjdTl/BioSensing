@@ -301,5 +301,5 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 #compare_timeframes(all_data, sensors = ["ECG"])
 
 feature_path = os.path.join(dir_path, "Features", "Features_out", "features.pkl")
-metrics = general_feature_testing(data = None, feature_extraction=False, classify=False, neural=True,
-                        Fs=700, sensors=["ECG", "EMG", "EDA"], T=60, dataset_name="WESAD", features_path=feature_path)
+metrics = general_feature_testing(data = None, feature_extraction=False, classify=True, neural=False,
+                        Fs=700, sensors=["ECG", "EMG", "EDA", "RR", "EEG"], T=60, dataset_name="WESAD", features_path=feature_path)

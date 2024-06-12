@@ -599,20 +599,20 @@ def eval_all(features, print_messages = True, save_figures = True, two_label = T
 
         if classifier_name == "Random Forrest" or classifier_name == "AdaBoost" or classifier_name == "Decision Tree" or classifier_name == "Linear Discriminant Analysis"or classifier_name == "Bernoulli Naive Bayes":
             importance = importances(classifier, classifier_name)
+            plt.figure(figsize=(30, 15))
             # Sort feature importances in descending order
             indices = np.argsort(importance)[::-1]
-            #print(importances)
 
             # Plot the feature importances
             if save_figures == True:
-                plt.figure(figsize=(30, 15))
                 plt.title(" ".join(["Feature importances", classifier_name]))
                 plt.bar(range(X_train.shape[1]), importance[indices], align="center")
-                plt.xticks(range(X_train.shape[1]), list(features_data_turncated.columns))
-                plt.xticks(rotation=90, fontsize=9)
+                sorted_feature_names = [list(features_data_turncated.columns)[i] for i in indices]
+                plt.xticks(range(X_train.shape[1]), sorted_feature_names, rotation=90, fontsize=9)
                 plt.xlabel("Feature index")
                 plt.ylabel("Feature importance") 
                 plt.savefig(os.path.join(dir_path, "Feature_importance", ".".join([classifier_name, "svg"])))
+                plt.close()
 
             new_row = {
                 'Classifier': [classifier],
