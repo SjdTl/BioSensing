@@ -13,6 +13,20 @@ import pickle
 import numpy as np
 
 def feature_extraction_func(data, properties, sensors = ["ECG", "EMG", "EDA", "RR"],  print_messages = True):
+    """
+    Description
+    ----------
+    Function that communicates with the feature extraction head: takes in data and returns a dictionary of a dataframe with arguments and a dataframe of the properties (sensors used, execution time, Fs, ...)
+
+    Arguments
+    ---------
+    Data : dictionary
+        Should be of the form as specified in Features/rArduino and Features/rWESAD
+    Properties : pd.Dataframe
+        Contains properties containing sampling frequency, timeframe lenght, etc. See first line of general_feature_testing for the format 
+    Sensors : list
+        List of sensors to use, can be any combination of ["ECG", "EMG", "EDA", "RR", "EEG"]
+    """
     st = time.time()
     features = feat_head.features_db(data, Fs = properties["Sampling frequency"][0], sensors=sensors, T=properties["Timeframes length"][0], print_messages=print_messages)
     et = time.time()
@@ -30,6 +44,29 @@ def feature_extraction_func(data, properties, sensors = ["ECG", "EMG", "EDA", "R
     return output
 
 def classify_func(features, print_messages = True, save_figures = True, two_label = True):
+    """
+    Description
+    -----------
+    Function that communicates with the classification head: takes in features and returns a dataframe with the accuracies
+
+    Arguments
+    ---------
+    features: pd.Dataframe
+        Dataframe containing the features (output of feat_head.features_db())
+    print_messages : boolean
+        If a progress bar and classification accuracies should be printed
+    save_figures : boolean
+        TRUE : Figures of confusionmatrices and feature importances get calculated and saved
+        FALSE : No figures are saved
+    two_label : boolean
+        TRUE : classification of no stress or stress
+        FALSE : classification of no stress, mediation, baseline, stress
+
+    Returns 
+    -------
+    metrics : pd.Dataframe
+        One dataframe containing the classifiers with their accuracies, most important features (when relevant) and some properties (time_window size, two_label, ...)
+    """
 
     metrics = class_head.eval_all(features, print_messages=print_messages, save_figures=save_figures, two_label=two_label)
 
@@ -45,6 +82,32 @@ def classify_func(features, print_messages = True, save_figures = True, two_labe
     metrics = pd.concat([metrics, mean_row], axis=0, ignore_index=True)
 
     return metrics
+
+def use_cache(properties, folderpath, df_name = "metrics"):
+    """
+    Description 
+    -----------
+    Find a cached file in Cache/df_name that has the same properties as the properties argument and return that if it exists
+    
+    Arguments
+    ---------
+    properties : pd.DataFrame
+        Dataframe containing properties. See first line of general_feature_testing for the format 
+    folderpath : string
+        Path to */Cache/Features/ or */Cache/Metrics/
+    df_name : string
+        Dictionary key to the dataframe to be return
+        So "metrics" or "features"
+    """
+
+    for file in os.listdir(folderpath):
+        if file.endswith('.pkl'):
+            with open(os.path.join(folderpath, file), 'rb') as f:
+                df = pickle.load(f)
+                if properties.equals(df["properties"].drop(["Current time", "Total execution time (s)"], axis=1)):
+                    print(f"Using cached accuracies in {file} (clear Cache/{df_name} to prevent this)")
+                    return True, df[df_name]
+    return False, None
 
 
 def general_feature_testing(data=None, classify = True, feature_extraction = True, neural = True, 
@@ -106,20 +169,14 @@ def general_feature_testing(data=None, classify = True, feature_extraction = Tru
     
     Returns
     -------
-    metrics : type
-         description
-    
-    Raises
-    ------
-    error
-         description
+    metrics : pd.Dataframe
+        One dataframe containing the classifiers with their accuracies, most important features (when relevant) and some properties (time_window size, two_label, ...)
     
     Notes
     -----
-    
-    Examples
-    --------
-    >>>
+    - Pay attention to the arguments; some are incompatable or overwritting others. For example, when [feature_extraction = False] the [data, Fs, T, dataset_name, sensors] arguments do nothing
+    - The features and metrics are saved in Cache/Features and Cache/Metrics respectively. This cache is used when the properties of the cached dataset is the same as the dataset that is tried to be made
+    - Recommended to run this with at least classify = True and feature_extraction = True, always provide data as input and leave features_path empty when not doing special tests
     """
     # PROPERTIES
     properties = pd.DataFrame({"Sampling frequency": [Fs],
@@ -136,36 +193,22 @@ def general_feature_testing(data=None, classify = True, feature_extraction = Tru
     classify_properties["Classifiers used"] = classify
 
     # USE CACHE
-    use_cached_features=False
     # Test if the metric file already exists
-    for file in os.listdir(os.path.join(dir_path, "Cache", "Metrics")):
-        if file.endswith('.pkl'):
-            with open(os.path.join(dir_path, "Cache", "Metrics", file), 'rb') as f:
-                df = pickle.load(f)
-                if classify_properties.equals(df["properties"].drop(["Current time", "Total execution time (s)"], axis=1)):
-                    print(f"Using cached accuracies in {file} (clear Cache/Metrics to prevent this)")
-                    return df["metrics"]
-    # If the metrics file does not exist, test if the features file already exists
+    use_cached_metrics, metrics = use_cache(classify_properties, os.path.join(dir_path, "Cache", "Metrics"), "metrics")
+    if use_cached_metrics == True:
+        return metrics
+    
     if feature_extraction == True:
-        for file in os.listdir(os.path.join(dir_path, "Cache", "Features")):
-            if file.endswith('.pkl'):
-                with open(os.path.join(dir_path, "Cache", "Features", file), 'rb') as f:
-                    df = pickle.load(f)
-                    current_properties = df["properties"].drop(["Current time", "Total execution time (s)"], axis=1)
-                    if properties.equals(current_properties):
-                        features_properties = {"properties": properties, "features" : df["features"]}
-                        use_cached_features = True
-                        print(f"Using cached features in {file} (clear Cache/Features to prevent this)")
-                        break
-
-    # EXTRACT FEATURES
-    if use_cached_features == False:
-        if feature_extraction == True:
-            features_properties = feature_extraction_func(data, properties, sensors = sensors,  print_messages = print_messages)
+        use_cached_features, features = use_cache(properties, os.path.join(dir_path, "Cache", "Features"), "features")
+        if use_cached_features == True:
+            features_properties = {"properties" : properties, "features" : features}
         else:
-            # Use a presaved dataframe
-            with open(features_path, 'rb') as f:
-                features_properties = pickle.load(f)
+            features_properties = feature_extraction_func(data, properties, sensors = sensors,  print_messages = print_messages)
+    else:
+        # Use a presaved dataframe
+        with open(features_path, 'rb') as f:
+            features_properties = pickle.load(f)
+    
     
     # Classification and neural network
     if neural == True or classify == True:
