@@ -83,15 +83,20 @@ def filename_exists(filepath, extension):
     return new_filepath
 
 
-def save_features(df, properties_df, filepath):
+def save_features(output, filepath):
     """
     Description
     -----------
-    Save a dataframe to a pickle file for the classification and an excel file for easy reading
+    Save a dictionary of dataframes to a pickle file for the classification and an excel file for easy reading
+    The dictionary entries are the tab names in excel
 
     Parameters
     ----------
-    df : pd.DataFrame
+    output : dictionary of two pd.DataFrames
+        output = {"properties": dataframe with properties,
+                "features" : dataframe with the features}
+
+    features : pd.DataFrame
          Can be any dataframe, but for our usecases it will probably look something like:
         | index |  feature1  |  feature2  | label | subject | 
         |   -   |      -     |     -      |   -   | -       |
@@ -102,48 +107,40 @@ def save_features(df, properties_df, filepath):
         With or without the label and subject column depending on which dataset is used.
     filepath : string
         Directory path plus filename without extension, so filepath = C:/.../name
-        
-    Notes
     -----
     """
-    
+    with open(filename_exists(filepath, "pkl"), 'wb') as handle:
+        pickle.dump(output, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-    df.to_pickle(filename_exists(filepath, "pkl"))
+    keys = output.keys()
     with pd.ExcelWriter(filename_exists(filepath, "xlsx")) as writer:
-        properties_df.to_excel(writer, sheet_name = "Properties")
-        df.to_excel(writer, sheet_name='Dataframe')
+        for key in keys:
+            output[key].to_excel(writer, sheet_name = key)
 
 
 def get_features(data, fs):
     """
     Description
     -----------
-    Calls ECG.ECG, EDA.EDA, EMG.EMG and RR function, which return the features of their perticular signal in a pandas dataframe, which gets merged and returned
+    Calls ECG.ECG, EDA.EDA, EMG.EMG and RR.RR function depending on the input, which return the features of their perticular signal in a pandas dataframe, which gets merged and returned
 
     Parameters
     ----------
-    ecg : np.array
-         small time interval of the ecg signal
-    eda : np. array
-    ...
+    data : dictionary
+        {ecg : np.array,
+        eda : np.array, 
+        ...}
+
+        where ecg is a small time interval of the ecg signal
     
     Returns
     -------
-    features : pd.DataFrame
-         dataframe containing the features in the form
+    features : list of pd.DataFrame
+        list of pd.Dataframes containing the features
         | index |  feature1  |  feature2  |
         |   -   |      -     |     -      | 
         |   0   |     ...    |    ...     |
         which is only has one row
-    
-    Raises
-    ------
-    ValueError:
-        The output should be a dataframe with only one row. If this error is raised the output has more (or less) then one row
-
-    Notes
-    -----
-    
     """
     
     feature_list = []
@@ -217,6 +214,7 @@ def split_time(data, Fs, t=60):
     return np.array(np.split(data[:,:int(np.floor(amount_of_splits)*size_of_split)], int(np.floor(amount_of_splits)), axis=1)).transpose(1,0,2)
 
 def process_subject_label(subject, label, data, sensors, Fs, T):
+
     label_array = np.where(data[subject]["labels"] == label)[0]
     sensor_data = {sensor: data[subject][sensor][label_array] for sensor in sensors if sensor in data[subject] and sensor != "RR"}
     if "RR" in sensors:
@@ -289,7 +287,7 @@ def features_db(data, Fs=700, sensors=["ECG", "EMG", "EDA", "RR"], T=60, print_m
     -----
     Also prints the head of the dataframe and has a progress bar
     """
-
+    
     features = []
     # Loop through all subjects, split their data and store the feature data
     for subject in tqdm.tqdm(data, disable=not(print_messages)):
@@ -300,15 +298,15 @@ def features_db(data, Fs=700, sensors=["ECG", "EMG", "EDA", "RR"], T=60, print_m
 
     features_df = pd.concat(features, axis = 0, ignore_index=True)
 
-    if print_messages == True:
-        print(features_df.head())
 
     # Error messages
     # Check NaN values
     if features_df.isnull().values.any():
         raise ValueError("The feature array contains a NaN value")
+        print(features_df.to_string())
     # Check if all names are unique
     if any(features_df.columns.duplicated()):
         raise ValueError(f"Two features have the same name")
+        print(features_df.to_string())
 
     return features_df

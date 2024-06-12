@@ -1,82 +1,89 @@
-import matplotlib.pyplot as plt
-import tensorflow as tf
+import os as os
+import sys as sys
 import numpy as np
-from sklearn.preprocessing import MinMaxScaler
-from keras.datasets import mnist
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
+from tensorflow.keras.layers import Dense, Flatten, Input
 from tensorflow.keras.utils import to_categorical
-from keras.models import Sequential
-from tensorflow.keras import datasets, layers, models
-from tensorflow.keras.optimizers import SGD
-from tensorflow.keras.layers import Conv2D, MaxPooling2D, Dense, Dropout, Activation, Flatten
+from tensorflow.keras.models import Sequential
+from sklearn.metrics import f1_score, balanced_accuracy_score, accuracy_score, confusion_matrix
+from matplotlib import pyplot as plt
+import pandas as pd
+import numpy as np
+import pandas as pd
 
-def mlp(X_train, Y_train, x_test, y_test):
+def mlp(X_train, Y_train, x_test, y_test, two_label=False, hidden_layer_1_nodes = 50, hidden_layer_2_nodes=30, print_messages = True, save_figures=True):
+    metrics = pd.DataFrame()
+
+    ####### Multi layer perceptron #######
     # convert from integers to floats
     X_train = X_train.astype('float32')
     x_test = x_test.astype('float32')
 
     # normalize to range 0-1
-    scaler= MinMaxScaler().fit(X_train)
+    scaler = MinMaxScaler().fit(X_train)
     X_train = scaler.transform(X_train)
     x_test = scaler.transform(x_test)
 
     # one hot encode target values
-    Y_train = [x - 1 for x in Y_train]
-    y_test = [x - 1 for x in y_test]
-    Y_train = to_categorical(Y_train, num_classes=4)
-    y_test = to_categorical(y_test, num_classes=4)
+    Y_train_cat = [x - 1 for x in Y_train]
+    y_test_cat = [x - 1 for x in y_test]
 
-    #X_train = X_train.reshape((X_train.shape[0], X_train.shape[1], 1))
-    #x_test = x_test.reshape((x_test.shape[0], x_test.shape[1], 1))
+    if two_label == True:
+        Y_train_cat = to_categorical(Y_train_cat, num_classes=2)
+        y_test_cat = to_categorical(y_test_cat, num_classes=2)
+    else:
+        Y_train_cat = to_categorical(Y_train_cat, num_classes=4)
+        y_test_cat = to_categorical(y_test_cat, num_classes=4)
 
     # Define the sizes of each layer
-    input_nodes = x_test[1].shape[0]  # total number of pixels in one image of size 28*28
-    hidden_layer_1_nodes = 50
-    hidden_layer_2_nodes = 50
-    hidden_layer_3_nodes = 50
-    hidden_layer_4_nodes = 50
-    output_layer = 4
+    input_nodes = X_train.shape[1] # total number of pixels in one image of size 28*28
+    output_layer = Y_train_cat.shape[1]
 
     full_model = Sequential()
 
-    # Add layers to the model
-    full_model.add(Flatten(input_shape=x_test[1].shape))  # Input layer
+    # Add the layers to the sequential model
+    full_model.add(Input((input_nodes,)))  # Input layer
     full_model.add(Dense(hidden_layer_1_nodes, activation='sigmoid'))  # Hidden layer 1
     full_model.add(Dense(hidden_layer_2_nodes, activation='sigmoid'))  # Hidden layer 2
-    full_model.add(Dense(hidden_layer_3_nodes, activation='sigmoid'))  # Hidden layer 3
-    full_model.add(Dense(hidden_layer_4_nodes, activation='sigmoid'))  # Hidden layer 4
     full_model.add(Dense(output_layer, activation='softmax'))  # Output layer
 
-    # Compile the model
+    # Compile and fit the model
     full_model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+    full_model.fit(X_train, Y_train_cat, validation_data=(x_test, y_test_cat), epochs=20, batch_size=1, verbose=2)
 
-    history = full_model.fit(X_train, Y_train, validation_data=(x_test, y_test), epochs=20, batch_size=1, verbose=2)
+    pred = full_model.predict(x_test, verbose=0)
+    pred = np.argmax(pred, axis = 1)
 
+    pred_cat = to_categorical(pred, num_classes=2)
+    pred = [x + 1 for x in pred]
 
-    # Making predictions using our trained model
-    print(x_test.shape)
-    array_ones = np.ones((66, 1))
-    # print(tf.__version__)
+    miss_class = np.where(pred != y_test)
 
-    predictions = full_model.predict(array_ones)
-    predictions = np.argmax(predictions, axis = 1)
+    accuracy = accuracy_score(y_test, pred)
+    balanced_accuracy = balanced_accuracy_score(y_true=y_test, y_pred=pred)
+    fone = f1_score(y_test, pred, labels=[1,2], average="weighted")
 
-    true_labels = np.argmax(y_test, axis = 1)
-    miss_class = np.where(predictions != true_labels)[0]
+    if print_messages:
+        print(accuracy, balanced_accuracy, fone)
+
+    new_row = {
+        'Classifier': ["Nueral"],
+        'Balanced_accuracy': [balanced_accuracy],
+        'Regular_accuracy': [accuracy],
+    }
+    metrics = pd.concat([metrics, pd.DataFrame(new_row)], ignore_index = True)
 
     # Display some predictions on test data
-    fig, axes = plt.subplots(ncols=10, sharex=False, sharey=True, figsize=(20, 4))
-    for i in range(10):
-        axes[i].set_title(predictions[miss_class[i]])
-        axes[i].imshow(x_test[miss_class[i]], cmap='gray')
-        axes[i].get_xaxis().set_visible(False)
-        axes[i].get_yaxis().set_visible(False)
-    plt.show()
-
-
-
-
-
-
+    if save_figures == True:
+        fig, axes = plt.subplots(ncols=10, sharex=False, sharey=True, figsize=(20, 4))
+        for i in range(10):
+            axes[i].set_title(pred[miss_class[i]])
+            axes[i].imshow(x_test[miss_class[i]], cmap='gray')
+            axes[i].get_xaxis().set_visible(False)
+            axes[i].get_yaxis().set_visible(False)
+        plt.show()
+    return metrics
 
 
 

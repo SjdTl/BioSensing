@@ -8,7 +8,7 @@ from scipy.signal import butter, sosfiltfilt
 from . import feat_gen
 from .ECG import rpeak_detector
 
-def RR(unprocessed_rr, fs=700, peak_prominence = 0.15):
+def RR(unprocessed_rr, fs=700, peak_prominence = 0.15, drop_bad_features = True):
     """
     Description
     -----------
@@ -52,6 +52,9 @@ def RR(unprocessed_rr, fs=700, peak_prominence = 0.15):
     df_general = general_rr_features(rr, fs)
 
     features = pd.concat([df_specific, df_general], axis=1)
+    
+    if drop_bad_features == True:
+        features = features.drop(["RR_RMSSD", "RR_SDBB", "RR_SDSD", "RR_CVSD", "RR_Median"], axis=1)
 
     # Error messages
     if features.isnull().values.any():
@@ -177,8 +180,7 @@ def rr_peak_features(rr, fs=700, peak_prominence = 0.15):
     T = np.size(rr) / fs
 
     # Direct breathing rate
-    out_dict["Breathing_rate1"] = np.size(peak_index) / T * 60
-    out_dict["Breathing_rate2"] = 60 / np.nanmean(diff_peaks)
+    out_dict["Breathing_rate"] = 60 / np.nanmean(diff_peaks)
     out_dict["Max_breath"] = np.max(diff_peaks) / T * 60
     out_dict["Min_breath"] = np.min(diff_peaks) / T * 60
 
