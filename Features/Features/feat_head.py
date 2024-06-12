@@ -214,11 +214,52 @@ def split_time(data, Fs, t=60):
     return np.array(np.split(data[:,:int(np.floor(amount_of_splits)*size_of_split)], int(np.floor(amount_of_splits)), axis=1)).transpose(1,0,2)
 
 def process_subject_label(subject, label, data, sensors, Fs, T):
+    """
+    Description
+    -----------
+    Calls get_features() to calculate features based on some input data and creates a dataframe from this data and adds a subject, label and random_feature column
 
-    label_array = np.where(data[subject]["labels"] == label)[0]
-    sensor_data = {sensor: data[subject][sensor][label_array] for sensor in sensors if sensor in data[subject] and sensor != "RR"}
+    Parameters
+    ----------
+    subject : int
+        Integer of current subject
+    label : int
+        Label of data to process
+    data : dictionary
+        Data containing the biosignals of the following subject, of the form:
+            data = {"EMG": 1D np array with EMG data,
+                    "ECG": 1D np array with ECG data,
+                    "EDA": 1D np array with EDA data,
+                    "Labels": 1D np array labels}
+    Fs : int
+        sampling rate of the devices (700 Hz for WESAD)
+    sensors : list of str
+        List of sensors to be used. Default is ["ECG", "EMG", "EDA", "RR"]
+        If "ECG" or "RR" is selected, provide "ECG" in the data dictionary
+        If "EMG" is selected, provide "EMG" in data dictionary
+        ...
+    T : int
+        Duration of each time interval in seconds
+    
+    Returns
+    -------
+    features : list
+        List of pandas dataframes of the features of the current data
+            [df1, df2, df3, ..., dfn]
+            where 
+            df = | index |  feature1  | ... | Random feature  | label | subject | 
+                 |   -   |      -     | ... |        -        |   -   | -       |
+                 | 0     | 0          | ... |        0.3      | 1     | 3       |
+
+    Notes
+    -----
+    Random feature is for testing
+    """
+
+    label_array = np.where(data["labels"] == label)[0]
+    sensor_data = {sensor: data[sensor][label_array] for sensor in sensors if sensor in data and sensor != "RR"}
     if "RR" in sensors:
-        sensor_data["RR"] = data[subject]["ECG"][label_array]
+        sensor_data["RR"] = data["ECG"][label_array]
 
     sensor_arrays = np.array([sensor_data[sensor] for sensor in sensor_data])
     splitted_data = split_time(sensor_arrays, Fs, T)
@@ -244,12 +285,12 @@ def features_db(data, Fs=700, sensors=["ECG", "EMG", "EDA", "RR"], T=60, print_m
     Description
     -----------
     Main function for the dataset in a dictionary. Splits up the data per person, per label, and per time interval and returns a pandas dataframe with all features.
-    This function itself loops through the subjects and calls the functions to split the data features.split_time() and to find the features features.get_features().
+    This function itself loops through the subjects and calls the function process_subject label for further processing
 
     Parameters
     ----------
     data : dictionary
-        dictionary containing the features with the form: 
+        dictionary containing the biosignals with (approximately) the following form: 
         data = {
             "2": {"EMG": 1D np array with EMG data,
                   "ECG": 1D np array with ECG data,
@@ -262,6 +303,9 @@ def features_db(data, Fs=700, sensors=["ECG", "EMG", "EDA", "RR"], T=60, print_m
         sampling rate of the devices (700 Hz for WESAD)
     sensors : list of str
         List of sensors to be used. Default is ["ECG", "EMG", "EDA", "RR"]
+        If "ECG" or "RR" is selected, provide "ECG" in the data dictionary
+        If "EMG" is selected, provide "EMG" in data dictionary
+        ...
     T : int
         Duration of each time interval in seconds
 
@@ -293,7 +337,7 @@ def features_db(data, Fs=700, sensors=["ECG", "EMG", "EDA", "RR"], T=60, print_m
     for subject in tqdm.tqdm(data, disable=not(print_messages)):
         # Loop through labels 1-4 (0 and 5-7 are already removed)
         for label in range(1, 5):
-            subject_label_features = process_subject_label(subject, label, data, sensors, Fs, T)
+            subject_label_features = process_subject_label(subject, label, data[subject], sensors, Fs, T)
             features.extend(subject_label_features)
 
     features_df = pd.concat(features, axis = 0, ignore_index=True)

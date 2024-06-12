@@ -78,8 +78,8 @@ def mlp(X_train, Y_train, x_test, y_test, two_label=False, hidden_layer_1_nodes 
     if save_figures == True:
         fig, axes = plt.subplots(ncols=10, sharex=False, sharey=True, figsize=(20, 4))
         for i in range(10):
-            axes[i].set_title(pred[miss_class[i]])
-            axes[i].imshow(x_test[miss_class[i]], cmap='gray')
+            axes[i].set_title(pred[int(miss_class[i])])
+            axes[i].imshow(x_test[int(miss_class[i])], cmap='gray')
             axes[i].get_xaxis().set_visible(False)
             axes[i].get_yaxis().set_visible(False)
         plt.show()
