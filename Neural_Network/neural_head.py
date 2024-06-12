@@ -89,7 +89,7 @@ def mlp(features, two_label=False, hidden_layer_1_nodes = 50, hidden_layer_2_nod
             print('Variance: balanced, regular: {}, {}'.format("Nueral", np.var(balanced_arry), np.var(accuracy_arry)))
 
         new_row = {
-            'Classifier': ["Nueral"],
+            'Classifier': ["Neural"],
             'Balanced_accuracy': [np.average(balanced_arry)],
             'Regular_accuracy': [np.average(accuracy_arry)],
             'Balanced_variance': [np.var(balanced_arry)],

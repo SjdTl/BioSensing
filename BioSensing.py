@@ -69,7 +69,6 @@ def classify_func(features, print_messages = True, save_figures = True, two_labe
         One dataframe containing the classifiers with their accuracies, most important features (when relevant) and some properties (time_window size, two_label, ...)
     """
     metrics = class_head.eval_all(features, print_messages=print_messages, save_figures=save_figures, two_label=two_label, gridsearch=gridsearch)
-
     mean_regular_accuracy = metrics["Regular_accuracy"].mean()
     mean_balanced_accuracy = metrics["Balanced_accuracy"].mean()
     mean_balanced_variance = metrics["Balanced_variance"].mean()
@@ -225,8 +224,7 @@ def general_feature_testing(data=None, classify = True, feature_extraction = Tru
         if classify == True:
             metrics_classify = classify_func(features_properties["features"], print_messages = print_messages, save_figures = save_figures, two_label = two_label, gridsearch=gridsearch)
             metrics.append(metrics_classify)
-
-        metrics = pd.concat(metrics, axis=1)
+        metrics = pd.concat(metrics, axis=0, ignore_index = True)
 
         # Add properties to each entry of the metrics dataframe
         classify_properties_list = [classify_properties] * len(metrics)
@@ -249,7 +247,7 @@ def general_feature_testing(data=None, classify = True, feature_extraction = Tru
 
         return output["metrics"]
     
-def compare_combinations(data, sensors = ["ECG", "EMG", "EDA", "RR"], prefixes = ["EDA_time", "EDA_wavelet"], Fs=700, T=60, dataset_name = "WESAD", two_label = True, name = "feature_combinations"):
+def compare_combinations(data, sensors = ["ECG", "EMG", "EDA", "RR"], prefixes = ["EDA_time", "EDA_wavelet"], Fs=700, T=60, dataset_name = "WESAD", two_label = True, neural_used=False, name = "feature_combinations"):
     """
     Description
     -----------
@@ -308,7 +306,7 @@ def compare_combinations(data, sensors = ["ECG", "EMG", "EDA", "RR"], prefixes =
                                 "Dataset used" : [dataset_name]})
     classify_properties = properties.copy(deep=True)
     classify_properties["Two_label"] = two_label
-    classify_properties["Neural used"] = False
+    classify_properties["Neural used"] = neural_used
     classify_properties["Classifiers used"] = True
 
     # Check cache and compute features otherwise
@@ -338,7 +336,14 @@ def compare_combinations(data, sensors = ["ECG", "EMG", "EDA", "RR"], prefixes =
     metrics = []
     for feature_combination in tqdm.tqdm(feature_combinations):
         cfeatures = pd.concat([features_per_prefix.get(sensor) for sensor in feature_combination] + [tail], axis=1)
-        current_metric = classify_func(cfeatures, print_messages = False, save_figures = False, two_label = two_label)
+        current_metric = []
+
+        current_metric.append(classify_func(cfeatures, print_messages = False, save_figures = False, two_label = two_label))
+        if neural_used == True:
+            X_train, Y_train, x_test, y_test = class_head.train_test_split(features_data=cfeatures, two_label=two_label, LeaveOneGroupOut_En=False, num_subjects=15, test_percentage=0.6, print_messages=False)
+            current_metric.append(neural_head.mlp(X_train=X_train, Y_train=Y_train, x_test=x_test, y_test=y_test, two_label=two_label, print_messages = False, save_figures=False))
+ 
+        metrics = pd.concat(metrics, axis=0, ignore_index = True)
         # Add properties to each entry of the metrics dataframe
         classify_properties = pd.DataFrame({"Sampling frequency": [Fs],
                                 "Timeframes length": [T],
@@ -429,11 +434,11 @@ def compare_timeframes(data, Fs=700, sensors = ["ECG", "EMG",  "EDA", "RR"], dat
     feat_head.save_features(output = output, filepath=os.path.join(dir_path, "Metrics", "TIME_WINDOW_CHANGE_METRICS"))
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
-# all_data = feat_head.load_dict(os.path.join(dir_path, "Features", "Raw_data", "raw_data.pkl"))
+all_data = feat_head.load_dict(os.path.join(dir_path, "Features", "Raw_data", "raw_data.pkl"))
 
 # compare_combinations(all_data, sensors = ["ECG", "EDA"], prefixes = ["EDA_time", "EDA_wavelet", "ECG"], name = "features_combinations_test")
 # compare_timeframes(all_data, sensors = ["ECG"], runs=2)
 
 feature_path = os.path.join(dir_path, "Features", "Features_out", "features.pkl")
-metrics = general_feature_testing(data = None, feature_extraction=False, classify=False, neural=True,
-                        Fs=700, sensors=["ECG", "EMG", "EDA", "RR", "EEG"], T=60, dataset_name="WESAD", features_path=feature_path, gridsearch=False)
+metrics = general_feature_testing(data = all_data, feature_extraction=True, classify=True, neural=False,
+                        Fs=700, sensors=["ECG"], T=60, dataset_name="WESAD", features_path=feature_path, gridsearch=False)
