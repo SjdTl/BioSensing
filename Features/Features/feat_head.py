@@ -306,15 +306,15 @@ def features_db(data, Fs=700, sensors=["ECG", "EMG", "EDA", "RR"], T=60, print_m
 
     features_df = pd.concat(features, axis = 0, ignore_index=True)
 
-    if print_messages == True:
-        print(features_df.to_string())
 
     # Error messages
     # Check NaN values
     if features_df.isnull().values.any():
         raise ValueError("The feature array contains a NaN value")
+        print(features_df.to_string())
     # Check if all names are unique
     if any(features_df.columns.duplicated()):
         raise ValueError(f"Two features have the same name")
+        print(features_df.to_string())
 
     return features_df

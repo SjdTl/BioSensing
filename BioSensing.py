@@ -249,13 +249,61 @@ def general_feature_testing(data=None, classify = True, feature_extraction = Tru
 
         return output["metrics"]
     
-def compare_EDA_combinations(data, Fs=700, T=60, dataset_name = "WESAD", two_label = True):
+def compare_combinations(data, sensors = ["ECG", "EMG", "EDA", "RR"], prefixes = ["EDA_time", "EDA_wavelet"], Fs=700, T=60, dataset_name = "WESAD", two_label = True, name = "feature_combinations"):
+    """
+    Description
+    -----------
+    Function to calculate the accuracies of all combination of sensors ("ECG", "EMG", "EDA", ...) or types of features ("EDA_time", "EDA_wavelet", ...), or any combination of the two.
+
+    Arguments
+    ---------
+    data : dictionary
+        The WESAD or arduino data to calculate the features from. The format should be according to the output of Features/rWesad.py or Features/rArduino.py. 
+    sensors : list
+        List of the sensors used to calculate the features from. IS NOT THE SAME as the features that eventually get their accuracies computed. 
+        It just requires the sensors that will eventually be used to get the accuracies computed
+    prefixes : list
+        Prefixes of the types features / sensors that will get their accuracies computed
+    T : int
+        Timeframes of the feature extraction
+    Fs : int
+        sampling frequency of the data
+    dataset_name : string
+        Name of the dataset
+    two_label : boolean
+        TRUE : classification of no stress or stress
+        FALSE : classification of no stress, mediation, baseline, stress
+    name : str
+        Names of the output files
+
+    Output
+    ------
+    Excel and pickle file in Metrics/* 
+
+    Example (without code)
+    ----------------------
+    - If you want to compute the accuracy of the different type of EDA features and the ECG signal, this requires the sensors = ["ECG", "EDA"]
+    - The names of the different type of EDA features start with EDA_time, EDA_wavelet, EDA_AR and EDA_phasic 
+        (to know what the prefix is of different types of features see Cache/Features/* or look into the 
+        source code when its empty, but its probably easier to run general_feature_testing() with all sensors enabled and then look in the cache)
+    - The prefix of ECG is ECG
+    - So the prefixes input is a list containg ["ECG", "EDA_time", "EDA_wavelet", "EDA_AR", "EDA_phasic]
+
+    Now the output will be a dictionary with a properties dataframe and a dataframe containg the accuracies of different classifiers for each of the combinatinos of the input
+    In this case that would be 5! possible combinations
+
+    Notes
+    -----
+    - First calculates the features of all the sensors and then computes the accuracies by cutting up this dataframe in smaller pieces
+    - ECG is split up into HRV and ECG. Make sure to add "HRV" in prefixes when you want HRV in the calculations
+    """
+    # Properties
     properties = pd.DataFrame({"Sampling frequency": [Fs],
-                                "ECG used": [False],
-                                "EMG used": [False],
-                                "EDA used": [True],
-                                "EEG used": [False],
-                                "RR used": [False],
+                                "ECG used": ["ECG" in sensors],
+                                "EMG used": ["EMG" in sensors],
+                                "EDA used": ["EDA" in sensors],
+                                "EEG used": ["EEG" in sensors],
+                                "RR used": ["RR" in sensors],
                                 "Timeframes length": [T],
                                 "Dataset used" : [dataset_name]})
     classify_properties = properties.copy(deep=True)
@@ -263,53 +311,44 @@ def compare_EDA_combinations(data, Fs=700, T=60, dataset_name = "WESAD", two_lab
     classify_properties["Neural used"] = False
     classify_properties["Classifiers used"] = True
 
-    use_cached_features = False
-    for file in os.listdir(os.path.join(dir_path, "Cache", "Features")):
-            if file.endswith('.pkl'):
-                with open(os.path.join(dir_path, "Cache", "Features", file), 'rb') as f:
-                    df = pickle.load(f)
-                    current_properties = df["properties"].drop(["Current time", "Total execution time (s)"], axis=1)
-                    if properties.equals(current_properties):
-                        features_properties = {"properties": properties, "features" : df["features"]}
-                        use_cached_features = True
-                        print(f"Using cached features in {file} (clear Cache/Features to prevent this)")
-                        break
-
-    if use_cached_features == False:
-        features_properties = feature_extraction_func(data, properties, sensors = ["EDA"],  print_messages = False)
+    # Check cache and compute features otherwise
+    use_cached_features, features = use_cache(properties, os.path.join(dir_path, "Cache", "Features"), "features")
+    if use_cached_features == True:
+        features_properties = {"properties" : properties, "features" : features}
+    else:
+        print("Finding features")
+        features_properties = feature_extraction_func(data, properties, sensors = sensors, print_messages = True)
+        print("Classify")
     features = features_properties["features"]
-
-    groups = {
-        "EDA_time" : features.filter(regex='^EDA_time'),
-        "EDA_wavelet" : features.filter(regex='^EDA_wavelet'),
-        "EDA_phasic" : features.filter(regex='^EDA_phasic'),
-        "EDA_AR" : features.filter(regex='^EDA_AR')
-    }
+    
+    # Split up dataframe
+    features_per_prefix = {}
+    for prefix in prefixes:
+        features_per_prefix[prefix] = features.filter(regex="^"+prefix)
     tail = features[["random_feature", "label", "subject"]]
 
-    keys = (list(groups.keys()))
-    sensor_combinations = []
-    for r in range(1, len(keys) + 1):
-        sensor_combinations.extend(itertools.combinations(keys, r))
+    # Calculate possible feature combinations
+    feature_combinations = []
+    for r in range(1, len(prefixes) + 1):
+        feature_combinations.extend(itertools.combinations(prefixes, r))
     # Convert tuples to lists
-    sensor_combinations = [list(comb) for comb in sensor_combinations]
+    feature_combinations = [list(comb) for comb in feature_combinations]
 
+    # Calculate metrics for different parts of features
     metrics = []
-    for sensor_combination in tqdm.tqdm(sensor_combinations):
-        cfeatures = pd.concat([groups.get(sensor) for sensor in sensor_combination]+ [tail], axis=1)
+    for feature_combination in tqdm.tqdm(feature_combinations):
+        cfeatures = pd.concat([features_per_prefix.get(sensor) for sensor in feature_combination] + [tail], axis=1)
         current_metric = classify_func(cfeatures, print_messages = False, save_figures = False, two_label = two_label)
         # Add properties to each entry of the metrics dataframe
         classify_properties = pd.DataFrame({"Sampling frequency": [Fs],
-                                "EDA_time used": ["EDA_time" in sensor_combination],
-                                "EDA_wavelet used": ["EDA_wavelet" in sensor_combination],
-                                "EDA_phasic used": ["EDA_phasic" in sensor_combination],
-                                "EDA_AR used": ["EDA_AR" in sensor_combination],
                                 "Timeframes length": [T],
                                 "Dataset used" : [dataset_name],
                                 "Two_label" : two_label,
                                 "Neural used" : False,
                                 "Classifiers used" : True
                                 })
+        for features in prefixes:
+            classify_properties["feature_" + features] = features in feature_combination
 
         classify_properties_list = [classify_properties] * len(current_metric)
         classify_properties = pd.concat(classify_properties_list, axis=0, ignore_index=True)
@@ -328,67 +367,8 @@ def compare_EDA_combinations(data, Fs=700, T=60, dataset_name = "WESAD", two_lab
             "metrics" : metrics
             }
 
-    feat_head.save_features(output = output, filepath=os.path.join(dir_path, "Metrics", "EDA_COMBINATIONS_METRICS"))
-    # etrics_classify = classify_func(features_properties["features"], print_messages = print_messages, save_figures = save_figures, two_label = two_label)
+    feat_head.save_features(output = output, filepath=os.path.join(dir_path, "Metrics", name))
 
-def compare_sensor_combinations(data, Fs=700, sensors = ["ECG_time", "EMG",  "EDA", "RR"], T=60, dataset_name = "WESAD", two_label = True):
-    """
-    Description
-    -----------
-    Calculate for all possible combinations of sensors
-
-    Parameters
-    ----------
-    x : type
-         description
-    
-    Returns
-    -------
-    out : type
-         description
-    
-    Raises
-    ------
-    error
-         description
-    
-    Notes
-    -----
-    The time of this function can probably be 20% of what it is now by handling the data in a smart way
-    
-    Examples
-    --------
-    >>>
-    """
-    st = time.time()
-
-    sensor_combinations = []
-    for r in range(1, len(sensors) + 1):
-        sensor_combinations.extend(itertools.combinations(sensors, r))
-    # Convert tuples to lists
-    sensor_combinations = [list(comb) for comb in sensor_combinations]
-
-    metrics = []
-    for sensor_combination in tqdm.tqdm(sensor_combinations):
-        current_metric = general_feature_testing(data=data, classify=True, feature_extraction=True, neural=False, Fs=Fs, sensors = sensor_combination, T=T, dataset_name=dataset_name, two_label=two_label, print_messages=False, save_figures=False)        
-        metrics.append(current_metric)
-
-    et=time.time()
-
-    metrics = pd.concat(metrics, axis=0)
-    properties= pd.DataFrame({"Sampling frequency": [Fs],
-                                "Sensors used": ["Mixed"],
-                                "Timeframes length": [T],
-                                "Dataset used" : [dataset_name],
-                                "Current time": [time.ctime()],
-                                "Execution time (min)": [round((et-st)/60, 2)]})
-
-    output = {
-            "properties": properties,
-            "metrics" : metrics
-            }
-
-    feat_head.save_features(output = output, filepath=os.path.join(dir_path, "Metrics", "SENSOR_COMBINATIONS_METRICS"))
     
 def compare_timeframes(data, Fs=700, sensors = ["ECG", "EMG",  "EDA", "RR"], dataset_name = "WESAD", two_label = True, tstart = 5, tend = 125, runs = 10):
     """
@@ -398,25 +378,28 @@ def compare_timeframes(data, Fs=700, sensors = ["ECG", "EMG",  "EDA", "RR"], dat
 
     Parameters
     ----------
-    x : type
-         description
-    
-    Returns
-    -------
-    out : type
-         description
-    
-    Raises
+    data : dictionary
+        The WESAD or arduino data to calculate the features from. The format should be according to the output of Features/rWesad.py or Features/rArduino.py. 
+    sensors : list
+        List of the sensors used to calculate the features from. IS NOT THE SAME as the features that eventually get their accuracies computed. 
+        It just requires the sensors that will eventually be used to get the accuracies computed
+    Fs : int
+        sampling frequency of the data
+    dataset_name : string
+        Name of the dataset
+    two_label : boolean
+        TRUE : classification of no stress or stress
+        FALSE : classification of no stress, mediation, baseline, stress
+    tstart : int
+        Smallest time (s) of the timewindows
+    tend : int
+        Biggest time (s) of the timewindows
+    runs : int
+        Amount of runs 
+
+    Output
     ------
-    error
-         description
-    
-    Notes
-    -----
-    
-    Examples
-    --------
-    >>>
+    Excel and pickle file in Metrics/* 
     """
     st = time.time()
     t = np.linspace(tstart, tend, runs, dtype=np.int32)
@@ -428,11 +411,11 @@ def compare_timeframes(data, Fs=700, sensors = ["ECG", "EMG",  "EDA", "RR"], dat
     metrics = pd.concat(metrics, axis=0)
     et = time.time()
     properties= pd.DataFrame({"Sampling frequency": [Fs],
-                                "ECG used": ["ECG" in sensors],
-                                "EMG used": ["EMG" in sensors],
-                                "EDA used" : ["EDA" in sensors],
-                                "EEG used": ["EEG" in sensors],
-                                "RR used": ["RR" in sensors],
+                                "feature_ECG": ["ECG" in sensors],
+                                "feature_EMG": ["EMG" in sensors],
+                                "feature_EDA" : ["EDA" in sensors],
+                                "feature_EEG": ["EEG" in sensors],
+                                "feature_RR": ["RR" in sensors],
                                 "Timeframes length": ["Mixed"],
                                 "Dataset used" : [dataset_name],
                                 "Current time": [time.ctime()],
@@ -446,11 +429,11 @@ def compare_timeframes(data, Fs=700, sensors = ["ECG", "EMG",  "EDA", "RR"], dat
     feat_head.save_features(output = output, filepath=os.path.join(dir_path, "Metrics", "TIME_WINDOW_CHANGE_METRICS"))
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
-#all_data = feat_head.load_dict(os.path.join(dir_path, "Features", "Raw_data", "raw_data.pkl"))
+all_data = feat_head.load_dict(os.path.join(dir_path, "Features", "Raw_data", "raw_data.pkl"))
 
-# compare_sensor_combinations(all_data)
-#compare_timeframes(all_data, sensors = ["ECG"])
+compare_combinations(all_data, sensors = ["ECG", "EDA"], prefixes = ["EDA_time", "EDA_wavelet", "ECG"], name = "features_combinations_test")
+# compare_timeframes(all_data, sensors = ["ECG"], runs=2)
 
-feature_path = os.path.join(dir_path, "Features", "Features_out", "features.pkl")
-metrics = general_feature_testing(data = None, feature_extraction=False, classify=True, neural=False,
-                        Fs=700, sensors=["ECG", "EMG", "EDA", "RR", "EEG"], T=60, dataset_name="WESAD", features_path=feature_path)
+# feature_path = os.path.join(dir_path, "Features", "Features_out", "features.pkl")
+# metrics = general_feature_testing(data = None, feature_extraction=False, classify=True, neural=False,
+                        # Fs=700, sensors=["ECG", "EMG", "EDA", "RR", "EEG"], T=60, dataset_name="WESAD", features_path=feature_path)

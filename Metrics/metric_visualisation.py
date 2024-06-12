@@ -43,7 +43,7 @@ def sensor_combinations(df, name = "Sensor_combination_metrics"):
     plt.tight_layout()
 
     # Show plot
-    fig.savefig(os.path.join(dir_path, name+".svg"))
+    fig.savefig(os.path.join(dir_path, name + ".svg"))
 
 def change_timeframes(df):
     metrics = df["metrics"]
@@ -64,7 +64,7 @@ def change_timeframes(df):
         regular_variance.append(row["Regular_variance"])
 
         # List of sensor columns
-        sensor_columns =['ECG_time used', "ECG_frequency used", 'EMG used', 'EDA used', 'EEG used', 'RR used']
+        sensor_columns =["ECG_used", 'EMG used', 'EDA used', 'EEG used', 'RR used']
         
         # Extract sensors used
         sensor.append(", ".join([sensor.split()[0] for sensor in sensor_columns if row[sensor]]))
