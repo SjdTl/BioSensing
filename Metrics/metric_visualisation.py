@@ -4,7 +4,7 @@ import os
 import itertools
 import numpy as np
 
-def sensor_combinations(df):
+def sensor_combinations(df, name = "Sensor_combination_metrics"):
     metrics = df["metrics"]
     mean_classifier_df = metrics[metrics['Classifier'] == 'mean_classifier']
 
@@ -19,14 +19,14 @@ def sensor_combinations(df):
         regular_accuracies.append(row['Regular_accuracy'])
         
         # List of sensor columns
-        sensor_columns = ['ECG used', 'EMG used', 'EDA used', 'EEG used', 'RR used']
+        sensor_columns = ['ECG_time used', "ECG_frequency used", 'EMG used', 'EDA_time used','EDA_wavelet', 'EEG used', 'RR used']
         
         # Extract sensors used
         sensor.append(", ".join([sensor.split()[0] for sensor in sensor_columns if row[sensor]]))
         
     # Create bar plot
 
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(10,20))
     width = 0.2
     x = np.arange(len(sensor))
     ax.bar(x, balanced_accuracies, width = width, label = "Balanced accuracies")
@@ -35,7 +35,7 @@ def sensor_combinations(df):
     # Add labels and title
     ax.set_xlabel('Sensors')
     ax.set_ylabel('Average Performance')
-    ax.set_xticks(x + width * (len(sensor) - 1) / 2-1.3)
+    ax.set_xticks(x)
     ax.set_xticklabels(sensor, rotation=90)
     ax.set_ylim(ymin = 0.5, ymax= 1)
     ax.legend()
@@ -43,7 +43,7 @@ def sensor_combinations(df):
     plt.tight_layout()
 
     # Show plot
-    fig.savefig(os.path.join(dir_path, "Sensor_combination_metrics.svg"))
+    fig.savefig(os.path.join(dir_path, name+".svg"))
 
 def change_timeframes(df):
     metrics = df["metrics"]
@@ -64,7 +64,7 @@ def change_timeframes(df):
         regular_variance.append(row["Regular_variance"])
 
         # List of sensor columns
-        sensor_columns = ['ECG used', 'EMG used', 'EDA used', 'EEG used', 'RR used']
+        sensor_columns =['ECG_time used', "ECG_frequency used", 'EMG used', 'EDA used', 'EEG used', 'RR used']
         
         # Extract sensors used
         sensor.append(", ".join([sensor.split()[0] for sensor in sensor_columns if row[sensor]]))
@@ -89,5 +89,9 @@ def change_timeframes(df):
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
-df = pd.read_pickle(os.path.join(dir_path, "TIME_WINDOW_CHANGE_METRICS_1.pkl"))
-change_timeframes(df)
+df = pd.read_pickle(os.path.join(dir_path, "SENSOR_COMBINATIONS_METRICS_1.pkl"))
+name = "ECG_AND_EDA"
+sensor_combinations(df, name)
+
+# df = pd.read_pickle(os.path.join(dir_path, "TIME_WINDOW_CHANGE_METRICS_1.pkl"))
+# change_timeframes(df)

@@ -83,7 +83,7 @@ def filename_exists(filepath, extension):
     return new_filepath
 
 
-def save_features(output, filepath, key = "features"):
+def save_features(output, filepath):
     """
     Description
     -----------
@@ -113,9 +113,10 @@ def save_features(output, filepath, key = "features"):
     with open(filename_exists(filepath, "pkl"), 'wb') as handle:
         pickle.dump(output, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
+    keys = output.keys()
     with pd.ExcelWriter(filename_exists(filepath, "xlsx")) as writer:
-        output["properties"].to_excel(writer, sheet_name = "properties")
-        output[key].to_excel(writer, sheet_name=key)
+        for key in keys:
+            output[key].to_excel(writer, sheet_name = key)
 
 
 def get_features(data, fs):
@@ -221,6 +222,7 @@ def split_time(data, Fs, t=60):
     return np.array(np.split(data[:,:int(np.floor(amount_of_splits)*size_of_split)], int(np.floor(amount_of_splits)), axis=1)).transpose(1,0,2)
 
 def process_subject_label(subject, label, data, sensors, Fs, T):
+
     label_array = np.where(data[subject]["labels"] == label)[0]
     sensor_data = {sensor: data[subject][sensor][label_array] for sensor in sensors if sensor in data[subject] and sensor != "RR"}
     if "RR" in sensors:
@@ -293,7 +295,7 @@ def features_db(data, Fs=700, sensors=["ECG", "EMG", "EDA", "RR"], T=60, print_m
     -----
     Also prints the head of the dataframe and has a progress bar
     """
-
+    
     features = []
     # Loop through all subjects, split their data and store the feature data
     for subject in tqdm.tqdm(data, disable=not(print_messages)):
@@ -305,7 +307,7 @@ def features_db(data, Fs=700, sensors=["ECG", "EMG", "EDA", "RR"], T=60, print_m
     features_df = pd.concat(features, axis = 0, ignore_index=True)
 
     if print_messages == True:
-        print(features_df.head())
+        print(features_df.to_string())
 
     # Error messages
     # Check NaN values

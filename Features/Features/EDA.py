@@ -7,11 +7,12 @@ import scipy
 import matplotlib.pyplot as plt
 import neurokit2 as nk
 from scipy.stats import entropy
-
+import pywt
+from statsmodels.tsa.ar_model import AutoReg
 
 from . import feat_gen
 
-def EDA(eda, fs):
+def EDA(eda, fs, EDA_wavelet=True, EDA_timedomain=True):
     """
     Description
     -----------
@@ -57,10 +58,16 @@ def EDA(eda, fs):
     downsampling_factor = 10
     eda, phasic, tonic = preProcessing(eda, fs, Q= downsampling_factor)
     
-    df_eda = tot_eda_features(eda, fs/downsampling_factor)
-    df_phasic = phasic_features(phasic, fs/downsampling_factor)
+    features = []
+    if EDA_timedomain == True:
+        features.append(tot_eda_features(eda, fs/downsampling_factor))
+        features.append(phasic_features(phasic, fs/downsampling_factor))
+    if EDA_wavelet == True:
+        features.append(eda_wavelet_features(eda))
+        features.append(eda_AR_features(eda))
 
-    features = pd.concat([df_eda, df_phasic], axis=1)
+
+    features = pd.concat(features, axis=1)
 
     # Error messages
     if features.isnull().values.any():
@@ -106,6 +113,34 @@ def butter_EDA(eda, N=4, cutoff=5, fs=700, Q=10):
     b,a = butter(N = N, Wn = cutoff, fs= fs)
     eda = filtfilt(b, a, eda)
     return decimate(eda, Q)
+
+def eda_wavelet_features(eda):
+    out_dict = {}
+
+    (cA3, cD3, cD2, cD1) = pywt.wavedec(eda, 'haar', level=3)
+    coefficients = {"cA3" :cA3, "cD3": cD3, "cD2" : cD2, "cD1" : cD1}
+
+    for coeff in coefficients:
+        out_dict['mean_' + str(coeff)] = np.mean(coefficients[coeff])
+        out_dict['median_' + str(coeff)] = np.median(coefficients[coeff])
+        out_dict['std_' + str(coeff)] = np.std(coefficients[coeff])
+        out_dict['range_' + str(coeff)] = np.ptp(coefficients[coeff])
+
+    
+    return pd.DataFrame.from_dict(out_dict, orient="index").T.add_prefix("EDA_wavelet_")
+
+def eda_AR_features(eda):
+    out_dict = {}
+    # Fit the AR(2) model
+    series = pd.Series(eda)
+    model = AutoReg(series, lags=2)
+    model_fit = model.fit()
+    out_dict["intercept"] = model_fit.params.iloc[0]
+    out_dict["lag1"] = model_fit.params.iloc[1]
+    out_dict["lag2"] = model_fit.params.iloc[2]
+
+    return pd.DataFrame.from_dict(out_dict, orient="index").T.add_prefix("EDA_AR_")
+
 
 def split_phasic_tonic(eda, fs = 700, method = "cvxEDA"):
     """
@@ -185,7 +220,7 @@ def tot_eda_features(eda, fs):
         out_dict["Max_der" + str(i)] = np.max(der[i])
         
 
-    return pd.DataFrame.from_dict(out_dict, orient="index").T.add_prefix("EDA_")
+    return pd.DataFrame.from_dict(out_dict, orient="index").T.add_prefix("EDA_time_")
 
 def phasic_features(phasic, fs):
     """
