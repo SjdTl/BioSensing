@@ -7,6 +7,7 @@ from scipy.stats import mode
 import matplotlib.pyplot as plt
 import neurokit2 as nk
 from sklearn.preprocessing import minmax_scale as normalize
+import pywt
 
 from . import feat_gen
 
@@ -48,7 +49,8 @@ def ECG(unprocessed_ecg, fs= 700):
     features = []
 
     features.append(ECG_specific_features(ecg, fs))
-    features.append(feat_gen.basic_features(ecg, "ECG"))
+    features.append(feat_gen.basic_features(ecg, "ECG_time"))
+    features.append(ecg_wavelet_features(ecg))
 
     features = pd.concat(features, axis=1)
 
@@ -106,7 +108,20 @@ def notchecg(ecg, fs):
     filtered = lfilter(b,a,ecg)
     return filtered, b, a
 
+def ecg_wavelet_features(ecg):
+    """Wavelet features of the ECG"""
+    out_dict = {}
 
+    (cA3, cD3, cD2, cD1) = pywt.wavedec(ecg, 'haar', level=3)
+    coefficients = {"cA3" :cA3, "cD3": cD3, "cD2" : cD2, "cD1" : cD1}
+
+    for coeff in coefficients:
+        out_dict['mean_' + str(coeff)] = np.mean(coefficients[coeff])
+        out_dict['median_' + str(coeff)] = np.median(coefficients[coeff])
+        out_dict['std_' + str(coeff)] = np.std(coefficients[coeff])
+        out_dict['range_' + str(coeff)] = np.ptp(coefficients[coeff])
+
+    return pd.DataFrame.from_dict(out_dict, orient="index").T.add_prefix("ECG_wavelet_")
 
 def ECG_specific_features(ecg, fs):
     """
@@ -120,6 +135,7 @@ def ECG_specific_features(ecg, fs):
         - RMSSD: The square root of the mean of the squared successive differences between
           adjacent RR intervals. It is equivalent (although on another scale) to SD1, and
           therefore it is redundant to report correlations with both (Ciccone, 2017)
+        - ...
 
     Parameters
     ----------

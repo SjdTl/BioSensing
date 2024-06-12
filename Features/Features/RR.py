@@ -24,26 +24,12 @@ def RR(unprocessed_rr, fs=700, peak_prominence = 0.15, drop_bad_features = True)
     Returns
     -------
     features : pd.DataFrame
-        Dataframe (1 row) containing the features:
-            - ?
-        and the general features:
-            - Mean (no meaning in the case of emg)
-            - Median
-            - Std
-            - ...
-        
+        Dataframe containing the features
      
     Raises
     ------
     ValueError
         Raises error if there is a NaN value in the features
-    
-    Notes
-    -----
-    
-    Examples
-    --------
-    >>>
     """
     unprocessed_rr = normalize(unprocessed_rr) * 2 - 1
     rr = preProcessRR(unprocessed_rr)

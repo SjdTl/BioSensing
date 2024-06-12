@@ -41,19 +41,15 @@ def EDA(eda, fs, EDA_wavelet=True, EDA_timedomain=True):
             - Median
             - Std
             - ...
-        
+
+    Note
+    ----
+    EDA signal is downsampled 10 times to speed up processing   
      
     Raises
     ------
     ValueError
         Raises error if there is a NaN value in the features
-    
-    Notes
-    -----
-    
-    Examples
-    --------
-    >>>
     """
     downsampling_factor = 10
     eda, phasic, tonic = preProcessing(eda, fs, Q= downsampling_factor)
@@ -115,6 +111,7 @@ def butter_EDA(eda, N=4, cutoff=5, fs=700, Q=10):
     return decimate(eda, Q)
 
 def eda_wavelet_features(eda):
+    """Wavelet features of the EDA"""
     out_dict = {}
 
     (cA3, cD3, cD2, cD1) = pywt.wavedec(eda, 'haar', level=3)
@@ -130,6 +127,7 @@ def eda_wavelet_features(eda):
     return pd.DataFrame.from_dict(out_dict, orient="index").T.add_prefix("EDA_wavelet_")
 
 def eda_AR_features(eda):
+    """Autoregression features of the EDA"""
     out_dict = {}
     # Fit the AR(2) model
     series = pd.Series(eda)

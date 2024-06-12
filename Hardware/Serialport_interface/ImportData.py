@@ -3,23 +3,36 @@ from pySerialTransfer import pySerialTransfer as txfer
 import csv
 from scipy import signal
 from scipy.fft import fftshift
+import numpy as np
+import pandas as pd
+import sys
+import json
+import time
+from telnetlib import Telnet
 
 baud = 57600
 
-def import_all(subject, COMport = '/dev/ttyACM0'):
-    print("Importing time, ECG, GSR data \n")
-    try:
-        link = txfer.SerialTransfer(COMport,baud)
+def read_socket(tn): # read the data from the socket connection
+    line = tn.read_until(str.encode('\r'))
+    return json.loads(line)
+    
+def import_all(subject, test_type, COMport = '/dev/ttyACM0', IP = 'localhost', port = 13854):
+    print("Importing data \n")
+    try:        
+        tn=Telnet('localhost',13854) # create a telnet object that establishes a socket connection with the TGC program
+        tn.write(str.encode('{"enableRawOutput": true, "format": "Json"}')) # enable the output of the headset data from the TGC program
         
+        link = txfer.SerialTransfer(COMport,baud) # create a SerialTransfer object to read data of the COM port
         link.open()
-        time.sleep(3) # allow some time for the Arduino to completely reset
-        print(f"link status: {link.status}")
+        time.sleep(3) # allow some time for the Arduino to completely reset        
+        print(f"link status: {link.status}") 
+        print(f"socket status: {read_socket(tn)['status']}")
         print('Stop data collection by keyboard interrupt (ctrl+c)')
         
-        header = ['TimeStamp', 'ECG Data', 'EMG Data', 'EDA Data', 'label']
-        data = [0,0,0,0,0]
+        header = ['TimeStamp', 'ECG Data', 'EMG Data', 'EDA Data', 'lowGamma', 'highGamma', 'highAlpha', 'delta', 'highBeta', 'lowAlpha', 'lowBeta', 'theta', 'attention', 'meditation']
+        data = [0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 
-        output_file = open('data' + subject + '.csv', 'w')
+        output_file = open('test' + test_type +'data' + subject + '.csv', 'w')
         writer = csv.writer(output_file)
         writer.writerow(header)
     
@@ -41,6 +54,10 @@ def import_all(subject, COMport = '/dev/ttyACM0'):
                     else:
                         print('ERROR: {}'.format(link.status.name))
             
+            while  not (read_socket(tn)['status'] == 'connected'):
+                # A negative value for status indicates an error
+                print(f"ERROR: status = {read_socket(tn)['status']}")
+                
             ###################################################################
             # Parse response list
             ###################################################################
@@ -66,7 +83,7 @@ def import_all(subject, COMport = '/dev/ttyACM0'):
             data[4] = link.rx_obj(obj_type='L', start_pos=recSize)
             recSize += txfer.STRUCT_FORMAT_LENGTHS['L']
         
-            
+            data[5]
             ###################################################################
             # Write the received data to the csv file
             ###################################################################
@@ -76,6 +93,7 @@ def import_all(subject, COMport = '/dev/ttyACM0'):
         try:
             link.close()
             output_file.close()
+            tn.close()
             print("Serial connection & output_file closed. \n Don't forget to rename ECGdata to prevent overwriting!")
 
         except:
@@ -88,6 +106,7 @@ def import_all(subject, COMport = '/dev/ttyACM0'):
         try:
             link.close()
             output_file.close()
+            tn.close()
         except:
             pass
 
