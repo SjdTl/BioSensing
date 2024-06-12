@@ -13,7 +13,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.ensemble import AdaBoostClassifier
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.svm import NuSVC,SVC
+from sklearn.svm import SVC
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.naive_bayes import BernoulliNB
 
@@ -68,7 +68,7 @@ def load_features(filename):
     df = pd.read_pickle(filename)
     return df
 
-def train_test_split(features_data, param_subject_array="Not Given", num_subjects=15, test_percentage=0.7):
+def train_test_split(features_data, two_label=True, LeaveOneGroupOut_En=True, print_messages=True,param_subject_array="Not Given", num_subjects=15, test_percentage=0.7):
     """
     Description
     -----------
@@ -78,6 +78,8 @@ def train_test_split(features_data, param_subject_array="Not Given", num_subject
     ----------
     features_data: pd.DataFrame
         the input data
+    split_method: string
+        the chosen split method eihter "LeaveOneGroupOut" or "SubjectBased"
     num_subjects : int
         number of subjects
     test_percentage : float
@@ -114,6 +116,10 @@ def train_test_split(features_data, param_subject_array="Not Given", num_subject
     features_data.loc[features_data['subject'] == 16, 'subject'] = 1
     features_data.loc[features_data['subject'] == 17, 'subject'] = 12
 
+    if two_label == True:
+        features_data.loc[features_data['label'] == 3, 'label'] = 1
+        features_data.loc[features_data['label'] == 4, 'label'] = 1
+
     #Remove the subject and label collums and normalize
     features_data_turncated = features_data.drop(columns=['label', 'subject'])
     scaler = preprocessing.StandardScaler()
@@ -121,50 +127,46 @@ def train_test_split(features_data, param_subject_array="Not Given", num_subject
     features_data_scaled = features_data_scaled.join(features_data['label'])
     features_data_scaled = features_data_scaled.join(features_data['subject'])
 
-    logo = LeaveOneGroupOut()
-    features = features_data_scaled.drop(columns=['label', 'subject']).to_numpy()
-    labels = features_data_scaled['label'].to_numpy()
-    groups = features_data_scaled['subject'].to_numpy()
+    if LeaveOneGroupOut_En==True:
+        logo = LeaveOneGroupOut()
+        features = features_data_scaled.drop(columns=['label', 'subject']).to_numpy()
+        labels = features_data_scaled['label'].to_numpy()
+        groups = features_data_scaled['subject'].to_numpy()
 
-    for train_index, test_index in logo.split(features, labels, groups):
-        X_train, x_test = features[train_index], features[test_index]
-        Y_train, y_test = labels[train_index], labels[test_index]
+        for train_index, test_index in logo.split(features, labels, groups):
+            X_train, x_test = features[train_index], features[test_index]
+            Y_train, y_test = labels[train_index], labels[test_index]
 
-        #Scale split data
-        scaler = preprocessing.StandardScaler().fit(X_train)
-        X_train = scaler.transform(X_train)
-        x_test = scaler.transform(x_test)
+            #Scale split data
+            scaler = preprocessing.StandardScaler().fit(X_train)
+            X_train = scaler.transform(X_train)
+            x_test = scaler.transform(x_test)
     
-        # Here you can train your model using X_train, Y_train and evaluate using X_test, Y_test
-        # Example:
-        # model.fit(X_train, Y_train)
-        # predictions = model.predict(X_test)
-        # evaluate_model(predictions, Y_test)
-        # For demonstration, let's just print the sizes of the train and test sets
-        print(f"Train size: {X_train.shape[0]}, Test size: {x_test.shape[0]}")
+            if print_messages == True:
+                print(f"Train size: {X_train.shape[0]}, Test size: {x_test.shape[0]}")
+    else:
+        #Create shuffeled subject array
+        param_check = "Not Given"
+        if param_subject_array is param_check:
+            subject_array = np.arange(1, num_subjects+1)
+            np.random.shuffle(subject_array)
+        else:
+            subject_array = param_subject_array
 
-    # #Create shuffeled subject array
-    # param_check = "Not Given"
-    # if param_subject_array is param_check:
-    #     subject_array = np.arange(1, num_subjects+1)
-    #     np.random.shuffle(subject_array)
-    # else:
-    #     subject_array = param_subject_array
+        #Split dataset into test and train
+        num_test_subjects = round(num_subjects * test_percentage)
+        test_data = pd.DataFrame()
+        train_data = pd.DataFrame()
+        for ts_sub in range(0, num_test_subjects):
+            test_data = pd.concat((test_data, features_data_scaled.loc[features_data_scaled['subject'] == subject_array[ts_sub]]))
+        for tr_sub in range(num_test_subjects, num_subjects):
+            train_data = pd.concat((train_data, features_data_scaled.loc[features_data_scaled['subject'] == subject_array[tr_sub]]))
 
-    # #Split dataset into test and train
-    # num_test_subjects = round(num_subjects * test_percentage)
-    # test_data = pd.DataFrame()
-    # train_data = pd.DataFrame()
-    # for ts_sub in range(0, num_test_subjects):
-    #     test_data = pd.concat((test_data, features_data_scaled.loc[features_data_scaled['subject'] == subject_array[ts_sub]]))
-    # for tr_sub in range(num_test_subjects, num_subjects):
-    #     train_data = pd.concat((train_data, features_data_scaled.loc[features_data_scaled['subject'] == subject_array[tr_sub]]))
-
-    # #Split into X and Y
-    # X_train = train_data.drop(columns=['label', 'subject']).to_numpy()
-    # Y_train = train_data['label'].to_numpy()
-    # x_test = test_data.drop(columns=['label', 'subject']).to_numpy()
-    # y_test = test_data['label'].to_numpy()
+        #Split into X and Y
+        X_train = train_data.drop(columns=['label', 'subject']).to_numpy()
+        Y_train = train_data['label'].to_numpy()
+        x_test = test_data.drop(columns=['label', 'subject']).to_numpy()
+        y_test = test_data['label'].to_numpy()
 
     #Scale split data
     scaler = preprocessing.StandardScaler().fit(X_train)
@@ -549,8 +551,9 @@ def eval_all(features, print_messages = True, save_figures = True, two_label = T
     #Redo numbering of subjects
     features_data.loc[features_data['subject'] == 16, 'subject'] = 1
     features_data.loc[features_data['subject'] == 17, 'subject'] = 12
-    features_data.loc[features_data['label'] == 3, 'label'] = 1
-    features_data.loc[features_data['label'] == 4, 'label'] = 1
+    if two_label == True:
+        features_data.loc[features_data['label'] == 3, 'label'] = 1
+        features_data.loc[features_data['label'] == 4, 'label'] = 1
 
     #Remove the subject and label collums and normalize
     features_data_turncated = features_data.drop(columns=['label', 'subject'])
