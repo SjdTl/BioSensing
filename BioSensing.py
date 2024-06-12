@@ -448,10 +448,9 @@ def compare_timeframes(data, Fs=700, sensors = ["ECG", "EMG",  "EDA", "RR"], dat
 dir_path = os.path.dirname(os.path.realpath(__file__))
 #all_data = feat_head.load_dict(os.path.join(dir_path, "Features", "Raw_data", "raw_data.pkl"))
 
-# compare_sensor_combinations(all_data, sensors=["EDA_time"])
-# compare_timeframes(all_data, sensors = ["ECG_time"])
-compare_EDA_combinations(all_data)
+# compare_sensor_combinations(all_data)
+#compare_timeframes(all_data, sensors = ["ECG"])
 
-# feature_path = os.path.join(dir_path, "Cache", "Features", "features.pkl")
-# metrics = general_feature_testing(data = all_data, feature_extraction=True, classify=True, neural=False,
-                        # Fs=700, sensors=["EDA"], T=120, dataset_name="WESAD", features_path=feature_path)
+feature_path = os.path.join(dir_path, "Features", "Features_out", "features.pkl")
+metrics = general_feature_testing(data = None, feature_extraction=False, classify=True, neural=False,
+                        Fs=700, sensors=["ECG", "EMG", "EDA", "RR", "EEG"], T=60, dataset_name="WESAD", features_path=feature_path)
