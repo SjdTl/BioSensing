@@ -70,6 +70,11 @@ def preProcessing(unprocessed_eeg, fs=700):
 
     eeg = unprocessed_eeg
 
+    #normalising
+    eeg_range = np.max[eeg]-np.min[eeg]
+    eeg = (eeg - np.min[eeg])/eeg_range
+
+
     return eeg
 
 def eeg_features(eeg, fs):
@@ -80,7 +85,7 @@ def eeg_features(eeg, fs):
     
     Parameters
     ----------
-    eda : np.array
+    eeg : np.array
         processed eeg signal
     fs : float or int
         sampling frequency of eeg signal
@@ -96,8 +101,60 @@ def eeg_features(eeg, fs):
     """ 
 
     out_dict = {}
+
+    ###Frequency bands
+
     
     out_dict["Mean"] = np.median(eeg)
     out_dict["STD"] = np.std(eeg)
 
     return pd.DataFrame.from_dict(out_dict, orient="index").T.add_prefix("EEG_")
+
+def AverageBandPower(lower,upper,signal, fs):
+    '''
+    Bandpass filters a signal in frequency range lower->upper and returns the power
+    '''
+    butter_bandpass_filter(signal,lower,upper,fs)
+    
+
+
+
+def butter_bandpass(lowcut, highcut, fs, order=4):
+    """
+    Description
+    -----------
+    Provided polynomials of a butterworth IIR filter
+
+    Parameters
+    ----------
+    lowcut, highcut: float
+        bandpass frequencies
+    fs : float
+        sampling frequency
+    order : int
+        order of butterworth filter
+    
+    Returns
+    -------
+    b,a : type
+         Numerator (b) and denominator (a) polynomials of the IIR filter
+    
+    
+    Notes
+    -----
+    Not yet clear if butterworth is the best filter for this
+    """
+
+    nyq = 0.5 * fs
+    low = lowcut / nyq
+    high = highcut / nyq
+    b, a = butter(order, [low, high], btype='bandpass')
+    return b, a
+
+def butter_bandpass_filter(data, lowcut, highcut, fs, order=4):
+    """
+    Apply a butterworth bandpass filter. See butter_bandpass for description
+    """
+    b, a = butter_bandpass(lowcut, highcut, fs, order)
+    y = filtfilt(b,a, data)
+    return y
