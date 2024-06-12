@@ -71,7 +71,7 @@ def mlp(X_train, Y_train, x_test, y_test, two_label=False, hidden_layer_1_nodes 
         print(accuracy, balanced_accuracy, fone)
 
     new_row = {
-        'Classifier': ["Nueral"],
+        'Classifier': ["Neural"],
         'Balanced_accuracy': [balanced_accuracy],
         'Regular_accuracy': [accuracy],
     }
