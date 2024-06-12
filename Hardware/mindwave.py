@@ -1,17 +1,32 @@
-# echo-client.py
 #%%
+import numpy as np
+import pandas as pd
+import sys
 import json
-import socket
+import time
+from telnetlib import Telnet
 
-HOST = "127.0.0.1"  # The server's hostname or IP address
-PORT = 13854  # The port used by the server
-config = json.dumps({"appName":"Brainwave Test","appKey":"0139ccebc1902e0905b11bebc63c82eecada5784"})
-config = config.encode('utf-8')
-with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-    s.connect((HOST, PORT))
-    s.sendall(config)
-    data = s.recv(2**32)
 
-print(f"Received {data!r}")
-# print(f"Received {json.loads(data.decode('utf-8'))}")
+tn=Telnet('localhost',13854)
+
+start=time.perf_counter()
+
+i=0
+tn.write(str.encode('{"enableRawOutput": true, "format": "Json"}'))
+
+eSenseDict={'attention':0, 'meditation':0}
+waveDict={'lowGamma':0, 'highGamma':0, 'highAlpha':0, 'delta':0, 'highBeta':0, 'lowAlpha':0, 'lowBeta':0, 'theta':0}
+signalLevel=0
+
+while time.perf_counter() - start < 30:
+	blinkStrength=0
+	line=tn.read_until(str.encode('\r'))
+	if len(line) > 20:
+		timediff=time.perf_counter()-start
+		# dict=json.loads(line)
+		print(line)
+tn.close()
+	
+
+
 # %%

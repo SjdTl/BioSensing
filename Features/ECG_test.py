@@ -2,7 +2,10 @@ import os
 from Features import feat_gen 
 from Features.ECG import *
 from scipy.fft import fft, fftfreq, fftshift
-from scipy.signal import freqz, butter, freqs, sosfreqz
+from scipy.signal import freqz, butter, freqs, sosfreqz, welch, find_peaks
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import minmax_scale as normalize
+from Features.feat_head import load_dict, split_time, filename_exists
 
 def test(filepath):
     """
@@ -24,13 +27,38 @@ def test(filepath):
         Dataframe containing the features 
         
     """
-    ecg = feat_gen.load_test_data("ECG", filepath)
+    ecg = feat_gen.load_test_data("ECG", filepath, label=3)
 
-    feat_gen.quick_plot(preProcessing(ecg, fs=700))
+    processed_ecg = preProcessing(ecg, fs=700)
+    rpeaks_pan = rpeak_detector(processed_ecg, 700)
+    fig, ax = plt.subplots()
+    t=np.linspace(0,int(np.size(ecg)/700), np.size(ecg))
+    ax.plot(t, normalize(processed_ecg), color= 'green')
+    ax.plot(t[rpeaks_pan], normalize(processed_ecg)[rpeaks_pan], 'o', color= 'red')
+    plt.show()
+
     df = ECG(ecg, 700)
     return df
 
-def EMG_figures(filepath, T =10):
+def test_peak_detector(filepath, T = 45, fs=700):
+    all_data = load_dict(filepath)
+    for subject in all_data:
+        splitted_data = split_time(np.array([all_data[subject]["ECG"]]), Fs=fs, t=T)[0]
+        for frame in splitted_data:
+            processed_ecg = preProcessing(frame, fs=fs)
+            rpeaks_pan = rpeak_detector(processed_ecg, 700)
+
+            fig, ax = plt.subplots()
+            t=np.linspace(0,int(np.size(processed_ecg)/700), np.size(processed_ecg))
+            ax.plot(t, normalize(processed_ecg), color= 'green')
+            ax.plot(t[rpeaks_pan], normalize(processed_ecg)[rpeaks_pan], 'o', color= 'red')
+            ax.set_xlabel("Time [$s$]")
+            ax.set_ylabel("Voltage [$mV$]")
+
+            fig.savefig(filename_exists(os.path.join(dir_path, "plots", "ECG_plots", "Peak detector", "ecg_peaks"), extension="svg"))   
+            plt.close()
+
+def ECG_figures(filepath, T =10):
     """
     Plots used for the processing flowchart in chapter four
     Returns five plots:
@@ -41,7 +69,7 @@ def EMG_figures(filepath, T =10):
     require this to run again to obtain the updated plots (with different cutoff frequencies e.g.)
     """
     fs=700
-    ecg = feat_gen.load_test_data("ECG", filepath, T=T)
+    ecg = feat_gen.load_test_data("ECG", filepath, T=T, label=2)
     t = np.linspace(0,T, fs*T)
 
     # ECG unprocessed timedomain
@@ -130,6 +158,8 @@ def EMG_figures(filepath, T =10):
 
     fig.savefig(os.path.join(dir_path, "plots", "ECG_plots", "ecg_bpfiltered_fd.svg"))
 
+
+
     # ECG notch frequency domain
     yf = fftshift(fft(processed_ecg))
     xf = fftshift(fftfreq(processed_ecg.size, d= 1/fs))
@@ -147,13 +177,32 @@ def EMG_figures(filepath, T =10):
     rpeaks_pan = rpeak_detector(processed_ecg, fs)
     fig, ax = plt.subplots()
 
+
     ax.plot(t, processed_ecg*1000, color= 'green')
     ax.plot(t[rpeaks_pan], processed_ecg[rpeaks_pan]*1000, 'o', color= 'red')
     ax.set_xlabel("Time [$s$]")
     ax.set_ylabel("Voltage [$mV$]")
     fig.savefig(os.path.join(dir_path, "plots", "ECG_plots", "ecg_peaks.svg"))    
 
+    # HRV PSD
+    fig, ax = plt.subplots()
+    
+    frequency, power = welch(
+        processed_ecg,
+        fs=fs,
+        return_onesided = True,
+        nperseg = np.size(processed_ecg)
+    )
+
+
+    ax.plot(frequency, power, color= 'green')
+    ax.set_xlabel("Frequency [$Hz$]")
+    ax.set_ylabel("PSD [$V^2/Hz$]")
+    ax.set_xlim((0, 50))
+    fig.savefig(os.path.join(dir_path, "plots", "ECG_plots", "ecg_psd.svg"))    
+    
 dir_path = os.path.dirname(os.path.realpath(__file__))
 filepath = os.path.join(dir_path, "Raw_data", "raw_data.pkl")
-print(test(filepath).to_string())
-# EMG_figures(filepath)
+# print(test(filepath))
+ECG_figures(filepath, T=10)
+# test_peak_detector(filepath)

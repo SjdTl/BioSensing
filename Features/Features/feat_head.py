@@ -2,8 +2,8 @@
 # And processing the resulting features into a pandas array to save
 
 import pandas as pd
-import os as os
-import pickle as pickle
+import os
+import pickle
 import numpy as np
 import tqdm
 from scipy.signal import decimate
@@ -75,24 +75,28 @@ def filename_exists(filepath, extension):
     C://../name_2.txt 
     etc.
     """
-    while os.path.exists((filepath + "." + str(extension))):
-        if not(((filepath.split("_")[-1]).isdigit())):
-            filepath = filepath + str("_1")
-        else:
-            old_digit = filepath.split("_")[-1]
-            filepath = filepath[:-len(old_digit)] + str(int(old_digit) + 1)
-    return str(filepath) + "." + str(extension)
+    counter = 0
+    new_filepath = f"{filepath}.{extension}"
+    while os.path.exists(new_filepath):
+        counter += 1
+        new_filepath = f"{filepath}_{counter}.{extension}"
+    return new_filepath
 
 
-def save_features(df, filepath):
+def save_features(output, filepath):
     """
     Description
     -----------
-    Save a dataframe to a pickle file for the classification and an excel file for easy reading
+    Save a dictionary of dataframes to a pickle file for the classification and an excel file for easy reading
+    The dictionary entries are the tab names in excel
 
     Parameters
     ----------
-    df : pd.DataFrame
+    output : dictionary of two pd.DataFrames
+        output = {"properties": dataframe with properties,
+                "features" : dataframe with the features}
+
+    features : pd.DataFrame
          Can be any dataframe, but for our usecases it will probably look something like:
         | index |  feature1  |  feature2  | label | subject | 
         |   -   |      -     |     -      |   -   | -       |
@@ -103,68 +107,63 @@ def save_features(df, filepath):
         With or without the label and subject column depending on which dataset is used.
     filepath : string
         Directory path plus filename without extension, so filepath = C:/.../name
-        
-    Notes
     -----
     """
-    
+    with open(filename_exists(filepath, "pkl"), 'wb') as handle:
+        pickle.dump(output, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-    df.to_pickle(filename_exists(filepath, "pkl"))
-    df.to_excel(filename_exists(filepath, "xlsx"))
+    keys = output.keys()
+    with pd.ExcelWriter(filename_exists(filepath, "xlsx")) as writer:
+        for key in keys:
+            output[key].to_excel(writer, sheet_name = key)
 
 
-
-def get_features(ecg, eda, emg, fs):
+def get_features(data, fs):
     """
     Description
     -----------
-    Calls ECG.ECG, EDA.EDA, EMG.EMG and RR function, which return the features of their perticular signal in a pandas dataframe, which gets merged and returned
+    Calls ECG.ECG, EDA.EDA, EMG.EMG and RR.RR function depending on the input, which return the features of their perticular signal in a pandas dataframe, which gets merged and returned
 
     Parameters
     ----------
-    ecg : np.array
-         small time interval of the ecg signal
-    eda : np. array
-    ...
+    data : dictionary
+        {ecg : np.array,
+        eda : np.array, 
+        ...}
+
+        where ecg is a small time interval of the ecg signal
     
     Returns
     -------
-    features : pd.DataFrame
-         dataframe containing the features in the form
+    features : list of pd.DataFrame
+        list of pd.Dataframes containing the features
         | index |  feature1  |  feature2  |
         |   -   |      -     |     -      | 
         |   0   |     ...    |    ...     |
         which is only has one row
-    
-    Raises
-    ------
-    ValueError:
-        The output should be a dataframe with only one row. If this error is raised the output has more (or less) then one row
-
-    Notes
-    -----
-    
     """
-    # Extract ECG, EDA, and EMG features
-    ecg_features = ECG.ECG(ecg, fs)
-    eda_features = EDA.EDA(eda, fs)
-    emg_features = EMG.EMG(emg, fs)
+    
+    feature_list = []
 
-    Q = 7
-    fs = int(fs/Q)
-    ecg = decimate(ecg, Q)
-    processed_ecg = ECG.preProcessing(ecg, fs=fs)
-    rr = RR.ECG_to_RR(processed_ecg, fs=fs)
-    rr_features = RR.RR(rr, fs)
+    for sensor in data:
+        if sensor == "ECG":
+            ecg_features = ECG.ECG(data["ECG"], fs)
+            feature_list.append(ecg_features)
+        if sensor == "EDA":
+            eda_features = EDA.EDA(data["EDA"], fs)
+            feature_list.append(eda_features)
+        if sensor == "EMG":
+            emg_features = EMG.EMG(data["EMG"], fs)
+            feature_list.append(emg_features)
+        if sensor == "RR":
+            Q = 7
+            ecg = decimate(data["RR"], Q)
+            processed_ecg = ECG.preProcessing(ecg, fs=int(fs/Q))
+            rr = RR.ECG_to_RR(processed_ecg, fs=int(fs/Q))
+            rr_features = RR.RR(rr, int(fs/Q))
+            feature_list.append(rr_features)
 
-    # Combine features
-    features = pd.concat([ecg_features, eda_features, emg_features, rr_features], axis=1)
-
-    # Errors
-    if features.shape[0] != 1:
-        raise ValueError("After concthe ECG, EDA and EMG features, the pandas array has more than 1 row ")
-
-    return features
+    return feature_list
 
 
 # Possible extension: do something with the data that is cut off.
@@ -214,29 +213,57 @@ def split_time(data, Fs, t=60):
     amount_of_splits = total_size/size_of_split
     return np.array(np.split(data[:,:int(np.floor(amount_of_splits)*size_of_split)], int(np.floor(amount_of_splits)), axis=1)).transpose(1,0,2)
 
+def process_subject_label(subject, label, data, sensors, Fs, T):
 
-def features_db(data, Fs=float(700), sensors = ["ECG", "EMG", "EDA", "RR"]):
+    label_array = np.where(data[subject]["labels"] == label)[0]
+    sensor_data = {sensor: data[subject][sensor][label_array] for sensor in sensors if sensor in data[subject] and sensor != "RR"}
+    if "RR" in sensors:
+        sensor_data["RR"] = data[subject]["ECG"][label_array]
+
+    sensor_arrays = np.array([sensor_data[sensor] for sensor in sensor_data])
+    splitted_data = split_time(sensor_arrays, Fs, T)
+    features = []
+
+    out_size = splitted_data.shape[1]
+
+    for iframe in range(out_size):
+        current_data = {sensor: splitted_data[idx][iframe] for idx, sensor in enumerate(sensors)}
+        current_feature = get_features(current_data, fs=Fs)
+        current_properties = pd.DataFrame({
+                                            "random_feature" : np.random.rand(1),
+                                            "label" : [label],
+                                            "subject" : [subject] 
+                                            })
+        current_feature.append(current_properties)
+        features.append(pd.concat(current_feature, axis=1))
+
+    return features
+
+def features_db(data, Fs=700, sensors=["ECG", "EMG", "EDA", "RR"], T=60, print_messages = True):
     """
     Description
     -----------
-    Main function for the dataset in a dictionary. Splits up the data per person, per label and per timeinterval and returns a pandas dataframe with all features.
+    Main function for the dataset in a dictionary. Splits up the data per person, per label, and per time interval and returns a pandas dataframe with all features.
     This function itself loops through the subjects and calls the functions to split the data features.split_time() and to find the features features.get_features().
 
     Parameters
     ----------
     data : dictionary
-        dictionary containing the features with the form: \n
+        dictionary containing the features with the form: 
         data = {
-            "2" :   "EMG" : 1D np array with EMG data
-                    "ECG" : 1D np array with ECG data
-                    "EDA" : 1D np array with EDA data
-                    "Labels" : 1D np array labels (0 and 5-7 are already removed)
-            "3" : 
-            ...
-        }\n
+            "2": {"EMG": 1D np array with EMG data,
+                  "ECG": 1D np array with ECG data,
+                  "EDA": 1D np array with EDA data,
+                  "Labels": 1D np array labels (0 and 5-7 are already removed)},
+            "3": {...}
+        }
         where the first key is the subject label
-    Fs : float
-        sampling rate of the devices (700 Hz for wesad)
+    Fs : int
+        sampling rate of the devices (700 Hz for WESAD)
+    sensors : list of str
+        List of sensors to be used. Default is ["ECG", "EMG", "EDA", "RR"]
+    T : int
+        Duration of each time interval in seconds
 
     Returns
     -------
@@ -249,10 +276,8 @@ def features_db(data, Fs=float(700), sensors = ["ECG", "EMG", "EDA", "RR"]):
         | 2     | 2          | 2          | 3     | 5       |
         | 3     | 3          | 3          | 4     | 6       |
 
-    Raises (perhaps change all error to warnings)
+    Raises
     ------
-    ValueError for row length
-        Each timeframe should return 1 row of the dataframe. If this is not the case, an error is raised.
     ValueError for NaN
         Each feature should have returned a value. If this is not the case, an error is raised.
     ValueError for features
@@ -262,46 +287,26 @@ def features_db(data, Fs=float(700), sensors = ["ECG", "EMG", "EDA", "RR"]):
     -----
     Also prints the head of the dataframe and has a progress bar
     """
-
-    features = pd.DataFrame()
-    df_length = 0
+    
+    features = []
     # Loop through all subjects, split their data and store the feature data
-    for subject in tqdm.tqdm(data):
+    for subject in tqdm.tqdm(data, disable=not(print_messages)):
         # Loop through labels 1-4 (0 and 5-7 are already removed)
-        for label in range(1,5):
-            # Take the current label, split into smaller timeframes and find the features 
-            label_array = np.asarray([idx for idx,val in enumerate(data[subject]["labels"]) if val == label])
-            for sensor in sensors:
-                perlabel_persubject_data[sensor] = data[subject][sensors][label_array]
-            ECG = data[subject]["ECG"][label_array]
-            EDA = data[subject]["EDA"][label_array]
-            EMG = data[subject]["EMG"][label_array]
-            splitted_data = split_time(np.array([ECG, EDA, EMG]), Fs)
+        for label in range(1, 5):
+            subject_label_features = process_subject_label(subject, label, data, sensors, Fs, T)
+            features.extend(subject_label_features)
 
-            for iframe in range(0, splitted_data.shape[1]):
-                # Get feature of current timeframe
-                current_feature = get_features(splitted_data[0][iframe], splitted_data[1][iframe], splitted_data[2][iframe], Fs)
-                # Add label and subject
-                current_feature = pd.concat([current_feature, pd.DataFrame({'random_feature': np.random.rand(1), 
-                                                                            'label': [label], 
-                                                                            'subject' : [subject]})], axis=1)
-                # Add to dataframe
-                features = pd.concat([features, current_feature], ignore_index=True)
-
-                df_length += 1
+    features_df = pd.concat(features, axis = 0, ignore_index=True)
 
 
     # Error messages
-    # Check row length
-    if features.shape[0] < df_length:
-        raise ValueError(f"The expected amount of rows in the DataFrame is {df_length}, the true length is {features.shape[0]}. A feature extraction has probably returned an empty dataframe")
-    if features.shape[0] > df_length:
-        raise ValueError(f"The expected amount of rows in the DataFrame is {df_length}, the true length is {features.shape[0]}. One feature has probably returned an array with size > 1")
     # Check NaN values
-    if features.isnull().values.any():
+    if features_df.isnull().values.any():
         raise ValueError("The feature array contains a NaN value")
+        print(features_df.to_string())
     # Check if all names are unique
-    if any(features.columns.duplicated()):
+    if any(features_df.columns.duplicated()):
         raise ValueError(f"Two features have the same name")
-    
-    return features
+        print(features_df.to_string())
+
+    return features_df

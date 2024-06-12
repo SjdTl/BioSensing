@@ -1,12 +1,12 @@
 import numpy as np
 import pandas as pd
-import os
-from scipy.signal import butter, iirnotch, lfilter, sosfiltfilt
+from scipy.signal import butter, iirnotch, lfilter, sosfiltfilt, welch, find_peaks
 from scipy.stats import iqr
 from ecgdetectors import Detectors
+from scipy.stats import mode
 import matplotlib.pyplot as plt
 import neurokit2 as nk
-from scipy.stats import mode
+from sklearn.preprocessing import minmax_scale as normalize
 
 from . import feat_gen
 
@@ -45,15 +45,17 @@ def ECG(unprocessed_ecg, fs= 700):
 
     ecg = preProcessing(unprocessed_ecg, fs)
 
-    df_specific = ECG_specific_features(ecg, fs)
-    # General features contain mean emg, but this has no meaning in the case of emg
-    df_general = feat_gen.basic_features(ecg, "ECG")
+    features = []
 
-    features = pd.concat([df_specific, df_general], axis=1)
+    features.append(ECG_specific_features(ecg, fs))
+    features.append(feat_gen.basic_features(ecg, "ECG"))
+
+    features = pd.concat(features, axis=1)
 
     # Error messages
     if features.isnull().values.any():
-        raise ValueError("The feature array of EMG contains a NaN value")
+        print(features.to_string())    
+        raise ValueError("The feature array of ECG contains a NaN value")
     return features
 
 def preProcessing(unprocessed_ecg, fs):
@@ -150,10 +152,9 @@ def ECG_specific_features(ecg, fs):
     rri = np.diff(r_peaks_pan) / fs * 1000
     # Differences between between time length of two RR peaks following eachother
     diff_rri = np.diff(rri)
-
+    
     # RR peak based
-    out_dict["Heart_rate1"] = r_peaks_pan.size / (ecg.size / fs) * 60
-    out_dict["Heart_rate2"] = 60 / np.mean(rri) * 1000
+    out_dict["Heart_rate"] = 60 / np.mean(rri) * 1000
     out_dict["MeanNN"] = np.mean(rri)
     out_dict["SDNN"] = np.std(rri)
 
@@ -189,7 +190,21 @@ def ECG_specific_features(ecg, fs):
     out_dict["Prc20dNN"] = np.nanpercentile(diff_rri, q=20)
     out_dict["Prc80dNN"] = np.nanpercentile(diff_rri, q=80)
 
-    # Drop values that don't return anything for short signals 
+    # if freq_domain == True:
+    #     frequency, power = welch(
+    #     ecg,
+    #     fs=fs,
+    #     return_onesided = True,
+    #     nperseg = np.size(ecg)
+    #     )
+    #     hr_freq = 1000/np.mean(rri)
+    #     closest_idx = (np.abs(frequency - hr_freq)).argmin()
+
+    #     out_dict["HR_power"] = power[closest_idx]
+    #     out_dict["Peak_frequency"] = frequency[np.argmax(power)]
+    #     out_dict["Spectral_energy"] = np.mean(power)
+    #     out_dict["Norm_peak_power"] = np.max(power)/out_dict["Spectral_energy"]
+
     return pd.DataFrame.from_dict(out_dict, orient="index").T.add_prefix("HRV_")
 
 def rpeak_detector(ecg, fs):
@@ -216,9 +231,12 @@ def rpeak_detector(ecg, fs):
     Check different algorithms
     """
 
-    detectors = Detectors(fs)
+    # Find peaks
+    rpeaks_dict = nk.ecg_findpeaks(ecg, sampling_rate=fs, method="Neurokit")
 
-    r_peaks_pan = detectors.pan_tompkins_detector(ecg)
-    r_peaks_pan = np.asarray(r_peaks_pan)
+    # detectors = Detectors(fs)
 
-    return r_peaks_pan 
+    # r_peaks_pan = detectors.pan_tompkins_detector(ecg)
+    # r_peaks_pan = np.asarray(r_peaks_pan)
+
+    return rpeaks_dict["ECG_R_Peaks"] 

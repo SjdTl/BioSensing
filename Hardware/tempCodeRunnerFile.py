@@ -1,1 +1,1 @@
-s.sendall(config)
+tn

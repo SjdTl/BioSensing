@@ -13,7 +13,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.ensemble import AdaBoostClassifier
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.svm import NuSVC,SVC
+from sklearn.svm import SVC
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.naive_bayes import BernoulliNB
 
@@ -68,7 +68,7 @@ def load_features(filename):
     df = pd.read_pickle(filename)
     return df
 
-def train_test_split(features_data, param_subject_array="Not Given", num_subjects=15, test_percentage=0.7):
+def train_test_split(features_data, two_label=True, LeaveOneGroupOut_En=True, print_messages=True,param_subject_array="Not Given", num_subjects=15, test_percentage=0.7):
     """
     Description
     -----------
@@ -78,6 +78,8 @@ def train_test_split(features_data, param_subject_array="Not Given", num_subject
     ----------
     features_data: pd.DataFrame
         the input data
+    split_method: string
+        the chosen split method eihter "LeaveOneGroupOut" or "SubjectBased"
     num_subjects : int
         number of subjects
     test_percentage : float
@@ -114,6 +116,10 @@ def train_test_split(features_data, param_subject_array="Not Given", num_subject
     features_data.loc[features_data['subject'] == 16, 'subject'] = 1
     features_data.loc[features_data['subject'] == 17, 'subject'] = 12
 
+    if two_label == True:
+        features_data.loc[features_data['label'] == 3, 'label'] = 1
+        features_data.loc[features_data['label'] == 4, 'label'] = 1
+
     #Remove the subject and label collums and normalize
     features_data_turncated = features_data.drop(columns=['label', 'subject'])
     scaler = preprocessing.StandardScaler()
@@ -121,50 +127,46 @@ def train_test_split(features_data, param_subject_array="Not Given", num_subject
     features_data_scaled = features_data_scaled.join(features_data['label'])
     features_data_scaled = features_data_scaled.join(features_data['subject'])
 
-    logo = LeaveOneGroupOut()
-    features = features_data_scaled.drop(columns=['label', 'subject']).to_numpy()
-    labels = features_data_scaled['label'].to_numpy()
-    groups = features_data_scaled['subject'].to_numpy()
+    if LeaveOneGroupOut_En==True:
+        logo = LeaveOneGroupOut()
+        features = features_data_scaled.drop(columns=['label', 'subject']).to_numpy()
+        labels = features_data_scaled['label'].to_numpy()
+        groups = features_data_scaled['subject'].to_numpy()
 
-    for train_index, test_index in logo.split(features, labels, groups):
-        X_train, x_test = features[train_index], features[test_index]
-        Y_train, y_test = labels[train_index], labels[test_index]
+        for train_index, test_index in logo.split(features, labels, groups):
+            X_train, x_test = features[train_index], features[test_index]
+            Y_train, y_test = labels[train_index], labels[test_index]
 
-        #Scale split data
-        scaler = preprocessing.StandardScaler().fit(X_train)
-        X_train = scaler.transform(X_train)
-        x_test = scaler.transform(x_test)
+            #Scale split data
+            scaler = preprocessing.StandardScaler().fit(X_train)
+            X_train = scaler.transform(X_train)
+            x_test = scaler.transform(x_test)
     
-        # Here you can train your model using X_train, Y_train and evaluate using X_test, Y_test
-        # Example:
-        # model.fit(X_train, Y_train)
-        # predictions = model.predict(X_test)
-        # evaluate_model(predictions, Y_test)
-        # For demonstration, let's just print the sizes of the train and test sets
-        print(f"Train size: {X_train.shape[0]}, Test size: {x_test.shape[0]}")
+            if print_messages == True:
+                print(f"Train size: {X_train.shape[0]}, Test size: {x_test.shape[0]}")
+    else:
+        #Create shuffeled subject array
+        param_check = "Not Given"
+        if param_subject_array is param_check:
+            subject_array = np.arange(1, num_subjects+1)
+            np.random.shuffle(subject_array)
+        else:
+            subject_array = param_subject_array
 
-    # #Create shuffeled subject array
-    # param_check = "Not Given"
-    # if param_subject_array is param_check:
-    #     subject_array = np.arange(1, num_subjects+1)
-    #     np.random.shuffle(subject_array)
-    # else:
-    #     subject_array = param_subject_array
+        #Split dataset into test and train
+        num_test_subjects = round(num_subjects * test_percentage)
+        test_data = pd.DataFrame()
+        train_data = pd.DataFrame()
+        for ts_sub in range(0, num_test_subjects):
+            test_data = pd.concat((test_data, features_data_scaled.loc[features_data_scaled['subject'] == subject_array[ts_sub]]))
+        for tr_sub in range(num_test_subjects, num_subjects):
+            train_data = pd.concat((train_data, features_data_scaled.loc[features_data_scaled['subject'] == subject_array[tr_sub]]))
 
-    # #Split dataset into test and train
-    # num_test_subjects = round(num_subjects * test_percentage)
-    # test_data = pd.DataFrame()
-    # train_data = pd.DataFrame()
-    # for ts_sub in range(0, num_test_subjects):
-    #     test_data = pd.concat((test_data, features_data_scaled.loc[features_data_scaled['subject'] == subject_array[ts_sub]]))
-    # for tr_sub in range(num_test_subjects, num_subjects):
-    #     train_data = pd.concat((train_data, features_data_scaled.loc[features_data_scaled['subject'] == subject_array[tr_sub]]))
-
-    # #Split into X and Y
-    # X_train = train_data.drop(columns=['label', 'subject']).to_numpy()
-    # Y_train = train_data['label'].to_numpy()
-    # x_test = test_data.drop(columns=['label', 'subject']).to_numpy()
-    # y_test = test_data['label'].to_numpy()
+        #Split into X and Y
+        X_train = train_data.drop(columns=['label', 'subject']).to_numpy()
+        Y_train = train_data['label'].to_numpy()
+        x_test = test_data.drop(columns=['label', 'subject']).to_numpy()
+        y_test = test_data['label'].to_numpy()
 
     #Scale split data
     scaler = preprocessing.StandardScaler().fit(X_train)
@@ -267,7 +269,7 @@ def predict(model, x_test):
     y_pred = model.predict(x_test)
     return y_pred
 
-def evaluate(y_test, y_pred):
+def evaluate(y_test, y_pred, two_label=False):
     """
     Description
     -----------
@@ -300,8 +302,11 @@ def evaluate(y_test, y_pred):
     --------
     >>>
     """
-    accuracy = balanced_accuracy_score(y_test, y_pred)
-    fone = f1_score(y_test, y_pred, labels=[1,2,3,4], average="weighted")
+    accuracy = accuracy_score(y_test, y_pred)
+    if two_label == True:
+        fone = f1_score(y_test, y_pred, labels=[1,2], average="weighted")
+    else:
+        fone = f1_score(y_test, y_pred, labels=[1,2,3,4], average="weighted")
     return accuracy, fone
 
 def importances(model, classifier="RandomForest"):
@@ -533,3 +538,115 @@ def fit_predict_evaluate(X_train, Y_train, x_test, y_test, features_array, RFC_n
     confusion_matirx_print(classifier_BNB, x_test, y_test, model_name="Bernoulli Naive Bayes")
 
     return accuracy_dict, fone_dict
+
+def eval_all(features, print_messages = True, save_figures = True, two_label = True):
+    metrics = pd.DataFrame()
+
+
+    classifier_name_list = ["Random Forrest", "K-Nearest Neighbors", "AdaBoost", "Decision Tree", "Support Vector Machine", "Linear Discriminant Analysis", "Bernoulli Naive Bayes"]
+    
+    #Drop random feature
+    features_data = features.drop(columns=['random_feature'])
+
+    #Redo numbering of subjects
+    features_data.loc[features_data['subject'] == 16, 'subject'] = 1
+    features_data.loc[features_data['subject'] == 17, 'subject'] = 12
+    if two_label == True:
+        features_data.loc[features_data['label'] == 3, 'label'] = 1
+        features_data.loc[features_data['label'] == 4, 'label'] = 1
+
+    #Remove the subject and label collums and normalize
+    features_data_turncated = features_data.drop(columns=['label', 'subject'])
+    scaler = preprocessing.StandardScaler()
+    features_data_scaled = pd.DataFrame(scaler.fit_transform(features_data_turncated))
+    features_data_scaled = features_data_scaled.join(features_data['label'])
+    features_data_scaled = features_data_scaled.join(features_data['subject'])
+
+    logo = LeaveOneGroupOut()
+    features = features_data_scaled.drop(columns=['label', 'subject']).to_numpy()
+    labels = features_data_scaled['label'].to_numpy()
+    groups = features_data_scaled['subject'].to_numpy()
+
+    for classifier_name in classifier_name_list:
+        
+        cm = 0
+        accuracy_arry = []
+        balanced_arry = []
+
+        for train_index, test_index in logo.split(features, labels, groups):
+            X_train, x_test = features[train_index], features[test_index]
+            Y_train, y_test = labels[train_index], labels[test_index]
+
+            #Scale split data
+            scaler = preprocessing.StandardScaler().fit(X_train)
+            X_train = scaler.transform(X_train)
+            x_test = scaler.transform(x_test)
+
+            classifier = fit_model(X_train=X_train, Y_train=Y_train, classifier=classifier_name)
+            #print(classifier)
+            y_pred = predict(classifier, x_test)
+            accuracy, fone = evaluate(y_test, y_pred, two_label=two_label)
+            balanced_accuracy = balanced_accuracy_score(y_true=y_test, y_pred=y_pred)
+            balanced_arry = np.append(balanced_arry, balanced_accuracy)
+            accuracy_arry = np.append(accuracy_arry, accuracy)
+
+            cm += confusion_matrix(y_test, y_pred)
+
+        if print_messages == True:
+            print(classifier)
+            print('Average: balanced, regular: {}, {}'.format(classifier, np.average(balanced_arry), np.average(accuracy_arry)))
+            print('Variance: balanced, regular: {}, {}'.format(classifier, np.var(balanced_arry), np.var(accuracy_arry)))
+
+        if classifier_name == "Random Forrest" or classifier_name == "AdaBoost" or classifier_name == "Decision Tree" or classifier_name == "Linear Discriminant Analysis"or classifier_name == "Bernoulli Naive Bayes":
+            importance = importances(classifier, classifier_name)
+            plt.figure(figsize=(30, 15))
+            # Sort feature importances in descending order
+            indices = np.argsort(importance)[::-1]
+
+            # Plot the feature importances
+            if save_figures == True:
+                plt.title(" ".join(["Feature importances", classifier_name]))
+                plt.bar(range(X_train.shape[1]), importance[indices], align="center")
+                sorted_feature_names = [list(features_data_turncated.columns)[i] for i in indices]
+                plt.xticks(range(X_train.shape[1]), sorted_feature_names, rotation=90, fontsize=9)
+                plt.xlabel("Feature index")
+                plt.ylabel("Feature importance") 
+                plt.savefig(os.path.join(dir_path, "Feature_importance", ".".join([classifier_name, "svg"])))
+                plt.close()
+
+            # Make sure the list is always of length 3
+            features_data_list = list(features_data_turncated.columns)
+            features_data_list += [np.nan] * (3 - len(list(features_data_turncated.columns))) if len(list(features_data_turncated.columns)) < 3 else []
+
+            new_row = {
+                'Classifier': [classifier],
+                'Balanced_accuracy': [np.average(balanced_arry)],
+                'Regular_accuracy': [np.average(accuracy_arry)],
+                'Balanced_variance': [np.var(balanced_arry)],
+                'Regular_variance': [np.var(accuracy_arry)],
+                'Most important feature': [features_data_list[0]],
+                "Second most important feature": [features_data_list[1]],
+                "Third most important feature": [features_data_list[2]]
+            }
+        else:
+            new_row = {
+                'Classifier': [classifier],
+                'Balanced_accuracy': [np.average(balanced_arry)],
+                'Regular_accuracy': [np.average(accuracy_arry)],
+                'Balanced_variance': [np.var(balanced_arry)],
+                'Regular_variance': [np.var(accuracy_arry)]
+            }
+
+        if save_figures == True:
+            plt.figure(figsize=(6,6))
+            sns.heatmap(cm, annot=True, fmt=".3f", linewidths=.5, square = True, cmap = 'Blues', xticklabels=["Baseline", "Stress", "Amusement", "Meditation"], yticklabels=["Baseline", "Stress", "Amusement", "Meditation"])
+            plt.ylabel('Actual label')
+            plt.xlabel('Predicted label')
+            all_sample_title = 'Accuracy Score: {0}, {1}'.format(round((np.average(accuracy_arry))*100, 3), classifier_name)
+            plt.title(all_sample_title, size = 10)
+            plt.savefig(os.path.join(dir_path, "ConfusionMatrix", ".".join([classifier_name, "svg"])))
+        
+        metrics = pd.concat([metrics, pd.DataFrame(new_row)], ignore_index = True)
+
+
+    return metrics
