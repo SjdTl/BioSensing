@@ -614,15 +614,19 @@ def eval_all(features, print_messages = True, save_figures = True, two_label = T
                 plt.savefig(os.path.join(dir_path, "Feature_importance", ".".join([classifier_name, "svg"])))
                 plt.close()
 
+            # Make sure the list is always of length 3
+            features_data_list = list(features_data_turncated.columns)
+            features_data_list += [np.nan] * (3 - len(list(features_data_turncated.columns))) if len(list(features_data_turncated.columns)) < 3 else []
+
             new_row = {
                 'Classifier': [classifier],
                 'Balanced_accuracy': [np.average(balanced_arry)],
                 'Regular_accuracy': [np.average(accuracy_arry)],
                 'Balanced_variance': [np.var(balanced_arry)],
                 'Regular_variance': [np.var(accuracy_arry)],
-                'Most important feature': [list(features_data_turncated.columns)[0]],
-                "Second most important feature": [list(features_data_turncated.columns)[1]],
-                "Third most important feature": [list(features_data_turncated.columns)[2]]
+                'Most important feature': [features_data_list[0]],
+                "Second most important feature": [features_data_list[1]],
+                "Third most important feature": [features_data_list[2]]
             }
         else:
             new_row = {
