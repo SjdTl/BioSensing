@@ -11,6 +11,8 @@ def sensor_combinations(df, name = "Sensor_combination_metrics"):
     balanced_accuracies = []
     regular_accuracies = []
     sensor = []
+    features_used = (mean_classifier_df.filter(regex="feature_")).columns
+    features_used = list(features_used.str.replace("feature_", ""))
 
     # Iterate through each row in the DataFrame
     for index, row in mean_classifier_df.iterrows():
@@ -18,11 +20,8 @@ def sensor_combinations(df, name = "Sensor_combination_metrics"):
         balanced_accuracies.append(row['Balanced_accuracy'])
         regular_accuracies.append(row['Regular_accuracy'])
         
-        # List of sensor columns
-        sensor_columns = ['ECG_time used', "ECG_frequency used", 'EMG used', 'EDA_time used','EDA_wavelet', 'EEG used', 'RR used']
-        
         # Extract sensors used
-        sensor.append(", ".join([sensor.split()[0] for sensor in sensor_columns if row[sensor]]))
+        sensor.append(", ".join([sensor.split()[0] for sensor in features_used if row["feature_" + sensor]]))
         
     # Create bar plot
 
@@ -89,8 +88,8 @@ def change_timeframes(df):
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
-df = pd.read_pickle(os.path.join(dir_path, "SENSOR_COMBINATIONS_METRICS_1.pkl"))
-name = "ECG_AND_EDA"
+df = pd.read_pickle(os.path.join(dir_path, "features_combinations_test.pkl"))
+name = "ECG_AND_EDA_test"
 sensor_combinations(df, name)
 
 # df = pd.read_pickle(os.path.join(dir_path, "TIME_WINDOW_CHANGE_METRICS_1.pkl"))

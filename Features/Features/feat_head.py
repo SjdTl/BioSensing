@@ -87,7 +87,8 @@ def save_features(output, filepath):
     """
     Description
     -----------
-    Save a dataframe to a pickle file for the classification and an excel file for easy reading
+    Save a dictionary of dataframes to a pickle file for the classification and an excel file for easy reading
+    The dictionary entries are the tab names in excel
 
     Parameters
     ----------
@@ -106,8 +107,6 @@ def save_features(output, filepath):
         With or without the label and subject column depending on which dataset is used.
     filepath : string
         Directory path plus filename without extension, so filepath = C:/.../name
-        
-    Notes
     -----
     """
     with open(filename_exists(filepath, "pkl"), 'wb') as handle:
@@ -123,32 +122,25 @@ def get_features(data, fs):
     """
     Description
     -----------
-    Calls ECG.ECG, EDA.EDA, EMG.EMG and RR function, which return the features of their perticular signal in a pandas dataframe, which gets merged and returned
+    Calls ECG.ECG, EDA.EDA, EMG.EMG and RR.RR function depending on the input, which return the features of their perticular signal in a pandas dataframe, which gets merged and returned
 
     Parameters
     ----------
-    ecg : np.array
-         small time interval of the ecg signal
-    eda : np. array
-    ...
+    data : dictionary
+        {ecg : np.array,
+        eda : np.array, 
+        ...}
+
+        where ecg is a small time interval of the ecg signal
     
     Returns
     -------
-    features : pd.DataFrame
-         dataframe containing the features in the form
+    features : list of pd.DataFrame
+        list of pd.Dataframes containing the features
         | index |  feature1  |  feature2  |
         |   -   |      -     |     -      | 
         |   0   |     ...    |    ...     |
         which is only has one row
-    
-    Raises
-    ------
-    ValueError:
-        The output should be a dataframe with only one row. If this error is raised the output has more (or less) then one row
-
-    Notes
-    -----
-    
     """
     
     feature_list = []
