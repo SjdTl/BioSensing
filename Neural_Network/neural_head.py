@@ -76,7 +76,10 @@ def mlp(features, two_label=False, hidden_layer_1_nodes = 50, hidden_layer_2_nod
         pred = full_model.predict(x_test, verbose=0)
         pred = np.argmax(pred, axis = 1)
 
-        pred_cat = to_categorical(pred, num_classes=2)
+        if two_label == True:
+            pred_cat = to_categorical(pred, num_classes=2)
+        else:
+            pred_cat = to_categorical(pred, num_classes=4)
         pred = [x + 1 for x in pred]
 
         accuracy = accuracy_score(y_test, pred)

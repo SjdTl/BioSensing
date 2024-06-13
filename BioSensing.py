@@ -357,7 +357,7 @@ def compare_combinations(data, sensors = ["ECG", "EMG", "EDA", "RR"], prefixes =
 
     metrics = pd.concat(metrics, axis=0)
     properties= pd.DataFrame({"Sampling frequency": [Fs],
-                                "Sensors used": ["Mixed"],
+                                "Prefixes mixed": [prefixes],
                                 "Timeframes length": [T],
                                 "Dataset used" : [dataset_name],
                                 "Current time": [time.ctime()]})
@@ -435,9 +435,16 @@ def compare_timeframes(data, Fs=700, sensors = ["ECG", "EMG",  "EDA", "RR"], dat
 dir_path = os.path.dirname(os.path.realpath(__file__))
 all_data = feat_head.load_dict(os.path.join(dir_path, "Features", "Raw_data", "raw_data.pkl"))
 
-# compare_combinations(all_data, sensors = ["ECG"], prefixes = ["ECG_AR"], name = "features_combinations_test")
-# compare_timeframes(all_data, sensors = ["ECG"], runs=2)
+compare_combinations(all_data, sensors = ["ECG", "EDA"], prefixes = ["ECG", "EDA_wavelet"], name = "features_combinations_test", two_label = True, neural_used=True)
+compare_combinations(all_data, sensors = ["ECG"], prefixes = ["HRV", "ECG"], name = "features_combinations_test", two_label = False, neural_used=True)
 
-feature_path = os.path.join(dir_path, "Features", "Features_out", "features.pkl")
-metrics = general_feature_testing(data = all_data, feature_extraction=True, classify=True, neural=True,
-                        Fs=700, sensors=["ECG"], T=60, dataset_name="WESAD", features_path=feature_path, gridsearch=False)
+compare_timeframes(all_data, sensors = ["ECG"], runs=2, two_label = True, neural = False)
+compare_timeframes(all_data, sensors = ["EMG"], runs=2, two_label = False, neural = False)
+compare_timeframes(all_data, sensors = ["ECG"], runs=2, two_label = True, neural = True)
+compare_timeframes(all_data, sensors = ["ECG"], runs=2, two_label = False, neural = False)
+
+
+
+# feature_path = os.path.join(dir_path, "Features", "Features_out", "features.pkl")
+# metrics = general_feature_testing(data = all_data, feature_extraction=True, classify=True, neural=True,
+                        # Fs=700, sensors=["ECG"], T=60, dataset_name="WESAD", features_path=feature_path, gridsearch=False)
