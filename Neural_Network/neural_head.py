@@ -71,7 +71,11 @@ def mlp(features, two_label=False, hidden_layer_1_nodes = 50, hidden_layer_2_nod
 
         # Compile and fit the model
         full_model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
-        full_model.fit(X_train, Y_train_cat, validation_data=(x_test, y_test_cat), epochs=20, batch_size=1, verbose=2)
+
+        verbose = 0
+        if print_messages == True:
+            verbose = 2
+        full_model.fit(X_train, Y_train_cat, validation_data=(x_test, y_test_cat), epochs=20, batch_size=1, verbose=verbose)
 
         pred = full_model.predict(x_test, verbose=0)
         pred = np.argmax(pred, axis = 1)
