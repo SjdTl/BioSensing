@@ -580,6 +580,7 @@ def eval_all(features, print_messages = True, save_figures = True, two_label = T
             cm = 0
             accuracy_arry = []
             balanced_arry = []
+            fone_arry = []
 
             for train_index, test_index in logo.split(features, labels, groups):
                 X_train, x_test = features[train_index], features[test_index]
@@ -597,13 +598,14 @@ def eval_all(features, print_messages = True, save_figures = True, two_label = T
                 balanced_accuracy = balanced_accuracy_score(y_true=y_test, y_pred=y_pred)
                 balanced_arry = np.append(balanced_arry, balanced_accuracy)
                 accuracy_arry = np.append(accuracy_arry, accuracy)
+                fone_arry = np.append(fone_arry, fone)
 
                 cm += confusion_matrix(y_test, y_pred)
 
             if print_messages == True:
                 print(classifier)
-                print('Average: balanced, regular: {}, {}'.format(classifier, np.average(balanced_arry), np.average(accuracy_arry)))
-                print('Variance: balanced, regular: {}, {}'.format(classifier, np.var(balanced_arry), np.var(accuracy_arry)))
+                print('Average: fone, balanced, regular: {}, {}'.format("Neural", np.average(fone_arry), np.average(balanced_arry), np.average(accuracy_arry)))
+                print('Variance: fone, balanced, regular: {}, {}'.format("Neural", np.var(fone_arry), np.var(balanced_arry), np.var(accuracy_arry)))
 
             if classifier_name == "Random Forrest" or classifier_name == "AdaBoost" or classifier_name == "Decision Tree" or classifier_name == "Linear Discriminant Analysis"or classifier_name == "Bernoulli Naive Bayes":
                 importance = importances(classifier, classifier_name)
@@ -630,8 +632,10 @@ def eval_all(features, print_messages = True, save_figures = True, two_label = T
                     'Classifier': [classifier],
                     'Balanced_accuracy': [np.average(balanced_arry)],
                     'Regular_accuracy': [np.average(accuracy_arry)],
+                    'f1-score': [np.average(fone_arry)],
                     'Balanced_variance': [np.var(balanced_arry)],
                     'Regular_variance': [np.var(accuracy_arry)],
+                    'f1-score_variance': [np.var(fone_arry)],
                     'Most important feature': [features_data_list[0]],
                     "Second most important feature": [features_data_list[1]],
                     "Third most important feature": [features_data_list[2]]
@@ -642,8 +646,10 @@ def eval_all(features, print_messages = True, save_figures = True, two_label = T
                     'Classifier': [classifier],
                     'Balanced_accuracy': [np.average(balanced_arry)],
                     'Regular_accuracy': [np.average(accuracy_arry)],
+                    'f1-score': [np.average(fone_arry)],
                     'Balanced_variance': [np.var(balanced_arry)],
-                    'Regular_variance': [np.var(accuracy_arry)]
+                    'Regular_variance': [np.var(accuracy_arry)],
+                    'f1-score_variance': [np.var(fone_arry)]
                 })
                 metrics.append(new_row)
 

@@ -31,6 +31,7 @@ def mlp(features, two_label=False, hidden_layer_1_nodes = 50, hidden_layer_2_nod
     cm = 0
     accuracy_arry = []
     balanced_arry = []
+    fone_arry = []
 
     for train_index, test_index in logo.split(features, labels, groups):
         X_train, x_test = features[train_index], features[test_index]
@@ -83,30 +84,32 @@ def mlp(features, two_label=False, hidden_layer_1_nodes = 50, hidden_layer_2_nod
         balanced_accuracy = balanced_accuracy_score(y_true=y_test, y_pred=pred)
         balanced_arry = np.append(balanced_arry, balanced_accuracy)
         accuracy_arry = np.append(accuracy_arry, accuracy)
+        fone_arry = np.append(fone_arry, fone)
 
         cm += confusion_matrix(y_test, pred)
 
         if print_messages:
             print("Neural")
-            print('Average: balanced, regular: {}, {}'.format("Neural", np.average(balanced_arry), np.average(accuracy_arry)))
-            print('Variance: balanced, regular: {}, {}'.format("Neural", np.var(balanced_arry), np.var(accuracy_arry)))
+            print('Average: fone, balanced, regular: {}, {}'.format("Neural", np.average(fone_arry), np.average(balanced_arry), np.average(accuracy_arry)))
+            print('Variance: fone, balanced, regular: {}, {}'.format("Neural", np.var(fone_arry), np.var(balanced_arry), np.var(accuracy_arry)))
 
         metrics = pd.DataFrame({
             'Classifier': ["Neural"],
             'Balanced_accuracy': [np.average(balanced_arry)],
             'Regular_accuracy': [np.average(accuracy_arry)],
+            'f1-score': [np.average(fone_arry)],
             'Balanced_variance': [np.var(balanced_arry)],
-            'Regular_variance': [np.var(accuracy_arry)]
+            'Regular_variance': [np.var(accuracy_arry)],
+            'f1-score_variance': [np.var(fone_arry)]
         })
 
         # Display some predictions on test data
         if save_figures == True:
-            cm = confusion_matrix(y_test, pred)
             plt.figure(figsize=(6,6))
             sns.heatmap(cm, annot=True, fmt=".3f", linewidths=.5, square = True, cmap = 'Blues', xticklabels=["Baseline", "Stress", "Amusement", "Meditation"], yticklabels=["Baseline", "Stress", "Amusement", "Meditation"])
             plt.ylabel('Actual label')
             plt.xlabel('Predicted label')
-            all_sample_title = 'Accuracy Score: {0}, {1}'.format(round(balanced_accuracy*100, 3), "MLP Neural Network")
+            all_sample_title = 'Accuracy Score: {0}, {1}'.format(round(np.average(balanced_arry)*100, 3), "MLP Neural Network")
             plt.title(all_sample_title, size = 10)
 
             plt.savefig(os.path.join(dir_path, "ConfusionMatrix.svg"))
