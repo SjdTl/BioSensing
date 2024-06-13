@@ -109,7 +109,7 @@ def mlp(features, two_label=False, hidden_layer_1_nodes = 50, hidden_layer_2_nod
             sns.heatmap(cm, annot=True, fmt=".3f", linewidths=.5, square = True, cmap = 'Blues', xticklabels=["Baseline", "Stress", "Amusement", "Meditation"], yticklabels=["Baseline", "Stress", "Amusement", "Meditation"])
             plt.ylabel('Actual label')
             plt.xlabel('Predicted label')
-            all_sample_title = 'Accuracy Score: {0}, {1}'.format(round(np.average(balanced_arry)*100, 3), "MLP Neural Network")
+            all_sample_title = 'Balanced accuracy Score: {0}, {1}'.format(round(np.average(balanced_arry)*100, 3), "MLP Neural Network")
             plt.title(all_sample_title, size = 10)
 
             plt.savefig(os.path.join(dir_path, "ConfusionMatrix.svg"))
