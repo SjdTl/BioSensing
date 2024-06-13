@@ -8,6 +8,8 @@ import matplotlib.pyplot as plt
 import neurokit2 as nk
 from sklearn.preprocessing import minmax_scale as normalize
 import pywt
+from statsmodels.tsa.ar_model import AutoReg
+
 
 from . import feat_gen
 
@@ -51,6 +53,7 @@ def ECG(unprocessed_ecg, fs= 700):
     features.append(ECG_specific_features(ecg, fs))
     features.append(feat_gen.basic_features(ecg, "ECG_time"))
     features.append(ecg_wavelet_features(ecg))
+    features.append(ecg_AR_features(ecg))
 
     features = pd.concat(features, axis=1)
 
@@ -122,6 +125,19 @@ def ecg_wavelet_features(ecg):
         out_dict['range_' + str(coeff)] = np.ptp(coefficients[coeff])
 
     return pd.DataFrame.from_dict(out_dict, orient="index").T.add_prefix("ECG_wavelet_")
+
+def ecg_AR_features(ecg):
+    """Autoregression features of the ECG"""
+    out_dict = {}
+    # Fit the AR(2) model
+    series = pd.Series(ecg)
+    model = AutoReg(series, lags=2)
+    model_fit = model.fit()
+    out_dict["intercept"] = model_fit.params.iloc[0]
+    out_dict["lag1"] = model_fit.params.iloc[1]
+    out_dict["lag2"] = model_fit.params.iloc[2]
+
+    return pd.DataFrame.from_dict(out_dict, orient="index").T.add_prefix("ECG_AR_")
 
 def ECG_specific_features(ecg, fs):
     """
