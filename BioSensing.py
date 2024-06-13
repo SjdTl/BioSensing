@@ -279,18 +279,17 @@ def compare_combinations(data, sensors = ["ECG", "EMG", "EDA", "RR"], prefixes =
     ----------------------
     - If you want to compute the accuracy of the different type of EDA features and the ECG signal, this requires the sensors = ["ECG", "EDA"]
     - The names of the different type of EDA features start with EDA_time, EDA_wavelet, EDA_AR and EDA_phasic 
-        (to know what the prefix is of different types of features see Cache/Features/* or look into the 
-        source code when its empty, but its probably easier to run general_feature_testing() with all sensors enabled and then look in the cache)
+        (to know what the prefix is of different types of features see Cache/Features/* or look into the source code when its empty)
     - The prefix of ECG is ECG
     - So the prefixes input is a list containg ["ECG", "EDA_time", "EDA_wavelet", "EDA_AR", "EDA_phasic]
 
-    Now the output will be a dictionary with a properties dataframe and a dataframe containg the accuracies of different classifiers for each of the combinatinos of the input
+    Now the output will be a dictionary with a properties dataframe and a dataframe containg the accuracies of different classifiers for each of the combinations of the input
     In this case that would be 5! possible combinations
 
     Notes
     -----
     - First calculates the features of all the sensors and then computes the accuracies by cutting up this dataframe in smaller pieces
-    - ECG is split up into HRV and ECG. Make sure to add "HRV" in prefixes when you want HRV in the calculations
+    - ECG is split up into HRV and ECG. Make sure to add "HRV" in prefixes when you want to include HRV in the calculations
     """
     # Properties
     properties = pd.DataFrame({"Sampling frequency": [Fs],
@@ -339,7 +338,7 @@ def compare_combinations(data, sensors = ["ECG", "EMG", "EDA", "RR"], prefixes =
         if neural_used == True:
             current_metric.append(neural_head.mlp(features=cfeatures, two_label=two_label, print_messages = False, save_figures=False))
  
-        metrics = pd.concat(metrics, axis=0, ignore_index = True)
+        current_metric = pd.concat(current_metric, axis=0, ignore_index = True)
         # Add properties to each entry of the metrics dataframe
         classify_properties = pd.DataFrame({"Sampling frequency": [Fs],
                                 "Timeframes length": [T],
@@ -436,7 +435,7 @@ def compare_timeframes(data, Fs=700, sensors = ["ECG", "EMG",  "EDA", "RR"], dat
 dir_path = os.path.dirname(os.path.realpath(__file__))
 # all_data = feat_head.load_dict(os.path.join(dir_path, "Features", "Raw_data", "raw_data.pkl"))
 
-# compare_combinations(all_data, sensors = ["ECG", "EDA"], prefixes = ["EDA_time", "EDA_wavelet", "ECG"], name = "features_combinations_test")
+compare_combinations(all_data, sensors = ["ECG"], prefixes = ["ECG_AR"], name = "features_combinations_test")
 # compare_timeframes(all_data, sensors = ["ECG"], runs=2)
 
 feature_path = os.path.join(dir_path, "Features", "Features_out", "features.pkl")
