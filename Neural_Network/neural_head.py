@@ -17,12 +17,16 @@ import pandas as pd
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
 def mlp(features, two_label=False, hidden_layer_1_nodes = 50, hidden_layer_2_nodes=30, print_messages = True, save_figures=True):
-    metrics = pd.DataFrame()
 
     logo = LeaveOneGroupOut()
-    features = features.drop(columns=['label', 'subject']).to_numpy()
+
+    if two_label==True:
+        features.loc[features['label'] == 3, 'label'] = 1
+        features.loc[features['label'] == 4, 'label'] = 1
+
     labels = features['label'].to_numpy()
     groups = features['subject'].to_numpy()
+    features = features.drop(columns=['label', 'subject']).to_numpy()
 
     cm = 0
     accuracy_arry = []
@@ -41,11 +45,10 @@ def mlp(features, two_label=False, hidden_layer_1_nodes = 50, hidden_layer_2_nod
         scaler = MinMaxScaler().fit(X_train)
         X_train = scaler.transform(X_train)
         x_test = scaler.transform(x_test)
-
+        
         # one hot encode target values
         Y_train_cat = [x - 1 for x in Y_train]
         y_test_cat = [x - 1 for x in y_test]
-
         if two_label == True:
             Y_train_cat = to_categorical(Y_train_cat, num_classes=2)
             y_test_cat = to_categorical(y_test_cat, num_classes=2)
@@ -84,18 +87,17 @@ def mlp(features, two_label=False, hidden_layer_1_nodes = 50, hidden_layer_2_nod
         cm += confusion_matrix(y_test, pred)
 
         if print_messages:
-            print("Nueral")
-            print('Average: balanced, regular: {}, {}'.format("Nueral", np.average(balanced_arry), np.average(accuracy_arry)))
-            print('Variance: balanced, regular: {}, {}'.format("Nueral", np.var(balanced_arry), np.var(accuracy_arry)))
+            print("Neural")
+            print('Average: balanced, regular: {}, {}'.format("Neural", np.average(balanced_arry), np.average(accuracy_arry)))
+            print('Variance: balanced, regular: {}, {}'.format("Neural", np.var(balanced_arry), np.var(accuracy_arry)))
 
-        new_row = {
+        metrics = pd.DataFrame({
             'Classifier': ["Neural"],
             'Balanced_accuracy': [np.average(balanced_arry)],
             'Regular_accuracy': [np.average(accuracy_arry)],
             'Balanced_variance': [np.var(balanced_arry)],
             'Regular_variance': [np.var(accuracy_arry)]
-        }
-        metrics = pd.concat([metrics, pd.DataFrame(new_row)], ignore_index = True)
+        })
 
         # Display some predictions on test data
         if save_figures == True:

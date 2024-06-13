@@ -540,7 +540,7 @@ def fit_predict_evaluate(X_train, Y_train, x_test, y_test, features_array, RFC_n
     return accuracy_dict, fone_dict
 
 def eval_all(features, print_messages = True, save_figures = True, two_label = True, gridsearch = False):
-    metrics = pd.DataFrame()
+    metrics = []
 
 
     classifier_name_list = ["Random Forrest", "K-Nearest Neighbors", "AdaBoost", "Decision Tree", "Support Vector Machine", "Linear Discriminant Analysis", "Bernoulli Naive Bayes"]
@@ -626,7 +626,7 @@ def eval_all(features, print_messages = True, save_figures = True, two_label = T
                 features_data_list = list(features_data_turncated.columns)
                 features_data_list += [np.nan] * (3 - len(list(features_data_turncated.columns))) if len(list(features_data_turncated.columns)) < 3 else []
 
-                new_row = {
+                new_row = pd.DataFrame({
                     'Classifier': [classifier],
                     'Balanced_accuracy': [np.average(balanced_arry)],
                     'Regular_accuracy': [np.average(accuracy_arry)],
@@ -635,15 +635,17 @@ def eval_all(features, print_messages = True, save_figures = True, two_label = T
                     'Most important feature': [features_data_list[0]],
                     "Second most important feature": [features_data_list[1]],
                     "Third most important feature": [features_data_list[2]]
-                }
+                })
+                metrics.append(new_row)
             else:
-                new_row = {
+                new_row = pd.DataFrame({
                     'Classifier': [classifier],
                     'Balanced_accuracy': [np.average(balanced_arry)],
                     'Regular_accuracy': [np.average(accuracy_arry)],
                     'Balanced_variance': [np.var(balanced_arry)],
                     'Regular_variance': [np.var(accuracy_arry)]
-                }
+                })
+                metrics.append(new_row)
 
             if save_figures == True:
                 plt.figure(figsize=(6,6))
@@ -654,7 +656,7 @@ def eval_all(features, print_messages = True, save_figures = True, two_label = T
                 plt.title(all_sample_title, size = 10)
                 plt.savefig(os.path.join(dir_path, "ConfusionMatrix", ".".join([classifier_name, "svg"])))
         
-        metrics = pd.concat([metrics, pd.DataFrame(new_row)], ignore_index = True)
+    metrics = pd.concat(metrics, ignore_index = True)
 
 
     return metrics
