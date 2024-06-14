@@ -54,8 +54,7 @@ def sensor_combinations_table(df, name = "Sensor_combination_metrics", drop_prep
     features_used = list(features_used.str.replace("feature_", ""))
 
     if join_HRV_ECG:
-        mean_classifier_df = mean_classifier_df[~(mean_classifier_df['feature_ECG'] & mean_classifier_df['feature_HRV'])]
-
+        mean_classifier_df = mean_classifier_df[((mean_classifier_df['feature_ECG'] & mean_classifier_df['feature_HRV']) | (~mean_classifier_df['feature_ECG'] & ~mean_classifier_df['feature_HRV']))]
     if drop_preprefix == False:
         sensor = [", ".join(sensor.split()[0] for sensor in features_used if row["feature_" + sensor]) for _, row in mean_classifier_df.iterrows()]
     else:
@@ -64,6 +63,8 @@ def sensor_combinations_table(df, name = "Sensor_combination_metrics", drop_prep
     neural_used = metrics["Neural used"].iloc[0]
     if neural_used == True:
         neural_df = metrics[metrics['Classifier'] == 'Neural']
+        if join_HRV_ECG:
+            neural_df = neural_df[((neural_df['feature_ECG'] & neural_df['feature_HRV']) | (~neural_df['feature_ECG'] & ~neural_df['feature_HRV']))]
         df = {
             'Sensors': sensor,
             'Mean BA': mean_classifier_df["Balanced_accuracy"].tolist(),
@@ -71,10 +72,16 @@ def sensor_combinations_table(df, name = "Sensor_combination_metrics", drop_prep
             'Neural BA': neural_df["Balanced_accuracy"].tolist(),
             'Neural F1': neural_df["f1-score"].tolist()
         }
-        df = pd.DataFrame(df).sort_values('Mean BA')
-        df = df.set_index('Sensors')
-        fig, ax = plt.subplots(figsize=(9, 0.3 *len(sensor)))
-        sns.heatmap(df, annot=True, cmap="YlGnBu", cbar=True, fmt=".2f")
+    else: 
+        df = {
+                    'Sensors': sensor,
+                    'Mean BA': mean_classifier_df["Balanced_accuracy"].tolist(),
+                    'Mean F1': mean_classifier_df["f1-score"].tolist()
+                }
+    df = pd.DataFrame(df).sort_values('Mean BA')
+    df = df.set_index('Sensors')
+    fig, ax = plt.subplots(figsize=(9, 0.3 *len(sensor)))
+    sns.heatmap(df, annot=True, cmap="YlGnBu", cbar=True, fmt=".2f")
     plt.title(title)
     plt.tight_layout()
     # Show plot
@@ -97,22 +104,17 @@ def change_timeframes(df, name):
     neural_used = metrics["Neural used"].iloc[0]
     fig, ax = plt.subplots()
     
-    ax.plot(mean_classifier_df["Timeframes length"], mean_classifier_df["Balanced_accuracy"], label = "Mean classifiers balanced accuracy")
-    ax.plot(mean_classifier_df["Timeframes length"], mean_classifier_df["f1-score"], label = "Mean classifiers F1-score")
-    ax.errorbar(mean_classifier_df["Timeframes length"], mean_classifier_df["Balanced_accuracy"], mean_classifier_df["Balanced_variance"], capsize=3, fmt="r--o")
-    ax.errorbar(mean_classifier_df["Timeframes length"], mean_classifier_df["f1-score"], mean_classifier_df["f1-score_variance"], capsize=3, fmt="r--o")
+    ax.errorbar(mean_classifier_df["Timeframes length"], mean_classifier_df["Balanced_accuracy"], mean_classifier_df["Balanced_variance"], capsize=3, fmt="r-o", label = "Mean BA", color='green')
+    ax.errorbar(mean_classifier_df["Timeframes length"], mean_classifier_df["f1-score"], mean_classifier_df["f1-score_variance"], capsize=3, fmt="r-o", label = "Mean F1")
 
     if neural_used == True:
         neural_df = metrics[metrics['Classifier'] == 'Neural']
-        ax.plot(neural_df["Timeframes length"], neural_df["Balanced_accuracies"], label = "Neural balanced accuracy")
-        ax.plot(neural_df["Timeframes length"], neural_df["f1-score"], label = "Neural F1-score")
-        ax.errorbar(neural_df["Timeframes length"], neural_df["Balanced_accuracy"], neural_df["Balanced_variance"], capsize=3, fmt="r--o")
-        ax.errorbar(neural_df["Timeframes length"], neural_df["f1-score"], neural_df["f1-score_variance"], capsize=3, fmt="r--o")
+        ax.plot(neural_df["Timeframes length"], neural_df["Balanced_accuracy"], label = "Neural BA")
+        ax.plot(neural_df["Timeframes length"], neural_df["f1-score"], label = "Neural F1")
 
     ax.set_xlabel('Timeframes (s)')
     ax.set_ylabel('Accuracy')
     ax.legend()
-    ax.set_ylim(ymin=0.5, ymax=1)
     ax.set_title(f'Average performance with different timeframes using {sensor[0]} sensor')
     plt.tight_layout()
 
@@ -122,11 +124,10 @@ def change_timeframes(df, name):
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
-name = "all_combinations_two"
-df = pd.read_excel(os.path.join(dir_path, "Feature_combinations", f"{name}.xlsx"))
-df = pd.read_pickle(os.path.join(dir_path, "Feature_combinations", f"{name}.pkl"))
-# sensor_combinations(df, name, drop_preprefix = False)
-sensor_combinations_table(df, name, drop_preprefix=True, title = "Two label performance by all feature types", join_HRV_ECG = True)
+# name = "all_combinations_four"
+# df = pd.read_pickle(os.path.join(dir_path, "Feature_combinations", f"{name}.pkl"))
+# sensor_combinations_table(df, name, drop_preprefix=True, title = "Four label performance by all feature types", join_HRV_ECG = True)
 
-# df = pd.read_pickle(os.path.join(dir_path, "Timeframes_change", "TIME_WINDOW_CHANGE_METRICS_4.pkl"))
-# change_timeframes(df, "test_TEST_test")
+name = "time_window_eda_four"
+df = pd.read_pickle(os.path.join(dir_path, "Timeframes_change", f"{name}.pkl"))
+change_timeframes(df, name)
