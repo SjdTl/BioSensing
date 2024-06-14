@@ -19,14 +19,14 @@ def read_socket(tn): # read the data from the socket connection
 def import_all(subject, test_type, COMport = '/dev/ttyACM0', IP = 'localhost', port = 13854):
     print("Importing data \n")
     try:        
-        tn=Telnet('localhost',13854) # create a telnet object that establishes a socket connection with the TGC program
-        tn.write(str.encode('{"enableRawOutput": true, "format": "Json"}')) # enable the output of the headset data from the TGC program
+        #tn=Telnet('localhost',13854) # create a telnet object that establishes a socket connection with the TGC program
+        #tn.write(str.encode('{"enableRawOutput": true, "format": "Json"}')) # enable the output of the headset data from the TGC program
         
         link = txfer.SerialTransfer(COMport,baud) # create a SerialTransfer object to read data of the COM port
         link.open()
         time.sleep(3) # allow some time for the Arduino to completely reset        
         print(f"link status: {link.status}") 
-        print(f"socket status: {read_socket(tn)['status']}")
+        #print(f"socket status: {read_socket(tn)['status']}")
         print('Stop data collection by keyboard interrupt (ctrl+c)')
         
         header = ['TimeStamp', 'ECG Data', 'EMG Data', 'EDA Data', 'lowGamma', 'highGamma', 'highAlpha', 'delta', 'highBeta', 'lowAlpha', 'lowBeta', 'theta', 'attention', 'meditation']
@@ -54,10 +54,7 @@ def import_all(subject, test_type, COMport = '/dev/ttyACM0', IP = 'localhost', p
                     else:
                         print('ERROR: {}'.format(link.status.name))
             
-            while  not (read_socket(tn)['status'] == 'connected'):
-                # A negative value for status indicates an error
-                print(f"ERROR: status = {read_socket(tn)['status']}")
-                
+            
             ###################################################################
             # Parse response list
             ###################################################################
@@ -93,7 +90,7 @@ def import_all(subject, test_type, COMport = '/dev/ttyACM0', IP = 'localhost', p
         try:
             link.close()
             output_file.close()
-            tn.close()
+            #tn.close()
             print("Serial connection & output_file closed. \n Don't forget to rename ECGdata to prevent overwriting!")
 
         except:
@@ -106,7 +103,7 @@ def import_all(subject, test_type, COMport = '/dev/ttyACM0', IP = 'localhost', p
         try:
             link.close()
             output_file.close()
-            tn.close()
+            #tn.close()
         except:
             pass
 
