@@ -28,6 +28,29 @@ def mlp(features, two_label=False, hidden_layer_1_nodes = 50, hidden_layer_2_nod
     groups = features['subject'].to_numpy()
     features = features.drop(columns=['label', 'subject']).to_numpy()
 
+    # convert from integers to floats
+    features = features.astype('float32')
+
+    # normalize to range 0-1
+    scaler = MinMaxScaler().fit(features)
+    features = scaler.transform(features)
+
+    ####### Multi layer perceptron #######
+    # Define the sizes of each layer
+    input_nodes = features.shape[1] # total number of pixels in one image of size 28*28
+    output_layer = labels.shape[1]
+
+    full_model = Sequential()
+
+    # Add the layers to the sequential model
+    full_model.add(Input((input_nodes,)))  # Input layer
+    full_model.add(Dense(hidden_layer_1_nodes, activation='sigmoid'))  # Hidden layer 1
+    full_model.add(Dense(hidden_layer_2_nodes, activation='sigmoid'))  # Hidden layer 2
+    full_model.add(Dense(output_layer, activation='softmax'))  # Output layer
+
+    # Compile
+    full_model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+
     cm = 0
     accuracy_arry = []
     balanced_arry = []
@@ -37,16 +60,6 @@ def mlp(features, two_label=False, hidden_layer_1_nodes = 50, hidden_layer_2_nod
         X_train, x_test = features[train_index], features[test_index]
         Y_train, y_test = labels[train_index], labels[test_index]
 
-        ####### Multi layer perceptron #######
-        # convert from integers to floats
-        X_train = X_train.astype('float32')
-        x_test = x_test.astype('float32')
-
-        # normalize to range 0-1
-        scaler = MinMaxScaler().fit(X_train)
-        X_train = scaler.transform(X_train)
-        x_test = scaler.transform(x_test)
-        
         # one hot encode target values
         Y_train_cat = [x - 1 for x in Y_train]
         y_test_cat = [x - 1 for x in y_test]
@@ -57,26 +70,11 @@ def mlp(features, two_label=False, hidden_layer_1_nodes = 50, hidden_layer_2_nod
             Y_train_cat = to_categorical(Y_train_cat, num_classes=4)
             y_test_cat = to_categorical(y_test_cat, num_classes=4)
 
-        # Define the sizes of each layer
-        input_nodes = X_train.shape[1] # total number of pixels in one image of size 28*28
-        output_layer = Y_train_cat.shape[1]
-
-        full_model = Sequential()
-
-        # Add the layers to the sequential model
-        full_model.add(Input((input_nodes,)))  # Input layer
-        full_model.add(Dense(hidden_layer_1_nodes, activation='sigmoid'))  # Hidden layer 1
-        full_model.add(Dense(hidden_layer_2_nodes, activation='sigmoid'))  # Hidden layer 2
-        full_model.add(Dense(output_layer, activation='softmax'))  # Output layer
-
-        # Compile and fit the model
-        full_model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+        # Fit the model
         full_model.fit(X_train, Y_train_cat, validation_data=(x_test, y_test_cat), epochs=20, batch_size=1, verbose=2)
 
         pred = full_model.predict(x_test, verbose=0)
         pred = np.argmax(pred, axis = 1)
-
-        pred_cat = to_categorical(pred, num_classes=2)
         pred = [x + 1 for x in pred]
 
         accuracy = accuracy_score(y_test, pred)

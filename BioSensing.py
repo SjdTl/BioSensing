@@ -435,7 +435,7 @@ def compare_timeframes(data, Fs=700, sensors = ["ECG", "EMG",  "EDA", "RR"], dat
 dir_path = os.path.dirname(os.path.realpath(__file__))
 # all_data = feat_head.load_dict(os.path.join(dir_path, "Features", "Raw_data", "raw_data.pkl"))
 
-compare_combinations(all_data, sensors = ["ECG"], prefixes = ["ECG_AR"], name = "features_combinations_test")
+#compare_combinations(all_data, sensors = ["ECG"], prefixes = ["ECG_AR"], name = "features_combinations_test")
 # compare_timeframes(all_data, sensors = ["ECG"], runs=2)
 
 feature_path = os.path.join(dir_path, "Features", "Features_out", "features.pkl")
