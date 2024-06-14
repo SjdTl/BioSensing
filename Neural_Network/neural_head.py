@@ -122,7 +122,10 @@ def mlp(features, two_label=False, hidden_layer_1_nodes = 50, hidden_layer_2_nod
     if save_figures == True:
         cm = confusion_matrix(y_test, pred)
         plt.figure(figsize=(6,6))
-        sns.heatmap(cm, annot=True, fmt=".3f", linewidths=.5, square = True, cmap = 'Blues', xticklabels=["Baseline", "Stress", "Amusement", "Meditation"], yticklabels=["Baseline", "Stress", "Amusement", "Meditation"])
+        if two_label == True:
+            sns.heatmap(cm, annot=True, fmt=".3f", linewidths=.5, square = True, cmap = 'Blues', xticklabels=["No stress", "Stress"], yticklabels=["No stess", "Stress"])
+        else:
+            sns.heatmap(cm, annot=True, fmt=".3f", linewidths=.5, square = True, cmap = 'Blues', xticklabels=["Baseline", "Stress", "Amusement", "Meditation"], yticklabels=["Baseline", "Stress", "Amusement", "Meditation"])
         plt.ylabel('Actual label')
         plt.xlabel('Predicted label')
         all_sample_title = 'Balanced accuracy Score: {0}, {1}'.format(round(balanced_accuracy*100, 3), "MLP Neural Network")
