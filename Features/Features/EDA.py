@@ -57,7 +57,8 @@ def EDA(eda, fs, EDA_wavelet=True, EDA_timedomain=True):
     features = []
     if EDA_timedomain == True:
         features.append(tot_eda_features(eda, fs/downsampling_factor))
-        features.append(phasic_features(phasic, fs/downsampling_factor))
+        if eda.size / (fs/downsampling_factor) >= 40:
+            features.append(phasic_features(phasic, fs/downsampling_factor))
     if EDA_wavelet == True:
         features.append(eda_wavelet_features(eda))
         features.append(eda_AR_features(eda))
