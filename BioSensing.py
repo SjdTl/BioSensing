@@ -452,4 +452,4 @@ all_data = feat_head.load_dict(os.path.join(dir_path, "Features", "Raw_data", "r
 
 feature_path = os.path.join(dir_path, "Features", "Features_out", "features.pkl")
 metrics = general_feature_testing(data = all_data, feature_extraction=True, classify=True, neural=True,
-                        Fs=700, sensors=["ECG"], T=60, dataset_name="WESAD", features_path=feature_path, gridsearch=False)
+                        Fs=700, sensors=["ECG"], T=100, two_label=False, dataset_name="WESAD", features_path=feature_path, gridsearch=False)
