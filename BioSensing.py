@@ -450,6 +450,6 @@ all_data = feat_head.load_dict(os.path.join(dir_path, "Features", "Raw_data", "r
 # compare_combinations(all_data, sensors = ["EDA","ECG","RR","EMG"], prefixes = ["EDA", "HRV", "ECG", "RR", "EMG"], T=60, two_label = False, neural_used=True, name = "all_combinations_four")
 
 
-feature_path = os.path.join(dir_path, "Features", "Features_out", "features.pkl")
-metrics = general_feature_testing(data = all_data, feature_extraction=True, classify=True, neural=True,
-                        Fs=700, sensors=["ECG"], T=100, two_label=False, dataset_name="WESAD", features_path=feature_path, gridsearch=False)
+# feature_path = os.path.join(dir_path, "Features", "Features_out", "features.pkl")
+# metrics = general_feature_testing(data = all_data, feature_extraction=True, classify=True, neural=True,
+                        # Fs=700, sensors=["ECG"], T=100, two_label=False, dataset_name="WESAD", features_path=feature_path, gridsearch=False)

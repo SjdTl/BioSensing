@@ -40,7 +40,7 @@ def RR(unprocessed_rr, fs=700, peak_prominence = 0.15, drop_bad_features = True)
     features = pd.concat([df_specific, df_general], axis=1)
     
     if drop_bad_features == True:
-        features = features.drop(["RR_RMSSD", "RR_SDBB", "RR_SDSD", "RR_CVSD", "RR_Median"], axis=1)
+        features = features.drop(["RR_RMSSD", "RR_SDBB", "RR_SDSD", "RR_CVSD", "RR_Median", "RR_CVBB"], axis=1)
 
     # Error messages
     if features.isnull().values.any():
