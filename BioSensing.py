@@ -201,12 +201,13 @@ def general_feature_testing(data=None, classify = True, feature_extraction = Tru
             features_properties = {"properties" : properties, "features" : features}
         else:
             features_properties = feature_extraction_func(data, properties, sensors = sensors,  print_messages = print_messages)
+        features = features_properties["features"]
     else:
         # Use a presaved dataframe
         with open(features_path, 'rb') as f:
             features_properties = pickle.load(f)
+        features = features_properties
     
-    features = features_properties["features"]
     if features.shape[0] > 2000:
         print(f"Dropping some timeframes untill 2000 rows remain, since the feature database has {features.shape[0]} rows, which would take very long to train")
         features = features.sample(n=2000, random_state=1, ignore_index=True)
@@ -435,7 +436,7 @@ def compare_timeframes(data, Fs=700, sensors = ["ECG", "EMG", "EDA", "RR"], data
     feat_head.save_features(output = output, filepath=os.path.join(dir_path, "Metrics", "Timeframes change", name))
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
-all_data = feat_head.load_dict(os.path.join(dir_path, "Features", "Raw_data", "raw_data.pkl"))
+# all_data = feat_head.load_dict(os.path.join(dir_path, "Features", "Raw_data", "raw_data.pkl"))
 
 # compare_timeframes(all_data, sensors = ["EDA"], runs=10, two_label = True, neural = True, name="time_window_eda_two")
 # compare_timeframes(all_data, sensors = ["ECG"], runs=10, two_label = True, neural = True, name="time_window_ecg_two")
