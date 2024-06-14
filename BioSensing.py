@@ -69,15 +69,13 @@ def classify_func(features, print_messages = True, save_figures = True, two_labe
         One dataframe containing the classifiers with their accuracies, most important features (when relevant) and some properties (time_window size, two_label, ...)
     """
     metrics = class_head.eval_all(features, print_messages=print_messages, save_figures=save_figures, two_label=two_label, gridsearch=gridsearch)
-    mean_regular_accuracy = metrics["Regular_accuracy"].mean()
-    mean_balanced_accuracy = metrics["Balanced_accuracy"].mean()
-    mean_balanced_variance = metrics["Balanced_variance"].mean()
-    mean_regular_variance = metrics["Regular_variance"].mean()
     mean_row = pd.DataFrame({'Classifier': 'mean_classifier', 
-                             'Regular_accuracy': mean_regular_accuracy, 
-                             'Balanced_accuracy': mean_balanced_accuracy, 
-                             'Balanced_variance': mean_balanced_variance, 
-                             'Regular_variance' : mean_regular_variance}, index=[0])
+                             'Regular_accuracy': metrics["Regular_accuracy"].mean(), 
+                             'Balanced_accuracy': metrics["Balanced_accuracy"].mean(),
+                             'f1-score' :  metrics['f1-score'].mean(),
+                             'Balanced_variance': metrics["Balanced_variance"].mean(), 
+                             'Regular_variance' : metrics["Regular_variance"].mean(),
+                             'f1-score_variance' : metrics["f1-score_variance"].mean()}, index=[0])
     metrics = pd.concat([metrics, mean_row], axis=0, ignore_index=True)
 
     return metrics
@@ -208,7 +206,11 @@ def general_feature_testing(data=None, classify = True, feature_extraction = Tru
         with open(features_path, 'rb') as f:
             features_properties = pickle.load(f)
     
-    
+    features = features_properties["features"]
+    if features.shape[0] > 2000:
+        print(f"Dropping some timeframes untill 2000 rows remain, since the feature database has {features.shape[0]} rows, which would take very long to train")
+        features = features.sample(n=2000, random_state=1, ignore_index=True)
+
     # Classification and neural network
     if neural == True or classify == True:
         metrics = []
@@ -216,11 +218,11 @@ def general_feature_testing(data=None, classify = True, feature_extraction = Tru
 
         # Neural network
         if neural == True:
-            metrics.append(neural_head.mlp(features=features_properties["features"], two_label=two_label, print_messages = print_messages, save_figures=save_figures))
+            metrics.append(neural_head.mlp(features=features, two_label=two_label, print_messages = print_messages, save_figures=save_figures))
 
         # Classification
         if classify == True:
-            metrics.append(classify_func(features_properties["features"], print_messages = print_messages, save_figures = save_figures, two_label = two_label, gridsearch=gridsearch))
+            metrics.append(classify_func(features, print_messages = print_messages, save_figures = save_figures, two_label = two_label, gridsearch=gridsearch))
         metrics = pd.concat(metrics, axis=0, ignore_index = True)
 
         # Add properties to each entry of the metrics dataframe
@@ -344,7 +346,7 @@ def compare_combinations(data, sensors = ["ECG", "EMG", "EDA", "RR"], prefixes =
                                 "Timeframes length": [T],
                                 "Dataset used" : [dataset_name],
                                 "Two_label" : two_label,
-                                "Neural used" : False,
+                                "Neural used" : neural_used,
                                 "Classifiers used" : True
                                 })
         for features in prefixes:
@@ -357,7 +359,7 @@ def compare_combinations(data, sensors = ["ECG", "EMG", "EDA", "RR"], prefixes =
 
     metrics = pd.concat(metrics, axis=0)
     properties= pd.DataFrame({"Sampling frequency": [Fs],
-                                "Sensors used": ["Mixed"],
+                                "Prefixes mixed": [prefixes],
                                 "Timeframes length": [T],
                                 "Dataset used" : [dataset_name],
                                 "Current time": [time.ctime()]})
@@ -367,7 +369,7 @@ def compare_combinations(data, sensors = ["ECG", "EMG", "EDA", "RR"], prefixes =
             "metrics" : metrics
             }
 
-    feat_head.save_features(output = output, filepath=os.path.join(dir_path, "Metrics", name))
+    feat_head.save_features(output = output, filepath=os.path.join(dir_path, "Metrics", "Feature combinations", name))
 
     
 def compare_timeframes(data, Fs=700, sensors = ["ECG", "EMG",  "EDA", "RR"], dataset_name = "WESAD", two_label = True, neural = False, tstart = 5, tend = 125, runs = 10):
@@ -430,14 +432,15 @@ def compare_timeframes(data, Fs=700, sensors = ["ECG", "EMG",  "EDA", "RR"], dat
             "metrics" : metrics
             }
 
-    feat_head.save_features(output = output, filepath=os.path.join(dir_path, "Metrics", "TIME_WINDOW_CHANGE_METRICS"))
+    feat_head.save_features(output = output, filepath=os.path.join(dir_path, "Metrics", "Timeframes change", "TIME_WINDOW_CHANGE_METRICS"))
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
-# all_data = feat_head.load_dict(os.path.join(dir_path, "Features", "Raw_data", "raw_data.pkl"))
+all_data = feat_head.load_dict(os.path.join(dir_path, "Features", "Raw_data", "raw_data.pkl"))
 
 #compare_combinations(all_data, sensors = ["ECG"], prefixes = ["ECG_AR"], name = "features_combinations_test")
 # compare_timeframes(all_data, sensors = ["ECG"], runs=2)
 
-feature_path = os.path.join(dir_path, "Features", "Features_out", "features.pkl")
-metrics = general_feature_testing(data = None, feature_extraction=False, classify=False, neural=True,
-                        Fs=700, sensors=["ECG"], T=60, dataset_name="WESAD", features_path=feature_path, gridsearch=False)
+
+# feature_path = os.path.join(dir_path, "Features", "Features_out", "features.pkl")
+# metrics = general_feature_testing(data = all_data, feature_extraction=True, classify=True, neural=True,
+                        # Fs=700, sensors=["ECG", "EDA", "EMG", "RR"], T=60, dataset_name="WESAD", features_path=feature_path, gridsearch=False)

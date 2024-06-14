@@ -346,11 +346,14 @@ def features_db(data, Fs=700, sensors=["ECG", "EMG", "EDA", "RR"], T=60, print_m
     # Error messages
     # Check NaN values
     if features_df.isnull().values.any():
-        raise ValueError("The feature array contains a NaN value")
         print(features_df.to_string())
+        raise ValueError("The feature array contains a NaN value")
     # Check if all names are unique
     if any(features_df.columns.duplicated()):
-        raise ValueError(f"Two features have the same name")
         print(features_df.to_string())
+        raise ValueError(f"Two features have the same name")
+    # Warnings
+    if T < 40 and "EDA" in sensors:
+        print(f"Timeframe of {T}s is too short to calculate phasic peak features for and will therefore not be calculated. EDA_phasic requires minimum timeframes of 40 seconds")
 
     return features_df

@@ -70,11 +70,33 @@ def mlp(features, two_label=False, hidden_layer_1_nodes = 50, hidden_layer_2_nod
             Y_train_cat = to_categorical(Y_train_cat, num_classes=4)
             y_test_cat = to_categorical(y_test_cat, num_classes=4)
 
-        # Fit the model
-        full_model.fit(X_train, Y_train_cat, validation_data=(x_test, y_test_cat), epochs=20, batch_size=1, verbose=2)
+        # Define the sizes of each layer
+        input_nodes = X_train.shape[1] # total number of pixels in one image of size 28*28
+        output_layer = Y_train_cat.shape[1]
+
+        full_model = Sequential()
+
+        # Add the layers to the sequential model
+        full_model.add(Input((input_nodes,)))  # Input layer
+        full_model.add(Dense(hidden_layer_1_nodes, activation='sigmoid'))  # Hidden layer 1
+        full_model.add(Dense(hidden_layer_2_nodes, activation='sigmoid'))  # Hidden layer 2
+        full_model.add(Dense(output_layer, activation='softmax'))  # Output layer
+
+        # Compile and fit the model
+        full_model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+
+        verbose = 0
+        if print_messages == True:
+            verbose = 2
+        full_model.fit(X_train, Y_train_cat, validation_data=(x_test, y_test_cat), epochs=20, batch_size=1, verbose=verbose)
 
         pred = full_model.predict(x_test, verbose=0)
         pred = np.argmax(pred, axis = 1)
+
+        if two_label == True:
+            pred_cat = to_categorical(pred, num_classes=2)
+        else:
+            pred_cat = to_categorical(pred, num_classes=4)
         pred = [x + 1 for x in pred]
 
         accuracy = accuracy_score(y_test, pred)
