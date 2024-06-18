@@ -446,10 +446,10 @@ all_data = feat_head.load_dict(os.path.join(dir_path, "Features", "Raw_data", "r
 # compare_combinations(all_data, sensors = ["ECG"], prefixes = ["ECG_time", "HRV", "ECG_wavelet", "ECG_AR"], T=60, two_label = False, neural_used=True, name = "ECG_combinations_four")
 # compare_combinations(all_data, sensors = ["EDA"], prefixes = ["EDA_time", "EDA_phasic", "EDA_wavelet", "EDA_AR"], T=60, two_label = True, neural_used=True, name = "EDA_combinations_two")
 # compare_combinations(all_data, sensors = ["EDA"], prefixes = ["EDA_time", "EDA_phasic", "EDA_wavelet", "EDA_AR"], T=60, two_label = False, neural_used=True, name = "EDA_combinations_four")
-# compare_combinations(all_data, sensors = ["EDA","ECG","RR","EMG"], prefixes = ["EDA", "HRV", "ECG", "RR", "EMG"], T=60, two_label = True, neural_used=True, name = "all_combinations_two")
-# compare_combinations(all_data, sensors = ["EDA","ECG","RR","EMG"], prefixes = ["EDA", "HRV", "ECG", "RR", "EMG"], T=60, two_label = False, neural_used=True, name = "all_combinations_four")
+# compare_combinations(all_data, sensors = ["EDA","ECG","RR","EMG"], prefixes = ["EDA", "ECG", "RR", "EMG"], T=60, two_label = True, neural_used=True, name = "all_combinations_two")
+# compare_combinations(all_data, sensors = ["EDA","ECG","RR","EMG"], prefixes = ["EDA", "ECG", "RR", "EMG"], T=60, two_label = False, neural_used=True, name = "all_combinations_four")
 
 
-# feature_path = os.path.join(dir_path, "Features", "Features_out", "features.pkl")
-# metrics = general_feature_testing(data = all_data, feature_extraction=True, classify=True, neural=True,
-                        # Fs=700, sensors=["ECG"], T=100, two_label=False, dataset_name="WESAD", features_path=feature_path, gridsearch=False)
+feature_path = os.path.join(dir_path, "Features", "Features_out", "features.pkl")
+metrics = general_feature_testing(data = all_data, feature_extraction=True, classify=True, neural=True,
+                        Fs=700, sensors=["RR"], T=60, two_label=True, dataset_name="WESAD", features_path=feature_path, gridsearch=False)

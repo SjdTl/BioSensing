@@ -12,7 +12,7 @@ from statsmodels.tsa.ar_model import AutoReg
 
 from . import feat_gen
 
-def EDA(eda, fs, EDA_wavelet=True, EDA_timedomain=True):
+def EDA(eda, fs, wavelet_AR=True, EDA_timedomain=False):
     """
     Description
     -----------
@@ -59,7 +59,7 @@ def EDA(eda, fs, EDA_wavelet=True, EDA_timedomain=True):
         features.append(tot_eda_features(eda, fs/downsampling_factor))
         if eda.size / (fs/downsampling_factor) >= 40:
             features.append(phasic_features(phasic, fs/downsampling_factor))
-    if EDA_wavelet == True:
+    if wavelet_AR == True:
         features.append(eda_wavelet_features(eda))
         features.append(eda_AR_features(eda))
 
