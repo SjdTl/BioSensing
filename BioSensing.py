@@ -448,7 +448,6 @@ def compare_timeframes(data, Fs=700, sensors = ["ECG", "EMG", "EDA", "RR"], data
     feat_head.save_features(output = output, filepath=os.path.join(dir_path, "Metrics", "Timeframes_change", name))
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
-# all_data = feat_head.load_dict(os.path.join(dir_path, "Features", "Raw_data", "raw_data.pkl"))
 
 # compare_timeframes(all_data, sensors = ["EDA"], runs=10, two_label = True, neural = True, name="time_window_eda_two")
 # compare_timeframes(all_data, sensors = ["ECG"], runs=10, two_label = True, neural = True, name="time_window_ecg_two")
@@ -461,8 +460,14 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 # compare_combinations(all_data, sensors = ["EDA","ECG","EMG", "RR"], prefixes = ["RR", "EDA", "ECG", "EMG"], T=60, two_label = True, neural_used=True, name = "all_combinations_two")
 # compare_combinations(all_data, sensors = ["EDA","ECG","EMG","RR"], prefixes = ["EDA", "ECG", "RR", "EMG"], T=60, two_label = False, neural_used=True, name = "all_combinations_four")
 
-
+# ARDUINO 
+all_data = feat_head.load_dict(os.path.join(dir_path, "Hardware", "Serialport_interface", "data.pkl"))
 feature_path = os.path.join(dir_path, "Cache", "Features", "features_23.pkl")
-metrics = general_feature_testing(data = None, feature_extraction=True, classify=True, neural=True,
-                        Fs=700, sensors=["ECG", "EMG", "EDA", "RR"], T=60, two_label=False, dataset_name="WESAD", features_path=None, gridsearch=False, train_type="WESAD")
-                        #Fs=700, sensors=["ECG", "EDA"], T=60, two_label=True, dataset_name="WESAD", features_path=None, gridsearch=False)
+metrics = general_feature_testing(data = all_data, feature_extraction=True, classify=True, neural=True,
+                        Fs=268, sensors=["ECG", "EMG", "EDA", "RR"], T=55, two_label=True, dataset_name="Arduino", features_path=None, gridsearch=False, train_type="MEASURED")
+
+# WESAD
+# all_data = feat_head.load_dict(os.path.join(dir_path, "Features", "Raw_data", "raw_data.pkl"))
+# feature_path = os.path.join(dir_path, "Cache", "Features", "features_23.pkl")
+# metrics = general_feature_testing(data = None, feature_extraction=True, classify=True, neural=True,
+                        # Fs=700, sensors=["ECG", "EMG", "EDA", "RR"], T=60, two_label=False, dataset_name="WESAD", features_path=None, gridsearch=False, train_type="WESAD")
