@@ -370,10 +370,10 @@ def compare_combinations(data, sensors = ["ECG", "EMG", "EDA", "RR"], prefixes =
             "metrics" : metrics
             }
 
-    feat_head.save_features(output = output, filepath=os.path.join(dir_path, "Metrics", "Feature combinations", name))
+    feat_head.save_features(output = output, filepath=os.path.join(dir_path, "Metrics", "Feature_combinations", name))
 
     
-def compare_timeframes(data, Fs=700, sensors = ["ECG", "EMG", "EDA", "RR"], dataset_name = "WESAD", two_label = True, neural = False, tstart = 5, tend = 125, runs = 10):
+def compare_timeframes(data, Fs=700, sensors = ["ECG", "EMG", "EDA", "RR"], dataset_name = "WESAD", two_label = True, neural = False, tstart = 5, tend = 150, runs = 10, name="time_window_change"):
     """
     Description
     -----------
@@ -433,30 +433,23 @@ def compare_timeframes(data, Fs=700, sensors = ["ECG", "EMG", "EDA", "RR"], data
             "metrics" : metrics
             }
 
-    feat_head.save_features(output = output, filepath=os.path.join(dir_path, "Metrics", "Timeframes change", "TIME_WINDOW_CHANGE_METRICS"))
+    feat_head.save_features(output = output, filepath=os.path.join(dir_path, "Metrics", "Timeframes_change", name))
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
-# all_data = feat_head.load_dict(os.path.join(dir_path, "Features", "Raw_data", "raw_data.pkl"))
+all_data = feat_head.load_dict(os.path.join(dir_path, "Features", "Raw_data", "raw_data.pkl"))
 
-#compare_combinations(all_data, sensors = ["ECG"], prefixes = ["ECG_AR"], name = "features_combinations_test")
-# compare_timeframes(all_data, sensors = ["ECG"], runs=2)
-
-
-feature_path = os.path.join(dir_path, "Features", "Features_out", "features.pkl")
-# metrics = general_feature_testing(data = None, feature_extraction=False, classify=False, neural=True,
-#                         Fs=700, sensors=["ECG", "EDA", "EMG", "RR"], T=60, dataset_name="WESAD", features_path=feature_path, gridsearch=False)
-# compare_timeframes(all_data, sensors = ["EDA"], runs=10, two_label = True, neural = True)
-# compare_timeframes(all_data, sensors = ["ECG"], runs=10, two_label = True, neural = True)
-# compare_timeframes(all_data, sensors = ["EDA"], runs=10, two_label = False, neural = True)
-# compare_timeframes(all_data, sensors = ["ECG"], runs=10, two_label = False, neural = True)
+# compare_timeframes(all_data, sensors = ["EDA"], runs=10, two_label = True, neural = True, name="time_window_eda_two")
+# compare_timeframes(all_data, sensors = ["ECG"], runs=10, two_label = True, neural = True, name="time_window_ecg_two")
+# compare_timeframes(all_data, sensors = ["EDA"], runs=10, two_label = False, neural = True, name="time_window_eda_four")
+# compare_timeframes(all_data, sensors = ["ECG"], runs=10, two_label = False, neural = True, name="time_window_ecg_four")
 # compare_combinations(all_data, sensors = ["ECG"], prefixes = ["ECG_time", "HRV", "ECG_wavelet", "ECG_AR"], T=60, two_label = True, neural_used=True, name = "ECG_combinations_two")
 # compare_combinations(all_data, sensors = ["ECG"], prefixes = ["ECG_time", "HRV", "ECG_wavelet", "ECG_AR"], T=60, two_label = False, neural_used=True, name = "ECG_combinations_four")
 # compare_combinations(all_data, sensors = ["EDA"], prefixes = ["EDA_time", "EDA_phasic", "EDA_wavelet", "EDA_AR"], T=60, two_label = True, neural_used=True, name = "EDA_combinations_two")
-# compare_combinations(all_data, sensors = ["EDA"], prefixes = ["EDA_time", "EDA_phasic", "EDA_wavelet", "EDA_AR"], T=60, two_label = False, neural_used=True, name = "EDA_combinations_two")
-# compare_combinations(all_data, sensors = ["EDA","ECG","RR","EMG"], prefixes = ["EDA", "HRV", "ECG", "RR", "EMG"], T=60, two_label = True, neural_used=True, name = "all_combinations_two")
-# compare_combinations(all_data, sensors = ["EDA","ECG","RR","EMG"], prefixes = ["EDA", "HRV", "ECG", "RR", "EMG"], T=60, two_label = False, neural_used=True, name = "all_combinations_two")
+# compare_combinations(all_data, sensors = ["EDA"], prefixes = ["EDA_time", "EDA_phasic", "EDA_wavelet", "EDA_AR"], T=60, two_label = False, neural_used=True, name = "EDA_combinations_four")
+# compare_combinations(all_data, sensors = ["EDA","ECG","EMG", "RR"], prefixes = ["RR", "EDA", "ECG", "EMG"], T=60, two_label = True, neural_used=True, name = "all_combinations_two")
+compare_combinations(all_data, sensors = ["EDA","ECG","EMG","RR"], prefixes = ["EDA", "ECG", "RR", "EMG"], T=60, two_label = False, neural_used=True, name = "all_combinations_four")
 
 
-feature_path = os.path.join(dir_path, "Features", "Features_out", "features.pkl")
-metrics = general_feature_testing(data = None, feature_extraction=False, classify=True, neural=False,
-                        Fs=700, sensors=["ECG", "EDA", "EMG", "RR"], T=60, dataset_name="WESAD", features_path=feature_path, gridsearch=False)
+# feature_path = os.path.join(dir_path, "Features", "Features_out", "features.pkl")
+# metrics = general_feature_testing(data = all_data, feature_extraction=True, classify=True, neural=True,
+                        # Fs=700, sensors=["RR", "ECG"], T=60, two_label=True, dataset_name="WESAD", features_path=feature_path, gridsearch=False)

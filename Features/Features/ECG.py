@@ -13,7 +13,7 @@ from statsmodels.tsa.ar_model import AutoReg
 
 from . import feat_gen
 
-def ECG(unprocessed_ecg, fs= 700):
+def ECG(unprocessed_ecg, fs= 700, wavelet_AR=False):
     """
     Description
     -----------
@@ -50,10 +50,13 @@ def ECG(unprocessed_ecg, fs= 700):
 
     features = []
 
+    # Commented features not used in final analysis
+
     features.append(ECG_specific_features(ecg, fs))
     features.append(feat_gen.basic_features(ecg, "ECG_time"))
-    features.append(ecg_wavelet_features(ecg))
-    features.append(ecg_AR_features(ecg))
+    if wavelet_AR == True:
+        features.append(ecg_wavelet_features(ecg))
+        features.append(ecg_AR_features(ecg))
 
     features = pd.concat(features, axis=1)
 
@@ -237,7 +240,7 @@ def ECG_specific_features(ecg, fs):
     #     out_dict["Spectral_energy"] = np.mean(power)
     #     out_dict["Norm_peak_power"] = np.max(power)/out_dict["Spectral_energy"]
 
-    return pd.DataFrame.from_dict(out_dict, orient="index").T.add_prefix("HRV_")
+    return pd.DataFrame.from_dict(out_dict, orient="index").T.add_prefix("ECG_HRV_")
 
 def rpeak_detector(ecg, fs):
 
