@@ -1,4 +1,4 @@
-
+#%%
 from os.path import isfile, join, isdir
 import os
 import numpy as np
@@ -7,6 +7,19 @@ import pickle
 import Interface
 import pandas as pd
 
+def picklabel(test):
+    if test == 'baseline':
+        return 1
+    elif test == 'meditation':
+        return 2
+    elif test == 'amusement':
+        return 3
+    elif test == 'anticipation':
+        return 4
+    elif test == 'presentation':
+        return 4
+    elif test == 'arithmetic':
+        return 4
 
 def create_pickle_arduino():
     """
@@ -36,22 +49,30 @@ def create_pickle_arduino():
     data = {}
     # Subject instantiation, will be done automatically 
     subjects = []
-    num_subjects = 10
-    for i in range(num_subjects):
-        subjects += ["S"+str(i)]
+    num_subjects = 1
+    for i in range(num_subjects,num_subjects+1):
+        subjects += ["subject"+str(i)]
+        
+    test_order = {'subject1' : ['baseline','meditation','amusement','anticipation','presentation','arithmetic'],
+                  'subject2' : ['baseline','meditation','amusement','anticipation','presentation','arithmetic'],
+                  'subject3' : ['baseline','meditation','amusement','anticipation','presentation','arithmetic']}
     # Loop through subjects and extract used data:
     # Labels: 1-4
     # Data: EMG, ECG, EDA of the chest
     # Other data (for now) not used
+
     
     for subject in subjects:
-        subject_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "data" + subject + ".csv")
-        df = pd.read_csv(subject_path)
-        data[subject] = {"EMG" : df["ECG Data"], "ECG" : df["ECG Data"], "EDA" : df["GSR Data"], "label" : df["label"]}
-        print(data[subjects[0]])
+        for test in test_order[subject]:
+            subject_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), subject, test + '.csv')
+            df = pd.read_csv(subject_path)
+            data[subject] = {"EMG" : df["EMG Data"], "ECG" : df["ECG Data"], "EDA" : df["EDA Data"], "label" : picklabel(test)}
+            print(data[subjects[0]])
     # Turn dictionary into pickle    
-    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), "Pickled_data", "data" + subject + ".pkl"), 'wb') as handle:
-        pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    # with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), "Pickled_data", "data" + subject + ".pkl"), 'wb') as handle:
+    #     pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
     return data
 data = create_pickle_arduino()
 
+
+# %%
