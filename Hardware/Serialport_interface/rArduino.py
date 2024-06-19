@@ -69,7 +69,7 @@ def create_pickle_arduino():
 
     
     for subject in subjects:
-        data[subject] = {"EMG" : x, "ECG" : x, "EDA" : x, "label" : x}
+        data[subject] = {"EMG" : x, "ECG" : x, "EDA" : x, "labels" : x}
         for test in test_order[subject]:
             if test_rating[subject][test] > 7:
                 subject_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'measurement_data', subject, test + '.csv')
@@ -77,7 +77,7 @@ def create_pickle_arduino():
                 data[subject] = {"EMG" : pd.concat([data[subject]['EMG'],df["EMG Data"]], ignore_index=True), 
                                  "ECG" : pd.concat([data[subject]['ECG'],df["ECG Data"]], ignore_index=True), 
                                  "EDA" : pd.concat([data[subject]['EDA'],df["EDA Data"]], ignore_index=True), 
-                                 "label" : pd.concat([data[subject]['label'],pd.Series(picklabel(test))], ignore_index=True)}
+                                 "labels" : pd.concat([data[subject]['labels'],pd.Series([picklabel(test)]*len(df["EMG Data"]))], ignore_index=True)}
                 print(data[subjects[0]])
     # Turn dictionary into pickle    
     with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), "data.pkl"), 'wb') as handle:
