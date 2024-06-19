@@ -42,20 +42,20 @@ def main(argv):
 if __name__ == "__main__":
    main(sys.argv[1:])
 
-#%%
-import numpy as np
-from scipy import signal
-from scipy.fft import fftshift
-import matplotlib.pyplot as plt
-import pandas as pd
+# #%%
+# import numpy as np
+# from scipy import signal
+# from scipy.fft import fftshift
+# import matplotlib.pyplot as plt
+# import pandas as pd
 
-importData = pd.read_csv("dataS0.csv")
+# importData = pd.read_csv("dataS0.csv")
 
-f, t, Sxx = signal.spectrogram(importData['EDA Data'], 100)
-plt.pcolormesh(t, f, Sxx, shading='gouraud')
-plt.ylabel('Frequency [Hz]')
-plt.xlabel('Time [sec]')
-plt.show()
+# f, t, Sxx = signal.spectrogram(importData['EDA Data'], 100)
+# plt.pcolormesh(t, f, Sxx, shading='gouraud')
+# plt.ylabel('Frequency [Hz]')
+# plt.xlabel('Time [sec]')
+# plt.show()
 
 
-# %%
+# # %%
