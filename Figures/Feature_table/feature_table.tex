@@ -5,6 +5,7 @@
 \usepackage{amsmath}
 \usepackage{color}
 \usepackage{tabularray}
+\usepackage{svg}
 \definecolor{Sushi}{rgb}{0.545,0.756,0.294}
 \definecolor{Frost}{rgb}{0.933,0.968,0.89}
 \usetikzlibrary{shapes.geometric, arrows}
@@ -44,7 +45,7 @@ draw=gray]
 \begin{document}
     \begin{tikzpicture}[transform shape, every node/.append style={}, color=gray, node distance = 3.5cm]
         % All blocks
-        \node (ECG) [block] {ECG};
+        \node (ECG) [block, rotate = 90] {ECG \includesvg[width=1cm]{Figures/Feature_icons/Icons_ECG.svg}};
 
         
     \end{tikzpicture}
