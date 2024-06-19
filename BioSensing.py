@@ -462,7 +462,8 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 
 # ARDUINO 
 all_data = feat_head.load_dict(os.path.join(dir_path, "Hardware", "Serialport_interface", "data.pkl"))
-feature_path = os.path.join(dir_path, "Cache", "Features", "features_23.pkl")
+# Features 29 is correct to test for Arduino
+feature_path = os.path.join(dir_path, "Cache", "Features", "features_29.pkl")
 metrics = general_feature_testing(data = all_data, feature_extraction=True, classify=True, neural=True,
                         Fs=268, sensors=["ECG", "EMG", "EDA", "RR"], T=55, two_label=True, dataset_name="Arduino", features_path=None, gridsearch=False, train_type="MEASURED")
 
