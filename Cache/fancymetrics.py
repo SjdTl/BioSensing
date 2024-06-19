@@ -35,4 +35,5 @@ def sensor_combinations_table(df, name = "Sensor_combination_metrics", title = "
 dir_path = os.path.dirname(os.path.realpath(__file__))
 name = "Metrics_22"
 df = pd.read_pickle(os.path.join(dir_path, "Metrics", f"{name}.pkl"))
+doc
 sensor_combinations_table(df, name, title = "Two label final performance")
