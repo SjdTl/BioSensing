@@ -447,9 +447,9 @@ all_data = feat_head.load_dict(os.path.join(dir_path, "Features", "Raw_data", "r
 # compare_combinations(all_data, sensors = ["EDA"], prefixes = ["EDA_time", "EDA_phasic", "EDA_wavelet", "EDA_AR"], T=60, two_label = True, neural_used=True, name = "EDA_combinations_two")
 # compare_combinations(all_data, sensors = ["EDA"], prefixes = ["EDA_time", "EDA_phasic", "EDA_wavelet", "EDA_AR"], T=60, two_label = False, neural_used=True, name = "EDA_combinations_four")
 # compare_combinations(all_data, sensors = ["EDA","ECG","EMG", "RR"], prefixes = ["RR", "EDA", "ECG", "EMG"], T=60, two_label = True, neural_used=True, name = "all_combinations_two")
-compare_combinations(all_data, sensors = ["EDA","ECG","EMG","RR"], prefixes = ["EDA", "ECG", "RR", "EMG"], T=60, two_label = False, neural_used=True, name = "all_combinations_four")
+# compare_combinations(all_data, sensors = ["EDA","ECG","EMG","RR"], prefixes = ["EDA", "ECG", "RR", "EMG"], T=60, two_label = False, neural_used=True, name = "all_combinations_four")
 
 
-# feature_path = os.path.join(dir_path, "Features", "Features_out", "features.pkl")
-# metrics = general_feature_testing(data = all_data, feature_extraction=True, classify=True, neural=True,
-                        # Fs=700, sensors=["RR", "ECG"], T=60, two_label=True, dataset_name="WESAD", features_path=feature_path, gridsearch=False)
+feature_path = os.path.join(dir_path, "Features", "Features_out", "features.pkl")
+metrics = general_feature_testing(data = all_data, feature_extraction=True, classify=True, neural=True,
+                        Fs=700, sensors=["ECG","EDA"], T=60, two_label=True, dataset_name="WESAD", features_path=feature_path, gridsearch=False)

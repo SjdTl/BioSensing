@@ -13,7 +13,7 @@
 minimum width=3.5cm,
 minimum height=2cm,
 text centered, 
-draw=gray]
+draw=black]
 
 \tikzstyle{io} = [trapezium, 
 trapezium stretches=true,
@@ -21,32 +21,234 @@ trapezium left angle=70,
 trapezium right angle=110, 
 minimum width=3.5cm, 
 minimum height=2cm, text centered, 
-draw=gray]
+draw=black]
 
 \tikzstyle{process} = [rectangle, 
 minimum width=3.5cm,
 minimum height=2cm,
 text centered, 
 text width=3cm, 
-draw=gray]
+draw=black]
 
 \tikzstyle{decision} = [diamond, 
 minimum width=3cm, 
 minimum height=1cm, 
 text centered, 
-draw=gray]
+draw=black]
 \tikzstyle{arrow} = [thick,->,>=stealth]
 
 \tikzstyle{circ} = [circle, 
 minimum size=1cm, 
 text centered, 
-draw=gray]
+draw=black]
 
 \begin{document}
-    \begin{tikzpicture}[transform shape, every node/.append style={}, color=gray, node distance = 3.5cm]
-        % All blocks
-        \node (ECG) [block, rotate = 90] {ECG \includesvg[width=1cm]{Figures/Feature_icons/Icons_ECG.svg}};
-
+    \begin{tikzpicture}[transform shape, every node/.append style={}, color=black, node distance = 3.5cm]
         
+        % ---------------------------------------------------
+        % ECG
+        % ECG BLOCKS
+        \node (ECG) [block, rotate = 90, minimum height = 1cm, minimum width = 5 cm] {\raisebox{-0.3\height}{\includesvg[width=1cm]{Feature_icons/Icons_ECG.svg}} \Large ECG};
+
+
+        \node(ECG_time) [block, minimum height = 2cm, minimum width = 4.5cm, anchor = west, align = left] at ([yshift=3cm]ECG.south) {};
+        \node[align = left, anchor = west] at ([xshift=2mm]ECG_time.west) {\Large Timedomain \\ \footnotesize Simple statistics};
+        \node[anchor = east] at ([xshift=-2mm]ECG_time.east) {\includesvg[width=1cm]{Feature_icons/Icons_Timedomain.svg}};
+
+        \node(ECG_HRV) [block, minimum height = 2cm, minimum width = 4.5cm, anchor = north] at (ECG_time.south) {};
+        \node[align = left, anchor = west] at ([xshift=2mm]ECG_HRV.west) {\Large HRV \\ \footnotesize Peak timing};
+        \node[anchor = east] at ([xshift=-2mm]ECG_HRV.east) {\includesvg[width=1cm]{Feature_icons/Icons_HRV.svg}};
+
+        \node(ECG_AR) [block, minimum height = 2cm, anchor = north, minimum width = 4.5cm] at (ECG_HRV.south) {};
+        \node[align = left, anchor = west] at ([xshift=2mm]ECG_AR.west) {\Large AR \\ \footnotesize Time series \\ \footnotesize modelling};
+        \node[anchor = east] at ([xshift=-2mm]ECG_AR.east) {\includesvg[width=1cm]{Feature_icons/Icons_AR.svg}};
+
+        \node(ECG_wavelet) [block, minimum height = 2cm, anchor = north, minimum width = 4.5cm] at (ECG_AR.south) {};
+        \node[align = left, anchor = west] at ([xshift=2mm]ECG_wavelet.west) {\Large Wavelet \\ \footnotesize Time-frequency \\ \footnotesize analysis};
+        \node[anchor = east] at ([xshift=-2mm]ECG_wavelet.east) {\includesvg[width=1cm]{Feature_icons/Icons_Wavelet.svg}};
+
+        % ECG TABLES
+        \node(ECG_time_table) [anchor = west] at (ECG_time.east) {
+            \begin{tabular}{||c|c||}
+                \hline
+                Features  & Description \\
+                \hline\hline
+                Mean/median & General tendency \\
+                Standard deviation (STD) & Variation \\
+                Mode & Most common value \\
+                \hline
+            \end{tabular}
+        };
+
+        \node(ECG_HRV_table) [anchor = west] at (ECG_HRV.east) {
+            \begin{tabular}{||c|c||}
+                \hline
+                Features  & Description \\
+                \hline\hline
+                Min/max/median/mean/SD/IQR NN & Peak time\\
+                RMSSD/SDSD/SDRMSDD/CVNN/CVSD & Peak rms\\
+                PcrxNN/pNN y & Proportions \\
+                \hline
+            \end{tabular}
+        };
+
+        \node(ECG_AR_table) [anchor = west] at (ECG_AR.east) {
+            \begin{tabular}{||c|c||}
+                \hline
+                Features  & Description \\
+                \hline\hline
+                Intercept & ?\\
+                Lag 1 & ?\\
+                Lag 2 & ? \\
+                \hline
+            \end{tabular}
+        };
+
+        \node(ECG_wavelet_table) [anchor = west] at (ECG_wavelet.east) {
+            \begin{tabular}{||c|c||}
+                \hline
+                Features  & Description \\
+                \hline\hline
+                Mean/Median & ? \\
+                STD & ?\\
+                Range & ? \\
+                \hline
+            \end{tabular}
+        };
+
+
+        % ---------------------------------------
+        % EDA
+        % EDA blocks
+        \node (EDA) [block, rotate = 90, minimum height = 1cm, left of = ECG, anchor = east, xshift = -2.5 cm, minimum width = 5cm] {\raisebox{-0.3\height}{\includesvg[width=1cm]{Feature_icons/Icons_EDA.svg}} \Large EDA};
+        
+        
+        \node(EDA_time) [block, minimum height = 2cm, minimum width = 4.5cm, anchor = west, align = left] at ([yshift=3cm]EDA.south) {};
+        \node[align = left, anchor = west] at ([xshift=2mm]EDA_time.west) {\Large Timedomain \\ \footnotesize Simple statistics};
+        \node[anchor = east] at ([xshift=-2mm]EDA_time.east) {\includesvg[width=1cm]{Feature_icons/Icons_Timedomain.svg}};
+
+        \node(EDA_HRV) [block, minimum height = 2cm, minimum width = 4.5cm, anchor = north] at (EDA_time.south) {};
+        \node[align = left, anchor = west] at ([xshift=2mm]EDA_HRV.west) {\Large Phasic \\ \footnotesize Phasic statistics \\ \footnotesize \& peak detection};
+        \node[anchor = east] at ([xshift=-2mm]EDA_HRV.east) {\includesvg[width=1cm]{Feature_icons/Icons_phasic.svg}};
+
+        \node(EDA_AR) [block, minimum height = 2cm, anchor = north, minimum width = 4.5cm] at (EDA_HRV.south) {};
+        \node[align = left, anchor = west] at ([xshift=2mm]EDA_AR.west) {\Large AR \\ \footnotesize Time series \\ \footnotesize modelling};
+        \node[anchor = east] at ([xshift=-2mm]EDA_AR.east) {\includesvg[width=1cm]{Feature_icons/Icons_AR.svg}};
+
+        \node(EDA_wavelet) [block, minimum height = 2cm, anchor = north, minimum width = 4.5cm] at (EDA_AR.south) {};
+        \node[align = left, anchor = west] at ([xshift=2mm]EDA_wavelet.west) {\Large Wavelet \\ \footnotesize Time-frequency \\ \footnotesize analysis};
+        \node[anchor = east] at ([xshift=-2mm]EDA_wavelet.east) {\includesvg[width=1cm]{Feature_icons/Icons_Wavelet.svg}};
+        
+        % EDA tables
+        \node(EDA_time_table) [anchor = west] at (EDA_time.east) {
+            \begin{tabular}{||c|c||}
+                \hline
+                Features  & Description \\
+                \hline\hline
+                Mean/median & General tendency \\
+                Standard deviation (STD) & Variation \\
+                Mode & Most common value \\
+                \hline
+            \end{tabular}
+        };
+
+        \node(EDA_HRV_table) [anchor = west] at (EDA_HRV.east) {
+            \begin{tabular}{||c|c||}
+                \hline
+                Features  & Description \\
+                \hline\hline
+                Min/max/median/mean/SD/IQR NN & Peak time\\
+                RMSSD/SDSD/SDRMSDD/CVNN/CVSD & Peak rms\\
+                PcrxNN/pNN y & Proportions \\
+                \hline
+            \end{tabular}
+        };
+
+        \node(EDA_AR_table) [anchor = west] at (EDA_AR.east) {
+            \begin{tabular}{||c|c||}
+                \hline
+                Features  & Description \\
+                \hline\hline
+                Intercept & ?\\
+                Lag 1 & ?\\
+                Lag 2 & ? \\
+                \hline
+            \end{tabular}
+        };
+
+        \node(EDA_wavelet_table) [anchor = west] at (EDA_wavelet.east) {
+            \begin{tabular}{||c|c||}
+                \hline
+                Features  & Description \\
+                \hline\hline
+                Mean/Median & ? \\
+                STD & ?\\
+                Range & ? \\
+                \hline
+            \end{tabular}
+        };
+        
+        % ---------------------------------------
+        % EMG
+        % EMG blocks
+        \node (EMG) [block, rotate = 90, minimum height = 1cm, left of = EDA, anchor = east, xshift = -1cm] {\raisebox{-0.3\height}{\includesvg[width=1cm]{Feature_icons/Icons_EMG.svg}} \Large EMG};
+
+
+        \node(EMG_time) [block, minimum height = 3.75cm, minimum width = 4.5cm, anchor = west, align = left] at (EMG.south) {};
+        \node[align = left, anchor = west] at ([xshift=2mm]EMG_time.west) {\Large Timedomain \\ \footnotesize Hard statistics};
+        \node[anchor = east] at ([xshift=-2mm]EMG_time.east) {\includesvg[width=1cm]{Feature_icons/Icons_Timedomain.svg}};
+
+        % EMG tables
+        \node(EMG_time_table) [anchor = west] at (EMG_time.east) {
+            \begin{tabular}{||c|c||}
+                \hline
+                Features &  Description\\
+                \hline\hline
+                MAV/MMAV I/MMAV II/WL & (Mean) absolute values\\
+                Variance/nth absolute moment ($n=2,3,4$) & Average deviation from mean\\
+                RMS & Root mean square\\
+                Difference absolute standard deviation value & STD of the WL\\
+                Myopulse percentage rate & average time that the absolute value exceeding the threshold\\
+                Willison amplitude & the amount that the absolute value exceeding the threshold\\
+                Slope sign change (SSC) & slope sign changes\\
+                \hline
+            \end{tabular}
+        };
+
+        % ---------------------------------------
+        % RR
+        % RR blocks
+        \node (RR) [block, rotate = 90, minimum height = 1cm, left of = EMG, anchor = east, xshift = 1cm] {\raisebox{-0.3\height}{\includesvg[width=1cm]{Feature_icons/Icons_RR.svg}} \Large RR};
+
+
+        \node(RR_time_used) [block, minimum height = 2cm, minimum width = 4.5cm, anchor = west, align = left] at ([yshift=1cm]RR.south) {};
+        \node[align = left, anchor = west] at ([xshift=2mm]RR_time_used.west) {\Large Timedomain \\ \footnotesize Simple statistics\\ \footnotesize (unused)};
+        \node[anchor = east] at ([xshift=-2mm]RR_time_used.east) {\includesvg[width=1cm]{Feature_icons/Icons_Timedomain.svg}};
+
+        \node(RR_time_unused) [block, minimum height = 2cm, minimum width = 4.5cm, anchor = north, align = left] at (RR_time_used.south) {};
+        \node[align = left, anchor = west] at ([xshift=2mm]RR_time_unused.west) {\Large Timedomain \\ \footnotesize Simple statistics \\ \footnotesize (used)};
+        \node[anchor = east] at ([xshift=-2mm]RR_time_unused.east) {\includesvg[width=1cm]{Feature_icons/Icons_Timedomain.svg}};
+
+        % RR tables
+        \node(RR_time_used_table) [anchor = west] at (RR_time_used.east) {
+            \begin{tabular}{||c|c||}
+                \hline
+                Features &  Description\\
+                \hline\hline
+                ?& ? \\
+                \hline
+            \end{tabular}
+        };
+
+        \node(RR_time_unused_table) [anchor = west] at (RR_time_unused.east) {
+            \begin{tabular}{||c|c||}
+                \hline
+                Features &  Description\\
+                \hline\hline
+                ?& ? \\
+                \hline
+            \end{tabular}
+        };
+
     \end{tikzpicture}
 \end{document}
