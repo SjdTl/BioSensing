@@ -155,7 +155,13 @@ def get_features(data, fs):
             emg_features = EMG.EMG(data["EMG"], fs)
             feature_list.append(emg_features)
         if sensor == "RR":
-            Q = 7
+            if fs == 268:
+                # Arduino
+                Q = 3
+            else:
+                # WESAD
+                Q = 7
+
             ecg = decimate(data["RR"], Q)
             processed_ecg, _, _ = ECG.lowpassecg(ecg, fs=(fs/Q))
             rr = RR.ECG_to_RR(processed_ecg, fs=int(fs/Q))

@@ -51,7 +51,11 @@ def EDA(eda, fs, wavelet_AR=True, EDA_timedomain=False):
     ValueError
         Raises error if there is a NaN value in the features
     """
-    downsampling_factor = 10
+    if fs == 268:
+        downsampling_factor = 4
+    else:
+        downsampling_factor = 10
+
     eda, phasic, tonic = preProcessing(eda, fs, Q= downsampling_factor)
     
     features = []
