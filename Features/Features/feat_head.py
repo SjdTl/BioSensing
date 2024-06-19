@@ -144,7 +144,6 @@ def get_features(data, fs):
     """
     
     feature_list = []
-
     for sensor in data:
         if sensor == "ECG":
             ecg_features = ECG.ECG(data["ECG"], fs)
@@ -158,11 +157,10 @@ def get_features(data, fs):
         if sensor == "RR":
             Q = 7
             ecg = decimate(data["RR"], Q)
-            processed_ecg = ECG.preProcessing(ecg, fs=int(fs/Q))
+            processed_ecg, _, _ = ECG.lowpassecg(ecg, fs=(fs/Q))
             rr = RR.ECG_to_RR(processed_ecg, fs=int(fs/Q))
             rr_features = RR.RR(rr, int(fs/Q))
             feature_list.append(rr_features)
-
     return feature_list
 
 

@@ -165,8 +165,8 @@ def find_all_features(rr, ecg, random_value, method="vangent2019", fs=100, T=60,
         return features
     else:
         for rr, ecg in (zip(rr, ecg)):
-            ecg = ECG.preProcessing(ecg, fs=fs)
-            extracted_RR = (RR.ECG_to_RR(ecg, fs=fs, method=method))
+            processed_ecg, _, _ = ECG.lowpassecg(ecg, fs=fs)
+            extracted_RR = (RR.ECG_to_RR(processed_ecg, fs=fs, method=method))
             current_feature=RR.RR(extracted_RR, fs=fs, peak_prominence = peak_prominence, drop_bad_features = False)
             features = pd.concat([features, current_feature], ignore_index=True)
             

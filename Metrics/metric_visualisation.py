@@ -47,6 +47,7 @@ def sensor_combinations(df, name = "Sensor_combination_metrics", drop_preprefix 
     fig.savefig(os.path.join(dir_path, "Figures", name + ".svg"))
 
 def sensor_combinations_table(df, name = "Sensor_combination_metrics", drop_preprefix = False, title = "Performance by all features types", join_HRV_ECG = True):
+    # Join HRV_ECG is an old feature and won't work on metrics that are new
     metrics = df["metrics"]
     mean_classifier_df = metrics[metrics['Classifier'] == 'mean_classifier']
 
@@ -124,10 +125,10 @@ def change_timeframes(df, name):
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
-# name = "all_combinations_four"
-# df = pd.read_pickle(os.path.join(dir_path, "Feature_combinations", f"{name}.pkl"))
-# sensor_combinations_table(df, name, drop_preprefix=True, title = "Four label performance by all feature types", join_HRV_ECG = True)
+name = "all_combinations_four"
+df = pd.read_pickle(os.path.join(dir_path, "Feature_combinations", f"{name}.pkl"))
+sensor_combinations_table(df, name, drop_preprefix=True, title = "Four label performance by all feature types", join_HRV_ECG = False)
 
-name = "time_window_eda_four"
-df = pd.read_pickle(os.path.join(dir_path, "Timeframes_change", f"{name}.pkl"))
-change_timeframes(df, name)
+# name = "time_window_eda_four"
+# df = pd.read_pickle(os.path.join(dir_path, "Timeframes_change", f"{name}.pkl"))
+# change_timeframes(df, name)
