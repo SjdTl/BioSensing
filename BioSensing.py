@@ -229,7 +229,7 @@ def general_feature_testing(data=None, classify = True, feature_extraction = Tru
             if train_type == "WESAD":
                 metrics.append(neural_head.mlp(features=features, two_label=two_label, print_messages = print_messages, save_figures=save_figures))
             if train_type == "MEASURED":
-                metrics.append(neural_head.mlp_train_test_measured(features=features, two_label=two_label, print_messages = print_messages, save_figures=save_figures))
+                metrics.append(neural_head.mlp(features=None, two_label=two_label, print_messages = print_messages, save_figures=save_figures))
             if train_type == "WESAD-MEASURED":
                 metrics.append(neural_head.mlp_eval_measured(wesad=features, measured=None, two_label=two_label, print_messages = print_messages, save_figures=save_figures))            
 
