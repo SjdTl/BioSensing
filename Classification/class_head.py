@@ -661,7 +661,7 @@ def eval_all(features, print_messages = True, save_figures = True, two_label = T
                     sns.heatmap(cm, annot=True, fmt=".3f", linewidths=.5, square = True, cmap = 'Blues', xticklabels=["Baseline", "Stress", "Amusement", "Meditation"], yticklabels=["Baseline", "Stress", "Amusement", "Meditation"])
                 plt.ylabel('Actual label')
                 plt.xlabel('Predicted label')
-                all_sample_title = 'Balanced Accuracy Score: {0}, {1}'.format(round((np.average(accuracy_arry))*100, 3), classifier_name)
+                all_sample_title = 'Balanced Accuracy Score: {0}, {1}'.format(round((np.average(balanced_arry))*100, 3), classifier_name)
                 plt.title(all_sample_title, size = 10)
                 plt.savefig(os.path.join(dir_path, "ConfusionMatrix", ".".join([classifier_name, "svg"])))
         
