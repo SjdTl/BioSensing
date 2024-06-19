@@ -568,7 +568,7 @@ def eval_all(features, print_messages = True, save_figures = True, two_label = T
         parameters = {'algorithm':('SAMME', 'SAMME.R'), 'n_estimators':np.arange(50, 70, 1), 'learning_rate':np.arange(0.1, 2, 0.2)}
         grid = GridSearchCV(classifier, parameters, verbose=2)
         grid.fit(X_train, Y_train)
-        print(grid.cv_results_)
+        print(grid.best_params_)
     else:
         logo = LeaveOneGroupOut()
         features = features_data_scaled.drop(columns=['label', 'subject']).to_numpy()

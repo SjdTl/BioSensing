@@ -443,20 +443,20 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 
 
 feature_path = os.path.join(dir_path, "Features", "Features_out", "features.pkl")
-metrics = general_feature_testing(data = None, feature_extraction=False, classify=False, neural=True,
-                        Fs=700, sensors=["ECG", "EDA", "EMG", "RR"], T=60, dataset_name="WESAD", features_path=feature_path, gridsearch=False)
-compare_timeframes(all_data, sensors = ["EDA"], runs=10, two_label = True, neural = True)
-compare_timeframes(all_data, sensors = ["ECG"], runs=10, two_label = True, neural = True)
-compare_timeframes(all_data, sensors = ["EDA"], runs=10, two_label = False, neural = True)
-compare_timeframes(all_data, sensors = ["ECG"], runs=10, two_label = False, neural = True)
-compare_combinations(all_data, sensors = ["ECG"], prefixes = ["ECG_time", "HRV", "ECG_wavelet", "ECG_AR"], T=60, two_label = True, neural_used=True, name = "ECG_combinations_two")
-compare_combinations(all_data, sensors = ["ECG"], prefixes = ["ECG_time", "HRV", "ECG_wavelet", "ECG_AR"], T=60, two_label = False, neural_used=True, name = "ECG_combinations_four")
-compare_combinations(all_data, sensors = ["EDA"], prefixes = ["EDA_time", "EDA_phasic", "EDA_wavelet", "EDA_AR"], T=60, two_label = True, neural_used=True, name = "EDA_combinations_two")
-compare_combinations(all_data, sensors = ["EDA"], prefixes = ["EDA_time", "EDA_phasic", "EDA_wavelet", "EDA_AR"], T=60, two_label = False, neural_used=True, name = "EDA_combinations_two")
-compare_combinations(all_data, sensors = ["EDA","ECG","RR","EMG"], prefixes = ["EDA", "HRV", "ECG", "RR", "EMG"], T=60, two_label = True, neural_used=True, name = "all_combinations_two")
-compare_combinations(all_data, sensors = ["EDA","ECG","RR","EMG"], prefixes = ["EDA", "HRV", "ECG", "RR", "EMG"], T=60, two_label = False, neural_used=True, name = "all_combinations_two")
+# metrics = general_feature_testing(data = None, feature_extraction=False, classify=False, neural=True,
+#                         Fs=700, sensors=["ECG", "EDA", "EMG", "RR"], T=60, dataset_name="WESAD", features_path=feature_path, gridsearch=False)
+# compare_timeframes(all_data, sensors = ["EDA"], runs=10, two_label = True, neural = True)
+# compare_timeframes(all_data, sensors = ["ECG"], runs=10, two_label = True, neural = True)
+# compare_timeframes(all_data, sensors = ["EDA"], runs=10, two_label = False, neural = True)
+# compare_timeframes(all_data, sensors = ["ECG"], runs=10, two_label = False, neural = True)
+# compare_combinations(all_data, sensors = ["ECG"], prefixes = ["ECG_time", "HRV", "ECG_wavelet", "ECG_AR"], T=60, two_label = True, neural_used=True, name = "ECG_combinations_two")
+# compare_combinations(all_data, sensors = ["ECG"], prefixes = ["ECG_time", "HRV", "ECG_wavelet", "ECG_AR"], T=60, two_label = False, neural_used=True, name = "ECG_combinations_four")
+# compare_combinations(all_data, sensors = ["EDA"], prefixes = ["EDA_time", "EDA_phasic", "EDA_wavelet", "EDA_AR"], T=60, two_label = True, neural_used=True, name = "EDA_combinations_two")
+# compare_combinations(all_data, sensors = ["EDA"], prefixes = ["EDA_time", "EDA_phasic", "EDA_wavelet", "EDA_AR"], T=60, two_label = False, neural_used=True, name = "EDA_combinations_two")
+# compare_combinations(all_data, sensors = ["EDA","ECG","RR","EMG"], prefixes = ["EDA", "HRV", "ECG", "RR", "EMG"], T=60, two_label = True, neural_used=True, name = "all_combinations_two")
+# compare_combinations(all_data, sensors = ["EDA","ECG","RR","EMG"], prefixes = ["EDA", "HRV", "ECG", "RR", "EMG"], T=60, two_label = False, neural_used=True, name = "all_combinations_two")
 
 
 feature_path = os.path.join(dir_path, "Features", "Features_out", "features.pkl")
-metrics = general_feature_testing(data = all_data, feature_extraction=True, classify=True, neural=True,
-                        Fs=700, sensors=["ECG"], T=60, dataset_name="WESAD", features_path=feature_path, gridsearch=False)
+metrics = general_feature_testing(data = None, feature_extraction=False, classify=True, neural=False,
+                        Fs=700, sensors=["ECG", "EDA", "EMG", "RR"], T=60, dataset_name="WESAD", features_path=feature_path, gridsearch=False)
