@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 from tqdm.notebook import tqdm
 from sklearn import preprocessing
-from sklearn.model_selection import LeaveOneGroupOut, GridSearchCV
+from sklearn.model_selection import LeaveOneGroupOut, LeaveOneOut, GridSearchCV
 from scipy import stats
 import seaborn as sns
 import numpy as np
@@ -217,7 +217,7 @@ def fit_model(X_train, Y_train, classifier="RandomForest", RFC_n_estimators=100,
     >>>
     """
     switch={
-        "Random Forrest": RandomForestClassifier(n_estimators=RFC_n_estimators, max_depth=RFC_max_depth).fit(X_train, Y_train),
+        "Random Forest": RandomForestClassifier(n_estimators=RFC_n_estimators, max_depth=RFC_max_depth).fit(X_train, Y_train),
         "K-Nearest Neighbors": KNeighborsClassifier(n_neighbors=KNE_n_neighbors, leaf_size=KNE_leaf_size).fit(X_train, Y_train),
         "AdaBoost": AdaBoostClassifier(algorithm="SAMME", n_estimators=ADA_n_estimators, learning_rate=ADA_learning_rate).fit(X_train, Y_train),
         "Decision Tree": DecisionTreeClassifier(max_depth=DTC_max_depth).fit(X_train, Y_train),
@@ -342,7 +342,7 @@ def importances(model, classifier="RandomForest"):
     --------
     >>>
     """
-    if classifier == "Random Forrest":
+    if classifier == "Random Forest":
         return model.feature_importances_
     if classifier == "AdaBoost": 
         return model.feature_importances_
@@ -465,13 +465,13 @@ def fit_predict_evaluate(X_train, Y_train, x_test, y_test, features_array, RFC_n
     """
     accuracy_dict = {}
     fone_dict = {}
-    classifier_name_list = ["Random Forrest", "K-Nearest Neighbors", "AdaBoost", "Decision Tree", "Support Vector Machine", "Linear Discriminant Analysis", "Bernoulli Naive Bayes"]
+    classifier_name_list = ["Random Forest", "K-Nearest Neighbors", "AdaBoost", "Decision Tree", "Support Vector Machine", "Linear Discriminant Analysis", "Bernoulli Naive Bayes"]
 
     #Random Forest Classifier
     classifier_RFC = fit_model(X_train=X_train, Y_train=Y_train, classifier="RandomForest", RFC_max_depth=RFC_max_depth, RFC_n_estimators=RFC_n_estimators)
     y_pred_RFC = predict(classifier_RFC, x_test)
-    accuracy_dict["Random Forrest"], fone_dict["Random Forrest"] = evaluate(y_test, y_pred_RFC)
-    confusion_matirx_print(classifier_RFC, x_test, y_test, model_name="Random Forrest")
+    accuracy_dict["Random Forest"], fone_dict["Random Forest"] = evaluate(y_test, y_pred_RFC)
+    confusion_matirx_print(classifier_RFC, x_test, y_test, model_name="Random Forest")
 
     importances_RFC = importances(classifier_RFC, "RandomForest")
     # Sort feature importances in descending order
@@ -480,7 +480,7 @@ def fit_predict_evaluate(X_train, Y_train, x_test, y_test, features_array, RFC_n
     # Plot the feature importances
     plt.figure()
     plt.rcParams['figure.figsize'] = [35, 4]
-    plt.title("Feature importances Random Forrest")
+    plt.title("Feature importances Random Forest")
     plt.bar(range(X_train.shape[1]), importances_RFC[indices_RFC], align="center")
     plt.xticks(range(X_train.shape[1]), list(features_array.columns))
     plt.xticks(rotation=90)
@@ -542,8 +542,7 @@ def fit_predict_evaluate(X_train, Y_train, x_test, y_test, features_array, RFC_n
 def eval_all(features, print_messages = True, save_figures = True, two_label = True, gridsearch = False):
     metrics = []
 
-
-    classifier_name_list = ["Random Forrest", "K-Nearest Neighbors", "AdaBoost", "Decision Tree", "Support Vector Machine", "Linear Discriminant Analysis", "Bernoulli Naive Bayes"]
+    classifier_name_list = ["Random Forest", "K-Nearest Neighbors", "AdaBoost", "Decision Tree", "Support Vector Machine", "Linear Discriminant Analysis", "Bernoulli Naive Bayes"]
     
     #Drop random feature
     features_data = features.drop(columns=['random_feature'])
@@ -607,7 +606,7 @@ def eval_all(features, print_messages = True, save_figures = True, two_label = T
                 print('Average: fone, balanced, regular: {}, {}'.format("Neural", np.average(fone_arry), np.average(balanced_arry), np.average(accuracy_arry)))
                 print('Variance: fone, balanced, regular: {}, {}'.format("Neural", np.var(fone_arry), np.var(balanced_arry), np.var(accuracy_arry)))
 
-            if classifier_name == "Random Forrest" or classifier_name == "AdaBoost" or classifier_name == "Decision Tree" or classifier_name == "Linear Discriminant Analysis"or classifier_name == "Bernoulli Naive Bayes":
+            if classifier_name == "Random Forest" or classifier_name == "AdaBoost" or classifier_name == "Decision Tree" or classifier_name == "Linear Discriminant Analysis"or classifier_name == "Bernoulli Naive Bayes":
                 importance = importances(classifier, classifier_name)
                 # Sort feature importances in descending order
                 indices = np.argsort(importance)[::-1]
@@ -664,6 +663,350 @@ def eval_all(features, print_messages = True, save_figures = True, two_label = T
                 all_sample_title = 'Balanced Accuracy Score: {0}, {1}'.format(round((np.average(balanced_arry))*100, 3), classifier_name)
                 plt.title(all_sample_title, size = 10)
                 plt.savefig(os.path.join(dir_path, "ConfusionMatrix", ".".join([classifier_name, "svg"])))
+        
+    metrics = pd.concat(metrics, ignore_index = True)
+
+
+    return metrics
+
+
+def fit_predict_evaluate(X_train, Y_train, x_test, y_test, features_array, RFC_n_estimators=100, RFC_max_depth=None, KNE_n_neighbors=20, KNE_leaf_size=30, ADA_n_estimators=50, ADA_learning_rate=1, DTC_max_depth=3, LDA_solver="svd", BNB_alpha=1):
+    """
+    Description
+    -----------
+    Function that fits, predicts and prints evaluation scores of all available models
+
+    Parameters
+    ----------
+    X_train : np.array
+        array with features of train data
+    Y_train : np.array
+        array with labels of train data
+    x_test : np.array
+        array with features of test data
+    y_test : np.array
+        array with labels of test data
+    KNE_n_neighbors : int
+        number of neighbors of K-nearest neighbors
+    DT_max_depth : int
+        max depth of decision tree
+        
+    Returns
+    -------
+    None
+    
+    Raises
+    ------
+    error
+         description
+    
+    Notes
+    -----
+    None
+
+    Examples
+    --------
+    >>>
+    """
+    accuracy_dict = {}
+    fone_dict = {}
+    classifier_name_list = ["Random Forest", "K-Nearest Neighbors", "AdaBoost", "Decision Tree", "Support Vector Machine", "Linear Discriminant Analysis", "Bernoulli Naive Bayes"]
+
+    #Random Forest Classifier
+    classifier_RFC = fit_model(X_train=X_train, Y_train=Y_train, classifier="RandomForest", RFC_max_depth=RFC_max_depth, RFC_n_estimators=RFC_n_estimators)
+    y_pred_RFC = predict(classifier_RFC, x_test)
+    accuracy_dict["Random Forest"], fone_dict["Random Forest"] = evaluate(y_test, y_pred_RFC)
+    confusion_matirx_print(classifier_RFC, x_test, y_test, model_name="Random Forest")
+
+    importances_RFC = importances(classifier_RFC, "RandomForest")
+    # Sort feature importances in descending order
+    indices_RFC = np.argsort(importances_RFC)[::-1]
+
+    # Plot the feature importances
+    plt.figure()
+    plt.rcParams['figure.figsize'] = [35, 4]
+    plt.title("Feature importances Random Forest")
+    plt.bar(range(X_train.shape[1]), importances_RFC[indices_RFC], align="center")
+    plt.xticks(range(X_train.shape[1]), list(features_array.columns))
+    plt.xticks(rotation=90)
+    plt.xlabel("Feature index")
+    plt.ylabel("Feature importance")
+
+    #K-Nearest Neighbors Classifier
+    classifier_KNE = fit_model(X_train=X_train, Y_train=Y_train, classifier="KNeighbors", KNE_n_neighbors=KNE_n_neighbors, KNE_leaf_size=KNE_leaf_size)
+    y_pred_KNE = predict(classifier_KNE, x_test)
+    accuracy_dict["K-Nearest Neighbors"], fone_dict["K-Nearest Neighbors"] = evaluate(y_test, y_pred_KNE)
+    confusion_matirx_print(classifier_KNE, x_test, y_test, model_name="K-Nearest Neighbors")
+
+    #Adaboost Classifier
+    classifier_ADA = fit_model(X_train=X_train, Y_train=Y_train, classifier="AdaBoost", ADA_learning_rate=ADA_learning_rate, ADA_n_estimators=ADA_n_estimators)
+    y_pred_ADA = predict(classifier_ADA, x_test)
+    accuracy_dict["AdaBoost"], fone_dict["AdaBoost"] = evaluate(y_test, y_pred_ADA)
+    confusion_matirx_print(classifier_ADA, x_test, y_test, model_name="AdaBoost")
+
+    importances_ADA = importances(classifier_ADA, "AdaBoost")
+    # Sort feature importances in descending order
+    indices_ADA = np.argsort(importances_ADA)[::-1]
+
+    # Plot the feature importances
+    plt.figure()
+    plt.rcParams['figure.figsize'] = [35, 4]
+    plt.title("Feature importances AdaBoost")
+    plt.bar(range(X_train.shape[1]), importances_ADA[indices_ADA], align="center")
+    plt.xticks(range(X_train.shape[1]), list(features_array.columns))
+    plt.xticks(rotation=90)
+    plt.xlabel("Feature index")
+    plt.ylabel("Feature importance") 
+
+    #Decision Tree Regressor
+    classifier_DTC = fit_model(X_train=X_train, Y_train=Y_train, classifier="DecisionTree", DTC_max_depth=DTC_max_depth)
+    y_pred_DTC = predict(classifier_DTC, x_test)
+    accuracy_dict["Decision Tree"], fone_dict["Decision Tree"] = evaluate(y_test, y_pred_DTC)
+    confusion_matirx_print(classifier_DTC, x_test, y_test, model_name="Decision Tree")
+
+    #Support Vector Machine
+    classifier_SVM = fit_model(X_train=X_train, Y_train=Y_train, classifier="SVM")
+    y_pred_SVM = predict(classifier_SVM, x_test)
+    accuracy_dict["Support Vector Machine"], fone_dict["Support Vector Machine"] = evaluate(y_test, y_pred_SVM)
+    confusion_matirx_print(classifier_SVM, x_test, y_test, model_name="Support Vector Machine")
+
+    #Linear Discriminant Analysis
+    classifier_LDA = fit_model(X_train=X_train, Y_train=Y_train, classifier="LinearDiscriminantAnalysis", LDA_solver=LDA_solver)
+    y_pred_LDA = predict(classifier_LDA, x_test)
+    accuracy_dict["Linear Discriminant Analysis"], fone_dict["Linear Discriminant Analysis"] = evaluate(y_test, y_pred_LDA)
+    confusion_matirx_print(classifier_LDA, x_test, y_test, model_name="Linear Discriminant Analysis")
+
+    #Bernoulli
+    classifier_BNB = fit_model(X_train=X_train, Y_train=Y_train, classifier="BernoulliNB", BNB_alpha=BNB_alpha)
+    y_pred_BNB = predict(classifier_BNB, x_test)
+    accuracy_dict["Bernoulli Naive Bayes"], fone_dict["Bernoulli Naive Bayes"] = evaluate(y_test, y_pred_BNB)
+    confusion_matirx_print(classifier_BNB, x_test, y_test, model_name="Bernoulli Naive Bayes")
+
+    return accuracy_dict, fone_dict
+
+def eval_measured(wesad, measured, print_messages = True, save_figures = True, two_label = True, gridsearch = False):
+    metrics = []
+
+    classifier_name_list = ["Random Forest", "K-Nearest Neighbors", "AdaBoost", "Decision Tree", "Support Vector Machine", "Linear Discriminant Analysis", "Bernoulli Naive Bayes"]
+    
+    #Drop random feature
+    wesad = wesad.drop(columns=['random_feature'])
+    measured = measured.drop(columns=['random_feature'])
+
+    #Redo numbering of subjects
+    wesad.loc[wesad['subject'] == 16, 'subject'] = 1
+    wesad.loc[wesad['subject'] == 17, 'subject'] = 12
+    if two_label == True:
+        wesad.loc[wesad['label'] == 3, 'label'] = 1
+        wesad.loc[wesad['label'] == 4, 'label'] = 1
+        measured.loc[measured['label'] == 3, 'label'] = 1
+        measured.loc[measured['label'] == 4, 'label'] = 1
+
+    #Remove the subject and label collums and normalize
+    wesad_turncated = wesad.drop(columns=['label', 'subject'])
+    measured_turncated = measured.drop(columns=['label', 'subject'])
+    scaler = preprocessing.StandardScaler()
+    wesad_scaled = pd.DataFrame(scaler.fit_transform(wesad_turncated))
+    wesad_scaled = wesad_scaled.join(wesad['label'])
+    wesad_scaled = wesad_scaled.join(wesad['subject'])
+    measured_scaled = pd.DataFrame(scaler.fit_transform(measured_turncated))
+    measured_scaled = measured_scaled.join(measured['label'])
+    measured_scaled = measured_scaled.join(measured['subject'])
+
+    #Split into X and Y
+    X_train = wesad_scaled.drop(columns=['label', 'subject']).to_numpy()
+    Y_train = wesad_scaled['label'].to_numpy()
+    x_test = measured_scaled.drop(columns=['label', 'subject']).to_numpy()
+    y_test = measured_scaled['label'].to_numpy()
+
+    for classifier_name in classifier_name_list:
+        cm = 0
+
+        #Scale split data
+        scaler = preprocessing.StandardScaler().fit(X_train)
+        X_train = scaler.transform(X_train)
+        x_test = scaler.transform(x_test)
+
+        classifier = fit_model(X_train=X_train, Y_train=Y_train, classifier=classifier_name)
+        y_pred = predict(classifier, x_test)
+        accuracy, fone = evaluate(y_test, y_pred, two_label=two_label)
+        balanced_accuracy = balanced_accuracy_score(y_true=y_test, y_pred=y_pred)
+
+        cm += confusion_matrix(y_test, y_pred)
+
+        if print_messages == True:
+            print(classifier)
+            print('fone, balanced, regular: {}, {}, {}, {}'.format("Neural", fone, balanced_accuracy, accuracy))
+            print('Variance: fone, balanced, regular: {}, {}, {}, {}'.format("Neural", fone, balanced_accuracy, accuracy))
+
+        if classifier_name == "Random Forest" or classifier_name == "AdaBoost" or classifier_name == "Decision Tree" or classifier_name == "Linear Discriminant Analysis"or classifier_name == "Bernoulli Naive Bayes":
+            importance = importances(classifier, classifier_name)
+            # Sort feature importances in descending order
+            indices = np.argsort(importance)[::-1]
+
+            # Plot the feature importances
+            if save_figures == True:
+                plt.figure(figsize=(30, 15))
+                plt.title(" ".join(["Feature importances", classifier_name]))
+                plt.bar(range(X_train.shape[1]), importance[indices], align="center")
+                sorted_feature_names = [list(wesad.columns)[i] for i in indices]
+                plt.xticks(range(X_train.shape[1]), sorted_feature_names, rotation=90, fontsize=9)
+                plt.xlabel("Feature index")
+                plt.ylabel("Feature importance") 
+                plt.savefig(os.path.join(dir_path, "Feature_importance", ".".join([classifier_name, "svg"])))
+                plt.close()
+
+            # Make sure the list is always of length 3
+            features_data_list = list(wesad_turncated.columns)
+            features_data_list += [np.nan] * (3 - len(list(wesad_turncated.columns))) if len(list(wesad_turncated.columns)) < 3 else []
+
+            new_row = pd.DataFrame({
+                'Classifier': [classifier],
+                'Balanced_accuracy': [balanced_accuracy],
+                'Regular_accuracy': [accuracy],
+                'f1-score': [fone],
+                'Most important feature': [features_data_list[0]],
+                "Second most important feature": [features_data_list[1]],
+                "Third most important feature": [features_data_list[2]]
+            })
+            metrics.append(new_row)
+        else:
+            new_row = pd.DataFrame({
+                'Classifier': [classifier],
+                'Balanced_accuracy': [balanced_accuracy],
+                'Regular_accuracy': [accuracy],
+                'f1-score': [fone]
+            })
+            metrics.append(new_row)
+
+        if save_figures == True:
+            plt.figure(figsize=(6,6))
+            if two_label == True:
+                sns.heatmap(cm, annot=True, fmt=".3f", linewidths=.5, square = True, cmap = 'Blues', xticklabels=["No stress", "Stress"], yticklabels=["No stess", "Stress"])
+            else:
+                sns.heatmap(cm, annot=True, fmt=".3f", linewidths=.5, square = True, cmap = 'Blues', xticklabels=["Baseline", "Stress", "Amusement", "Meditation"], yticklabels=["Baseline", "Stress", "Amusement", "Meditation"])
+            plt.ylabel('Actual label')
+            plt.xlabel('Predicted label')
+            all_sample_title = 'Balanced Accuracy Score: {0}, {1}'.format(round(balanced_accuracy*100, 3), classifier_name)
+            plt.title(all_sample_title, size = 10)
+            plt.savefig(os.path.join(dir_path, "ConfusionMatrix", ".".join([classifier_name, "svg"])))
+        
+    metrics = pd.concat(metrics, ignore_index = True)
+
+
+    return metrics
+
+
+def train_test_measured(measured, print_messages = True, save_figures = True, two_label = True, gridsearch = False):
+    metrics = []
+
+    classifier_name_list = ["Random Forest", "K-Nearest Neighbors", "AdaBoost", "Decision Tree", "Support Vector Machine", "Linear Discriminant Analysis", "Bernoulli Naive Bayes"]
+    
+    #Redo numbering of subjects
+    if two_label == True:
+        measured.loc[measured['label'] == 3, 'label'] = 1
+        measured.loc[measured['label'] == 4, 'label'] = 1
+
+    #Remove the subject and label collums and normalize
+    measured_turncated = measured.drop(columns=['label', 'subject'])
+    scaler = preprocessing.StandardScaler()
+    measured_scaled = pd.DataFrame(scaler.fit_transform(measured_turncated))
+    measured_scaled = measured_scaled.join(measured['label'])
+    measured_scaled = measured_scaled.join(measured['subject'])
+
+    logo = LeaveOneOut()
+    features = measured_scaled.drop(columns=['label', 'subject']).to_numpy()
+    labels = measured_scaled['label'].to_numpy()
+    groups = measured_scaled['subject'].to_numpy()
+
+    for classifier_name in classifier_name_list:
+        cm = 0
+        accuracy_arry = []
+        balanced_arry = []
+        fone_arry = []
+
+        for train_index, test_index in logo.split(features, labels):
+            X_train, x_test = features[train_index], features[test_index]
+            Y_train, y_test = labels[train_index], labels[test_index]
+
+            #Scale split data
+            scaler = preprocessing.StandardScaler().fit(X_train)
+            X_train = scaler.transform(X_train)
+            x_test = scaler.transform(x_test)
+
+            classifier = fit_model(X_train=X_train, Y_train=Y_train, classifier=classifier_name)
+            #print(classifier)
+            y_pred = predict(classifier, x_test)
+            accuracy, fone = evaluate(y_test, y_pred, two_label=two_label)
+            balanced_accuracy = balanced_accuracy_score(y_true=y_test, y_pred=y_pred)
+            balanced_arry = np.append(balanced_arry, balanced_accuracy)
+            accuracy_arry = np.append(accuracy_arry, accuracy)
+            fone_arry = np.append(fone_arry, fone)
+
+            cm += confusion_matrix(y_test, y_pred)
+
+        if print_messages == True:
+            print(classifier)
+            print('Average: fone, balanced, regular: {}, {}'.format("Neural", np.average(fone_arry), np.average(balanced_arry), np.average(accuracy_arry)))
+            print('Variance: fone, balanced, regular: {}, {}'.format("Neural", np.var(fone_arry), np.var(balanced_arry), np.var(accuracy_arry)))
+
+        if classifier_name == "Random Forest" or classifier_name == "AdaBoost" or classifier_name == "Decision Tree" or classifier_name == "Linear Discriminant Analysis"or classifier_name == "Bernoulli Naive Bayes":
+            importance = importances(classifier, classifier_name)
+            # Sort feature importances in descending order
+            indices = np.argsort(importance)[::-1]
+
+            # Plot the feature importances
+            if save_figures == True:
+                plt.figure(figsize=(30, 15))
+                plt.title(" ".join(["Feature importances", classifier_name]))
+                plt.bar(range(X_train.shape[1]), importance[indices], align="center")
+                sorted_feature_names = [list(measured_turncated.columns)[i] for i in indices]
+                plt.xticks(range(X_train.shape[1]), sorted_feature_names, rotation=90, fontsize=9)
+                plt.xlabel("Feature index")
+                plt.ylabel("Feature importance") 
+                plt.savefig(os.path.join(dir_path, "Feature_importance", ".".join([classifier_name, "svg"])))
+                plt.close()
+
+            # Make sure the list is always of length 3
+            features_data_list = list(measured_turncated.columns)
+            features_data_list += [np.nan] * (3 - len(list(measured_turncated.columns))) if len(list(measured_turncated.columns)) < 3 else []
+
+            new_row = pd.DataFrame({
+                'Classifier': [classifier],
+                'Balanced_accuracy': [np.average(balanced_arry)],
+                'Regular_accuracy': [np.average(accuracy_arry)],
+                'f1-score': [np.average(fone_arry)],
+                'Balanced_variance': [np.var(balanced_arry)],
+                'Regular_variance': [np.var(accuracy_arry)],
+                'f1-score_variance': [np.var(fone_arry)],
+                'Most important feature': [features_data_list[0]],
+                "Second most important feature": [features_data_list[1]],
+                "Third most important feature": [features_data_list[2]]
+            })
+            metrics.append(new_row)
+        else:
+            new_row = pd.DataFrame({
+                'Classifier': [classifier],
+                'Balanced_accuracy': [np.average(balanced_arry)],
+                'Regular_accuracy': [np.average(accuracy_arry)],
+                'f1-score': [np.average(fone_arry)],
+                'Balanced_variance': [np.var(balanced_arry)],
+                'Regular_variance': [np.var(accuracy_arry)],
+                'f1-score_variance': [np.var(fone_arry)]
+            })
+            metrics.append(new_row)
+
+        if save_figures == True:
+            plt.figure(figsize=(6,6))
+            if two_label == True:
+                sns.heatmap(cm, annot=True, fmt=".3f", linewidths=.5, square = True, cmap = 'Blues', xticklabels=["No stress", "Stress"], yticklabels=["No stess", "Stress"])
+            else:
+                sns.heatmap(cm, annot=True, fmt=".3f", linewidths=.5, square = True, cmap = 'Blues', xticklabels=["Baseline", "Stress", "Amusement", "Meditation"], yticklabels=["Baseline", "Stress", "Amusement", "Meditation"])
+            plt.ylabel('Actual label')
+            plt.xlabel('Predicted label')
+            all_sample_title = 'Balanced Accuracy Score: {0}, {1}'.format(round((np.average(balanced_arry))*100, 3), classifier_name)
+            plt.title(all_sample_title, size = 10)
+            plt.savefig(os.path.join(dir_path, "ConfusionMatrix", ".".join([classifier_name, "svg"])))
         
     metrics = pd.concat(metrics, ignore_index = True)
 
