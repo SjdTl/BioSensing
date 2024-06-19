@@ -564,9 +564,9 @@ def eval_all(features, print_messages = True, save_figures = True, two_label = T
 
     if gridsearch == True:
         X_train, Y_train, x_test, y_test = train_test_split(features_data=features, two_label=True, LeaveOneGroupOut_En=False, num_subjects=15, test_percentage=0.6, print_messages=False)
-        classifier = SVC()
-        parameters = {'kernel':('linear', 'rbf'), 'C':[1, 10]}
-        grid = GridSearchCV(classifier, parameters)
+        classifier = AdaBoostClassifier()
+        parameters = {'algorithm':('SAMME', 'SAMME.R'), 'n_estimators':np.arange(50, 70, 1), 'learning_rate':np.arange(0.1, 2, 0.2)}
+        grid = GridSearchCV(classifier, parameters, verbose=2)
         grid.fit(X_train, Y_train)
         print(grid.cv_results_)
     else:
