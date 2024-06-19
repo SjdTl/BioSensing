@@ -18,7 +18,6 @@ import pandas as pd
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
 def mlp(features, two_label=False, hidden_layer_1_nodes = 50, hidden_layer_2_nodes=30, print_messages = True, save_figures=True):
-
     if two_label==True:
         features.loc[features['label'] == 3, 'label'] = 1
         features.loc[features['label'] == 4, 'label'] = 1
