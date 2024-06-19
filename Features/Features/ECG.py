@@ -7,10 +7,13 @@ from scipy.stats import mode
 import matplotlib.pyplot as plt
 import neurokit2 as nk
 from sklearn.preprocessing import minmax_scale as normalize
+import pywt
+from statsmodels.tsa.ar_model import AutoReg
+
 
 from . import feat_gen
 
-def ECG(unprocessed_ecg, fs= 700):
+def ECG(unprocessed_ecg, fs= 700, wavelet_AR=False):
     """
     Description
     -----------
@@ -47,8 +50,13 @@ def ECG(unprocessed_ecg, fs= 700):
 
     features = []
 
+    # Commented features not used in final analysis
+
     features.append(ECG_specific_features(ecg, fs))
-    features.append(feat_gen.basic_features(ecg, "ECG"))
+    features.append(feat_gen.basic_features(ecg, "ECG_time"))
+    if wavelet_AR == True:
+        features.append(ecg_wavelet_features(ecg))
+        features.append(ecg_AR_features(ecg))
 
     features = pd.concat(features, axis=1)
 
@@ -106,7 +114,33 @@ def notchecg(ecg, fs):
     filtered = lfilter(b,a,ecg)
     return filtered, b, a
 
+def ecg_wavelet_features(ecg):
+    """Wavelet features of the ECG"""
+    out_dict = {}
 
+    (cA3, cD3, cD2, cD1) = pywt.wavedec(ecg, 'haar', level=3)
+    coefficients = {"cA3" :cA3, "cD3": cD3, "cD2" : cD2, "cD1" : cD1}
+
+    for coeff in coefficients:
+        out_dict['mean_' + str(coeff)] = np.mean(coefficients[coeff])
+        out_dict['median_' + str(coeff)] = np.median(coefficients[coeff])
+        out_dict['std_' + str(coeff)] = np.std(coefficients[coeff])
+        out_dict['range_' + str(coeff)] = np.ptp(coefficients[coeff])
+
+    return pd.DataFrame.from_dict(out_dict, orient="index").T.add_prefix("ECG_wavelet_")
+
+def ecg_AR_features(ecg):
+    """Autoregression features of the ECG"""
+    out_dict = {}
+    # Fit the AR(2) model
+    series = pd.Series(ecg)
+    model = AutoReg(series, lags=2)
+    model_fit = model.fit()
+    out_dict["intercept"] = model_fit.params.iloc[0]
+    out_dict["lag1"] = model_fit.params.iloc[1]
+    out_dict["lag2"] = model_fit.params.iloc[2]
+
+    return pd.DataFrame.from_dict(out_dict, orient="index").T.add_prefix("ECG_AR_")
 
 def ECG_specific_features(ecg, fs):
     """
@@ -120,6 +154,7 @@ def ECG_specific_features(ecg, fs):
         - RMSSD: The square root of the mean of the squared successive differences between
           adjacent RR intervals. It is equivalent (although on another scale) to SD1, and
           therefore it is redundant to report correlations with both (Ciccone, 2017)
+        - ...
 
     Parameters
     ----------
@@ -205,7 +240,7 @@ def ECG_specific_features(ecg, fs):
     #     out_dict["Spectral_energy"] = np.mean(power)
     #     out_dict["Norm_peak_power"] = np.max(power)/out_dict["Spectral_energy"]
 
-    return pd.DataFrame.from_dict(out_dict, orient="index").T.add_prefix("HRV_")
+    return pd.DataFrame.from_dict(out_dict, orient="index").T.add_prefix("ECG_HRV_")
 
 def rpeak_detector(ecg, fs):
 

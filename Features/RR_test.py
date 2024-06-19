@@ -165,8 +165,8 @@ def find_all_features(rr, ecg, random_value, method="vangent2019", fs=100, T=60,
         return features
     else:
         for rr, ecg in (zip(rr, ecg)):
-            ecg = ECG.preProcessing(ecg, fs=fs)
-            extracted_RR = (RR.ECG_to_RR(ecg, fs=fs, method=method))
+            processed_ecg, _, _ = ECG.lowpassecg(ecg, fs=fs)
+            extracted_RR = (RR.ECG_to_RR(processed_ecg, fs=fs, method=method))
             current_feature=RR.RR(extracted_RR, fs=fs, peak_prominence = peak_prominence, drop_bad_features = False)
             features = pd.concat([features, current_feature], ignore_index=True)
             
@@ -215,9 +215,6 @@ def compare_methods(methods=["Original", "soni2019", "vangent2019", "charlton201
     name = os.path.join(dirpath, "Plots", "RR_plots", str(name))
     name = feat_head.filename_exists(name, 'svg')
     plt.savefig(name)
-
-    original.to_excel(os.path.join(dir_path, "Plots", "RR_plots", "Original.xlsx"))
-    features_methods["sarkar2015"].to_excel(os.path.join(dir_path, "Plots", "RR_plots", "sarkar2015.xlsx"))
 
 
 def testECG(filepath, fs=700):
@@ -305,39 +302,6 @@ def RR_figures(filepath, T = 60, fs = 700):
 
     fig.savefig(os.path.join(dir_path, "plots", "RR_plots", "Flowchart", "rr_unprocessed_fd.svg"))
 
-    # -----------------------------------------------
-    # PROCESSED
-    # -----------------------------------------------
-    # RR processed timedomain
-    # Bandpass processing
-    rrlow, sos = RR.lowpassrr(rr, fs) 
-    wlow, hlow = sosfreqz(sos, fs=fs)
-    bprr, sos = RR.highpassrr(rrlow, fs) 
-    whigh, hhigh = sosfreqz(sos, fs=fs, worN = 512 * 4)
-
-
-    fig, ax = plt.subplots()
-
-    ax.plot(np.linspace(0,T, fs*T), bprr)
-    ax.set_xlabel("Time [$s$]")
-    ax.set_ylabel("Normalized amplitude")
-
-    fig.savefig(os.path.join(dir_path, "plots", "RR_plots", "Flowchart", "rr_bp_td.svg"))
-
-
-    # RR processed frequency domain
-    yf = fftshift(fft(bprr))
-    xf = fftshift(fftfreq(bprr.size, d= 1/fs))
-
-    fig, ax = plt.subplots()
-
-    ax.plot(xf, 10 * np.log10(np.abs(yf)))
-    ax.set_xlabel("Frequency [$Hz$]")
-    ax.set_ylabel("Amplitude [dB]")
-    ax.set_xlim(xmin=-10, xmax=10)
-    ax.set_ylim(ymin = -25)
-
-    fig.savefig(os.path.join(dir_path, "plots", "RR_plots","Flowchart","rr_bp_fd.svg"))
 
     # -----------------------------------------------
     # Extreme peaks
@@ -354,7 +318,7 @@ def RR_figures(filepath, T = 60, fs = 700):
 
     # RR processed frequency domain
     yf = fftshift(fft(rr_processed))
-    xf = fftshift(fftfreq(bprr.size, d= 1/fs))
+    xf = fftshift(fftfreq(rr_processed.size, d= 1/fs))
 
     fig, ax = plt.subplots()
 
@@ -384,6 +348,10 @@ def RR_figures(filepath, T = 60, fs = 700):
     fig.savefig(os.path.join(dir_path, "plots", "RR_plots", "Flowchart", "rr_peak_detection_td.svg"))
 
     # Butterworth bandpass
+    rrlow, sos = RR.lowpassrr(rr, fs) 
+    wlow, hlow = sosfreqz(sos, fs=fs)
+    bprr, sos = RR.highpassrr(rrlow, fs) 
+    whigh, hhigh = sosfreqz(sos, fs=fs, worN = 512 * 4)
 
     fig, ax = plt.subplots()
     ax.semilogx(wlow, 20 * np.log10(abs(hlow)), label="Lowpass filter")
@@ -400,6 +368,6 @@ def RR_figures(filepath, T = 60, fs = 700):
 dir_path = os.path.dirname(os.path.realpath(__file__))
 filepath = os.path.join(dir_path, "Raw_data", "raw_data.pkl")
 # RR_figures(filepath)
-print(testECG(filepath).to_string())
+# print(testECG(filepath).to_string())
 
-# compare_methods(T=60, examples = 5)
+compare_methods(T=60, examples = 3)

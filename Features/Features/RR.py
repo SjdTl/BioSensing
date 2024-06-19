@@ -24,26 +24,12 @@ def RR(unprocessed_rr, fs=700, peak_prominence = 0.15, drop_bad_features = True)
     Returns
     -------
     features : pd.DataFrame
-        Dataframe (1 row) containing the features:
-            - ?
-        and the general features:
-            - Mean (no meaning in the case of emg)
-            - Median
-            - Std
-            - ...
-        
+        Dataframe containing the features
      
     Raises
     ------
     ValueError
         Raises error if there is a NaN value in the features
-    
-    Notes
-    -----
-    
-    Examples
-    --------
-    >>>
     """
     unprocessed_rr = normalize(unprocessed_rr) * 2 - 1
     rr = preProcessRR(unprocessed_rr)
@@ -54,7 +40,7 @@ def RR(unprocessed_rr, fs=700, peak_prominence = 0.15, drop_bad_features = True)
     features = pd.concat([df_specific, df_general], axis=1)
     
     if drop_bad_features == True:
-        features = features.drop(["RR_RMSSD", "RR_SDBB", "RR_SDSD", "RR_CVSD", "RR_Median"], axis=1)
+        features = features.drop(["RR_RMSSD", "RR_SDBB", "RR_SDSD", "RR_CVSD", "RR_CVBB", "RR_pNN50", "RR_Mean", "RR_STD", "RR_Median", "RR_RMS"], axis=1)
 
     # Error messages
     if features.isnull().values.any():
@@ -87,7 +73,7 @@ def preProcessRR(rr, fs=100):
     Filter the breathing signal using a highpass and a lowpass filter
     Most breathing will always happen between 3-25 rreaths per minute.
     See also Peter H Charlton et al 2017 Physiol. Meas. 38 669, Chapter 3.6
-    This corresponds to 4/60 and 60/60 breath/s or Hz, since rreathing follows a sinusoidal pattern
+    This corresponds to 4/60 and 60/60 breath/s or Hz, since breathing follows a sinusoidal pattern
 
     Parameters
     ----------
@@ -104,13 +90,13 @@ def preProcessRR(rr, fs=100):
 
 
     # highpass filter
-    rr_hp, _ = highpassrr(rr, fs)
+    rr_cut = cut_extreme_peaks(rr)
+
+    rr_hp, _ = highpassrr(rr_cut, fs)
     # lowpass filter
     rr_lp, _ = lowpassrr(rr_hp, fs)
-
-    rr_cut = cut_extreme_peaks(rr_lp)
-    return rr_cut
-def highpassrr(rr, fs, N=8):
+    return rr_lp
+def highpassrr(rr, fs, N=10):
     lowcut= 3 #breaths/min
     lowcut = lowcut/(60) #Hz
     sos = butter(N, lowcut, btype = 'highpass', fs=fs, output = 'sos')
@@ -231,9 +217,7 @@ def cut_extreme_peaks(rr, fs=700):
         relative_peaks = np.abs(peaks + limit - mean)
         rr[lower_range] = -limit + mean - np.log(1+a * relative_peaks) /a
 
-    rr_normalized = normalize(rr) * 2 -1
-    return rr_normalized - np.mean(rr_normalized)
-
+    return rr
 def peak_detection_RR(rr, fs=700, peak_prominence = 0.15, peak_distance = 1, method = "scipy"):
     """
     Code copied from Neurokit: https://neuropsychology.github.io/NeuroKit/_modules/neurokit2/rsp/rsp_findpeaks.html#rsp_findpeaks

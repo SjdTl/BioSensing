@@ -8,3 +8,7 @@ Features/Raw_data
 Features/spiderfearful
 **/__pycache__/
 .vscode
+*.tmp
+*.temp
+*.log
+**/tempCodeRunnerFile.*

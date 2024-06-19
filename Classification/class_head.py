@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 from tqdm.notebook import tqdm
 from sklearn import preprocessing
-from sklearn.model_selection import LeaveOneGroupOut
+from sklearn.model_selection import LeaveOneGroupOut, GridSearchCV
 from scipy import stats
 import seaborn as sns
 import numpy as np
@@ -539,8 +539,8 @@ def fit_predict_evaluate(X_train, Y_train, x_test, y_test, features_array, RFC_n
 
     return accuracy_dict, fone_dict
 
-def eval_all(features, print_messages = True, save_figures = True, two_label = True):
-    metrics = pd.DataFrame()
+def eval_all(features, print_messages = True, save_figures = True, two_label = True, gridsearch = False):
+    metrics = []
 
 
     classifier_name_list = ["Random Forrest", "K-Nearest Neighbors", "AdaBoost", "Decision Tree", "Support Vector Machine", "Linear Discriminant Analysis", "Bernoulli Naive Bayes"]
@@ -562,91 +562,110 @@ def eval_all(features, print_messages = True, save_figures = True, two_label = T
     features_data_scaled = features_data_scaled.join(features_data['label'])
     features_data_scaled = features_data_scaled.join(features_data['subject'])
 
-    logo = LeaveOneGroupOut()
-    features = features_data_scaled.drop(columns=['label', 'subject']).to_numpy()
-    labels = features_data_scaled['label'].to_numpy()
-    groups = features_data_scaled['subject'].to_numpy()
+    if gridsearch == True:
+        X_train, Y_train, x_test, y_test = train_test_split(features_data=features, two_label=True, LeaveOneGroupOut_En=False, num_subjects=15, test_percentage=0.6, print_messages=False)
+        classifier = AdaBoostClassifier()
+        parameters = {'algorithm':('SAMME', 'SAMME.R'), 'n_estimators':np.arange(50, 70, 1), 'learning_rate':np.arange(0.1, 2, 0.2)}
+        grid = GridSearchCV(classifier, parameters, verbose=2)
+        grid.fit(X_train, Y_train)
+        print(grid.best_params_)
+    else:
+        logo = LeaveOneGroupOut()
+        features = features_data_scaled.drop(columns=['label', 'subject']).to_numpy()
+        labels = features_data_scaled['label'].to_numpy()
+        groups = features_data_scaled['subject'].to_numpy()
 
-    for classifier_name in classifier_name_list:
-        
-        cm = 0
-        accuracy_arry = []
-        balanced_arry = []
+        for classifier_name in classifier_name_list:
 
-        for train_index, test_index in logo.split(features, labels, groups):
-            X_train, x_test = features[train_index], features[test_index]
-            Y_train, y_test = labels[train_index], labels[test_index]
+            cm = 0
+            accuracy_arry = []
+            balanced_arry = []
+            fone_arry = []
 
-            #Scale split data
-            scaler = preprocessing.StandardScaler().fit(X_train)
-            X_train = scaler.transform(X_train)
-            x_test = scaler.transform(x_test)
+            for train_index, test_index in logo.split(features, labels, groups):
+                X_train, x_test = features[train_index], features[test_index]
+                Y_train, y_test = labels[train_index], labels[test_index]
 
-            classifier = fit_model(X_train=X_train, Y_train=Y_train, classifier=classifier_name)
-            #print(classifier)
-            y_pred = predict(classifier, x_test)
-            accuracy, fone = evaluate(y_test, y_pred, two_label=two_label)
-            balanced_accuracy = balanced_accuracy_score(y_true=y_test, y_pred=y_pred)
-            balanced_arry = np.append(balanced_arry, balanced_accuracy)
-            accuracy_arry = np.append(accuracy_arry, accuracy)
+                #Scale split data
+                scaler = preprocessing.StandardScaler().fit(X_train)
+                X_train = scaler.transform(X_train)
+                x_test = scaler.transform(x_test)
 
-            cm += confusion_matrix(y_test, y_pred)
+                classifier = fit_model(X_train=X_train, Y_train=Y_train, classifier=classifier_name)
+                #print(classifier)
+                y_pred = predict(classifier, x_test)
+                accuracy, fone = evaluate(y_test, y_pred, two_label=two_label)
+                balanced_accuracy = balanced_accuracy_score(y_true=y_test, y_pred=y_pred)
+                balanced_arry = np.append(balanced_arry, balanced_accuracy)
+                accuracy_arry = np.append(accuracy_arry, accuracy)
+                fone_arry = np.append(fone_arry, fone)
 
-        if print_messages == True:
-            print(classifier)
-            print('Average: balanced, regular: {}, {}'.format(classifier, np.average(balanced_arry), np.average(accuracy_arry)))
-            print('Variance: balanced, regular: {}, {}'.format(classifier, np.var(balanced_arry), np.var(accuracy_arry)))
+                cm += confusion_matrix(y_test, y_pred)
 
-        if classifier_name == "Random Forrest" or classifier_name == "AdaBoost" or classifier_name == "Decision Tree" or classifier_name == "Linear Discriminant Analysis"or classifier_name == "Bernoulli Naive Bayes":
-            importance = importances(classifier, classifier_name)
-            plt.figure(figsize=(30, 15))
-            # Sort feature importances in descending order
-            indices = np.argsort(importance)[::-1]
+            if print_messages == True:
+                print(classifier)
+                print('Average: fone, balanced, regular: {}, {}'.format("Neural", np.average(fone_arry), np.average(balanced_arry), np.average(accuracy_arry)))
+                print('Variance: fone, balanced, regular: {}, {}'.format("Neural", np.var(fone_arry), np.var(balanced_arry), np.var(accuracy_arry)))
 
-            # Plot the feature importances
+            if classifier_name == "Random Forrest" or classifier_name == "AdaBoost" or classifier_name == "Decision Tree" or classifier_name == "Linear Discriminant Analysis"or classifier_name == "Bernoulli Naive Bayes":
+                importance = importances(classifier, classifier_name)
+                # Sort feature importances in descending order
+                indices = np.argsort(importance)[::-1]
+
+                # Plot the feature importances
+                if save_figures == True:
+                    plt.figure(figsize=(30, 15))
+                    plt.title(" ".join(["Feature importances", classifier_name]))
+                    plt.bar(range(X_train.shape[1]), importance[indices], align="center")
+                    sorted_feature_names = [list(features_data_turncated.columns)[i] for i in indices]
+                    plt.xticks(range(X_train.shape[1]), sorted_feature_names, rotation=90, fontsize=9)
+                    plt.xlabel("Feature index")
+                    plt.ylabel("Feature importance") 
+                    plt.savefig(os.path.join(dir_path, "Feature_importance", ".".join([classifier_name, "svg"])))
+                    plt.close()
+
+                # Make sure the list is always of length 3
+                features_data_list = list(features_data_turncated.columns)
+                features_data_list += [np.nan] * (3 - len(list(features_data_turncated.columns))) if len(list(features_data_turncated.columns)) < 3 else []
+
+                new_row = pd.DataFrame({
+                    'Classifier': [classifier],
+                    'Balanced_accuracy': [np.average(balanced_arry)],
+                    'Regular_accuracy': [np.average(accuracy_arry)],
+                    'f1-score': [np.average(fone_arry)],
+                    'Balanced_variance': [np.var(balanced_arry)],
+                    'Regular_variance': [np.var(accuracy_arry)],
+                    'f1-score_variance': [np.var(fone_arry)],
+                    'Most important feature': [features_data_list[0]],
+                    "Second most important feature": [features_data_list[1]],
+                    "Third most important feature": [features_data_list[2]]
+                })
+                metrics.append(new_row)
+            else:
+                new_row = pd.DataFrame({
+                    'Classifier': [classifier],
+                    'Balanced_accuracy': [np.average(balanced_arry)],
+                    'Regular_accuracy': [np.average(accuracy_arry)],
+                    'f1-score': [np.average(fone_arry)],
+                    'Balanced_variance': [np.var(balanced_arry)],
+                    'Regular_variance': [np.var(accuracy_arry)],
+                    'f1-score_variance': [np.var(fone_arry)]
+                })
+                metrics.append(new_row)
+
             if save_figures == True:
-                plt.title(" ".join(["Feature importances", classifier_name]))
-                plt.bar(range(X_train.shape[1]), importance[indices], align="center")
-                sorted_feature_names = [list(features_data_turncated.columns)[i] for i in indices]
-                plt.xticks(range(X_train.shape[1]), sorted_feature_names, rotation=90, fontsize=9)
-                plt.xlabel("Feature index")
-                plt.ylabel("Feature importance") 
-                plt.savefig(os.path.join(dir_path, "Feature_importance", ".".join([classifier_name, "svg"])))
-                plt.close()
-
-            # Make sure the list is always of length 3
-            features_data_list = list(features_data_turncated.columns)
-            features_data_list += [np.nan] * (3 - len(list(features_data_turncated.columns))) if len(list(features_data_turncated.columns)) < 3 else []
-
-            new_row = {
-                'Classifier': [classifier],
-                'Balanced_accuracy': [np.average(balanced_arry)],
-                'Regular_accuracy': [np.average(accuracy_arry)],
-                'Balanced_variance': [np.var(balanced_arry)],
-                'Regular_variance': [np.var(accuracy_arry)],
-                'Most important feature': [features_data_list[0]],
-                "Second most important feature": [features_data_list[1]],
-                "Third most important feature": [features_data_list[2]]
-            }
-        else:
-            new_row = {
-                'Classifier': [classifier],
-                'Balanced_accuracy': [np.average(balanced_arry)],
-                'Regular_accuracy': [np.average(accuracy_arry)],
-                'Balanced_variance': [np.var(balanced_arry)],
-                'Regular_variance': [np.var(accuracy_arry)]
-            }
-
-        if save_figures == True:
-            plt.figure(figsize=(6,6))
-            sns.heatmap(cm, annot=True, fmt=".3f", linewidths=.5, square = True, cmap = 'Blues', xticklabels=["Baseline", "Stress", "Amusement", "Meditation"], yticklabels=["Baseline", "Stress", "Amusement", "Meditation"])
-            plt.ylabel('Actual label')
-            plt.xlabel('Predicted label')
-            all_sample_title = 'Accuracy Score: {0}, {1}'.format(round((np.average(accuracy_arry))*100, 3), classifier_name)
-            plt.title(all_sample_title, size = 10)
-            plt.savefig(os.path.join(dir_path, "ConfusionMatrix", ".".join([classifier_name, "svg"])))
+                plt.figure(figsize=(6,6))
+                if two_label == True:
+                    sns.heatmap(cm, annot=True, fmt=".3f", linewidths=.5, square = True, cmap = 'Blues', xticklabels=["No stress", "Stress"], yticklabels=["No stess", "Stress"])
+                else:
+                    sns.heatmap(cm, annot=True, fmt=".3f", linewidths=.5, square = True, cmap = 'Blues', xticklabels=["Baseline", "Stress", "Amusement", "Meditation"], yticklabels=["Baseline", "Stress", "Amusement", "Meditation"])
+                plt.ylabel('Actual label')
+                plt.xlabel('Predicted label')
+                all_sample_title = 'Balanced Accuracy Score: {0}, {1}'.format(round((np.average(balanced_arry))*100, 3), classifier_name)
+                plt.title(all_sample_title, size = 10)
+                plt.savefig(os.path.join(dir_path, "ConfusionMatrix", ".".join([classifier_name, "svg"])))
         
-        metrics = pd.concat([metrics, pd.DataFrame(new_row)], ignore_index = True)
+    metrics = pd.concat(metrics, ignore_index = True)
 
 
     return metrics
