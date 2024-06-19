@@ -80,8 +80,8 @@ def create_pickle_arduino():
                                  "label" : pd.concat([data[subject]['label'],pd.Series(picklabel(test))], ignore_index=True)}
                 print(data[subjects[0]])
     # Turn dictionary into pickle    
-    # with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), "Pickled_data", "data" + subject + ".pkl"), 'wb') as handle:
-    #     pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), "data.pkl"), 'wb') as handle:
+        pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
     return data
 data = create_pickle_arduino()
 
