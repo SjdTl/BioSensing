@@ -44,7 +44,7 @@ def feature_extraction_func(data, properties, sensors = ["ECG", "EMG", "EDA", "R
 
     return output
 
-def classify_func(features, print_messages = True, save_figures = True, two_label = True, gridsearch = False):
+def classify_func(wesad, measured, print_messages = True, save_figures = True, two_label = True, gridsearch = False, train_type="WESAD"):
     """
     Description
     -----------
@@ -68,7 +68,12 @@ def classify_func(features, print_messages = True, save_figures = True, two_labe
     metrics : pd.Dataframe
         One dataframe containing the classifiers with their accuracies, most important features (when relevant) and some properties (time_window size, two_label, ...)
     """
-    metrics = class_head.eval_all(features, print_messages=print_messages, save_figures=save_figures, two_label=two_label, gridsearch=gridsearch)
+    if train_type == "WESAD":
+        metrics = class_head.eval_all(wesad, print_messages=print_messages, save_figures=save_figures, two_label=two_label, gridsearch=gridsearch)
+    if train_type == "MEASURED":
+        metrics = class_head.train_test_measured(measured, print_messages=print_messages, save_figures=save_figures, two_label=two_label, gridsearch=gridsearch)
+    if train_type == "WESAD-MEASURED":
+        metrics = class_head.eval_measured(wesad, measured, print_messages=print_messages, save_figures=save_figures, two_label=two_label, gridsearch=gridsearch)
     mean_row = pd.DataFrame({'Classifier': 'mean_classifier', 
                              'Regular_accuracy': metrics["Regular_accuracy"].mean(), 
                              'Balanced_accuracy': metrics["Balanced_accuracy"].mean(),
@@ -109,7 +114,7 @@ def use_cache(properties, folderpath, df_name = "metrics"):
 
 def general_feature_testing(data=None, classify = True, feature_extraction = True, neural = True, 
                             Fs=700, sensors = ["ECG", "EMG", "EDA", "RR"], T=60, dataset_name = "WESAD", two_label = True,
-                            print_messages = True, save_figures = True, features_path = None, gridsearch = False):
+                            print_messages = True, save_figures = True, features_path = None, gridsearch = False, train_type="WESAD"):
     """
     Description
     -----------
@@ -162,6 +167,8 @@ def general_feature_testing(data=None, classify = True, feature_extraction = Tru
         And features_df =   | "Heart rate" |  ... |  "Random feature" | Label | Subject |
                             -------------------------------------------------------------
                     e.g.    | 100          |  ... |        0.1        |  1    |   1     |
+    train_type : string
+        Choice of train test purpuse can be: "WESAD", "MEASURED", or "WESAD-MEASURED"
 
     
     Returns
@@ -219,11 +226,16 @@ def general_feature_testing(data=None, classify = True, feature_extraction = Tru
 
         # Neural network
         if neural == True:
-            metrics.append(neural_head.mlp(features=features, two_label=two_label, print_messages = print_messages, save_figures=save_figures))
+            if train_type == "WESAD":
+                metrics.append(neural_head.mlp(features=features, two_label=two_label, print_messages = print_messages, save_figures=save_figures))
+            if train_type == "MEASURED":
+                metrics.append(neural_head.mlp_train_test_measured(features=features, two_label=two_label, print_messages = print_messages, save_figures=save_figures))
+            if train_type == "WESAD-MEASURED":
+                metrics.append(neural_head.mlp_eval_measured(wesad=features, measured=None, two_label=two_label, print_messages = print_messages, save_figures=save_figures))            
 
         # Classification
         if classify == True:
-            metrics.append(classify_func(features, print_messages = print_messages, save_figures = save_figures, two_label = two_label, gridsearch=gridsearch))
+            metrics.append(classify_func(wesad = features, measured = None, print_messages = print_messages, save_figures = save_figures, two_label = two_label, gridsearch=gridsearch, train_type=train_type))
         metrics = pd.concat(metrics, axis=0, ignore_index = True)
 
         # Add properties to each entry of the metrics dataframe
@@ -452,5 +464,5 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 
 feature_path = os.path.join(dir_path, "Cache", "Features", "features_23.pkl")
 metrics = general_feature_testing(data = None, feature_extraction=True, classify=True, neural=True,
-                        Fs=700, sensors=["ECG", "EMG", "EDA", "RR"], T=60, two_label=False, dataset_name="WESAD", features_path=None, gridsearch=False)
+                        Fs=700, sensors=["ECG", "EMG", "EDA", "RR"], T=60, two_label=False, dataset_name="WESAD", features_path=None, gridsearch=False, train_type="WESAD")
                         #Fs=700, sensors=["ECG", "EDA"], T=60, two_label=True, dataset_name="WESAD", features_path=None, gridsearch=False)
