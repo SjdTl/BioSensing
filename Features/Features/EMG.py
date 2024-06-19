@@ -193,7 +193,7 @@ def preProcessing(emg, fs=700, return_filter = False):
 
     # Apply bandpass filter (10-300 Hz):
     lowcut = 10
-    highcut = 300
+    highcut = 0.85 * fs/ 2
     filtered_emg = butter_bandpass_filter(emg, lowcut, highcut, fs, 5)
     # Baseline correction is useless with a bandpass or highpass filter
     # No powerline interference removal, since there are valuable signals there 
