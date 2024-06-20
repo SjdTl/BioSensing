@@ -125,10 +125,10 @@ def change_timeframes(df, name):
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
-name = "all_combinations_four"
-df = pd.read_pickle(os.path.join(dir_path, "Feature_combinations", f"{name}.pkl"))
-sensor_combinations_table(df, name, drop_preprefix=True, title = "Four label performance by all feature types", join_HRV_ECG = False)
+# name = "all_combinations_four"
+# df = pd.read_pickle(os.path.join(dir_path, "Feature_combinations", f"{name}.pkl"))
+# sensor_combinations_table(df, name, drop_preprefix=True, title = "Four label performance by all feature types", join_HRV_ECG = False)
 
-# name = "time_window_eda_four"
-# df = pd.read_pickle(os.path.join(dir_path, "Timeframes_change", f"{name}.pkl"))
-# change_timeframes(df, name)
+name = "time_window_emg_four"
+df = pd.read_pickle(os.path.join(dir_path, "Timeframes_change", f"{name}.pkl"))
+change_timeframes(df, name)

@@ -451,6 +451,23 @@ def compare_timeframes(data, Fs=700, sensors = ["ECG", "EMG", "EDA", "RR"], data
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
+
+
+
+# ARDUINO 
+# all_data = feat_head.load_dict(os.path.join(dir_path, "Hardware", "Serialport_interface", "data.pkl"))
+# Features 29 is correct to test for Arduino/
+# feature_path = os.path.join(dir_path, "Cache", "Features", "features_29.pkl")
+# metrics = general_feature_testing(data = all_data, feature_extraction=True, classify=True, neural=True,
+                        # Fs=268, sensors=["ECG", "EMG", "EDA", "RR"], T=57, two_label=False, dataset_name="Arduino", features_path=None, gridsearch=False)
+
+# WESAD
+# all_data = feat_head.load_dict(os.path.join(dir_path, "Features", "Raw_data", "raw_data.pkl"))
+# feature_path = os.path.join(dir_path, "Cache", "Features", "features_23.pkl")
+# metrics = general_feature_testing(data = None, feature_extraction=True, classify=True, neural=True,
+                        # Fs=700, sensors=["ECG", "EMG", "EDA", "RR"], T=60, two_label=False, dataset_name="WESAD", features_path=None, gridsearch=False, train_type="WESAD")
+
+# This is all the code used to create the metrics used in the final result chapter 
 # compare_timeframes(all_data, sensors = ["EDA"], runs=10, two_label = True, neural = True, name="time_window_eda_two")
 # compare_timeframes(all_data, sensors = ["ECG"], runs=10, two_label = True, neural = True, name="time_window_ecg_two")
 # compare_timeframes(all_data, sensors = ["EDA"], runs=10, two_label = False, neural = True, name="time_window_eda_four")
@@ -461,16 +478,6 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 # compare_combinations(all_data, sensors = ["EDA"], prefixes = ["EDA_time", "EDA_phasic", "EDA_wavelet", "EDA_AR"], T=60, two_label = False, neural_used=True, name = "EDA_combinations_four")
 # compare_combinations(all_data, sensors = ["EDA","ECG","EMG", "RR"], prefixes = ["RR", "EDA", "ECG", "EMG"], T=60, two_label = True, neural_used=True, name = "all_combinations_two")
 # compare_combinations(all_data, sensors = ["EDA","ECG","EMG","RR"], prefixes = ["EDA", "ECG", "RR", "EMG"], T=60, two_label = False, neural_used=True, name = "all_combinations_four")
+# compare_timeframes(all_data, sensors = ["RR"], runs=8, tstart=30, two_label = False, neural = True, name="time_window_rr_four")
+# compare_timeframes(all_data, sensors = ["EMG"], runs=10, two_label = False, neural = True, name="time_window_emg_four")
 
-# ARDUINO 
-all_data = feat_head.load_dict(os.path.join(dir_path, "Hardware", "Serialport_interface", "data.pkl"))
-# Features 29 is correct to test for Arduino
-feature_path = os.path.join(dir_path, "Cache", "Features", "features_29.pkl")
-metrics = general_feature_testing(data = all_data, feature_extraction=True, classify=True, neural=True,
-                        Fs=268, sensors=["ECG", "EMG", "EDA", "RR"], T=57, two_label=True, dataset_name="Arduino", features_path=None, gridsearch=False)
-
-# WESAD
-# all_data = feat_head.load_dict(os.path.join(dir_path, "Features", "Raw_data", "raw_data.pkl"))
-# feature_path = os.path.join(dir_path, "Cache", "Features", "features_23.pkl")
-# metrics = general_feature_testing(data = None, feature_extraction=True, classify=True, neural=True,
-                        # Fs=700, sensors=["ECG", "EMG", "EDA", "RR"], T=60, two_label=False, dataset_name="WESAD", features_path=None, gridsearch=False, train_type="WESAD")
