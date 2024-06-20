@@ -44,7 +44,7 @@ def feature_extraction_func(data, properties, sensors = ["ECG", "EMG", "EDA", "R
 
     return output
 
-def classify_func(wesad, measured, print_messages = True, save_figures = True, two_label = True, gridsearch = False, train_type="WESAD"):
+def classify_func(features, print_messages = True, save_figures = True, two_label = True, gridsearch = False, dataset_name = "WESAD"):
     """
     Description
     -----------
@@ -68,12 +68,12 @@ def classify_func(wesad, measured, print_messages = True, save_figures = True, t
     metrics : pd.Dataframe
         One dataframe containing the classifiers with their accuracies, most important features (when relevant) and some properties (time_window size, two_label, ...)
     """
-    if train_type == "WESAD":
-        metrics = class_head.eval_all(wesad, print_messages=print_messages, save_figures=save_figures, two_label=two_label, gridsearch=gridsearch)
-    if train_type == "MEASURED":
-        metrics = class_head.train_test_measured(measured, print_messages=print_messages, save_figures=save_figures, two_label=two_label, gridsearch=gridsearch)
-    if train_type == "WESAD-MEASURED":
-        metrics = class_head.eval_measured(wesad, measured, print_messages=print_messages, save_figures=save_figures, two_label=two_label, gridsearch=gridsearch)
+    if dataset_name == "WESAD":
+        metrics = class_head.eval_all(features, print_messages=print_messages, save_figures=save_figures, two_label=two_label, gridsearch=gridsearch)
+    if dataset_name == "Arduino":
+        metrics = class_head.train_test_measured(features, print_messages=print_messages, save_figures=save_figures, two_label=two_label, gridsearch=gridsearch)
+    # if dataset_name == "WESAD-Arduino":
+        # metrics = class_head.eval_measured(wesad, measured, print_messages=print_messages, save_figures=save_figures, two_label=two_label, gridsearch=gridsearch)
     mean_row = pd.DataFrame({'Classifier': 'mean_classifier', 
                              'Regular_accuracy': metrics["Regular_accuracy"].mean(), 
                              'Balanced_accuracy': metrics["Balanced_accuracy"].mean(),
@@ -114,7 +114,7 @@ def use_cache(properties, folderpath, df_name = "metrics"):
 
 def general_feature_testing(data=None, classify = True, feature_extraction = True, neural = True, 
                             Fs=700, sensors = ["ECG", "EMG", "EDA", "RR"], T=60, dataset_name = "WESAD", two_label = True,
-                            print_messages = True, save_figures = True, features_path = None, gridsearch = False, train_type="WESAD"):
+                            print_messages = True, save_figures = True, features_path = None, gridsearch = False):
     """
     Description
     -----------
@@ -226,16 +226,16 @@ def general_feature_testing(data=None, classify = True, feature_extraction = Tru
 
         # Neural network
         if neural == True:
-            if train_type == "WESAD":
+            if dataset_name == "WESAD": 
                 metrics.append(neural_head.mlp(features=features, two_label=two_label, print_messages = print_messages, save_figures=save_figures))
-            if train_type == "MEASURED":
-                metrics.append(neural_head.mlp(features=None, two_label=two_label, print_messages = print_messages, save_figures=save_figures))
-            if train_type == "WESAD-MEASURED":
-                metrics.append(neural_head.mlp_eval_measured(wesad=features, measured=None, two_label=two_label, print_messages = print_messages, save_figures=save_figures))            
+            if dataset_name == "Arduino":
+                metrics.append(neural_head.mlp_eval_measured(wesad=features, measured=features, two_label=two_label, print_messages = print_messages, save_figures=save_figures))
+            # if dataset_name == "Arduino-WESAD":
+                # metrics.append(neural_head.mlp_eval_measured(wesad=features, measured=None, two_label=two_label, print_messages = print_messages, save_figures=save_figures))            
 
         # Classification
         if classify == True:
-            metrics.append(classify_func(wesad = features, measured = None, print_messages = print_messages, save_figures = save_figures, two_label = two_label, gridsearch=gridsearch, train_type=train_type))
+            metrics.append(classify_func(features=features, print_messages = print_messages, save_figures = save_figures, two_label = two_label, gridsearch=gridsearch))
         metrics = pd.concat(metrics, axis=0, ignore_index = True)
 
         # Add properties to each entry of the metrics dataframe
@@ -264,6 +264,7 @@ def compare_combinations(data, sensors = ["ECG", "EMG", "EDA", "RR"], prefixes =
     Description
     -----------
     Function to calculate the accuracies of all combination of sensors ("ECG", "EMG", "EDA", ...) or types of features ("EDA_time", "EDA_wavelet", ...), or any combination of the two.
+    Function only guaranteed to work with WESAD
 
     Arguments
     ---------
@@ -390,6 +391,7 @@ def compare_timeframes(data, Fs=700, sensors = ["ECG", "EMG", "EDA", "RR"], data
     Description
     -----------
     Calculate for all timeframes in range tstart-tend 
+    Function only guaranteed to work with WESAD
 
     Parameters
     ----------
@@ -448,8 +450,24 @@ def compare_timeframes(data, Fs=700, sensors = ["ECG", "EMG", "EDA", "RR"], data
     feat_head.save_features(output = output, filepath=os.path.join(dir_path, "Metrics", "Timeframes_change", name))
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
-# all_data = feat_head.load_dict(os.path.join(dir_path, "Features", "Raw_data", "raw_data.pkl"))
 
+
+
+
+# ARDUINO 
+# all_data = feat_head.load_dict(os.path.join(dir_path, "Hardware", "Serialport_interface", "data.pkl"))
+# Features 29 is correct to test for Arduino/
+# feature_path = os.path.join(dir_path, "Cache", "Features", "features_29.pkl")
+# metrics = general_feature_testing(data = all_data, feature_extraction=True, classify=True, neural=True,
+                        # Fs=268, sensors=["ECG", "EMG", "EDA", "RR"], T=57, two_label=False, dataset_name="Arduino", features_path=None, gridsearch=False)
+
+# WESAD
+# all_data = feat_head.load_dict(os.path.join(dir_path, "Features", "Raw_data", "raw_data.pkl"))
+# feature_path = os.path.join(dir_path, "Cache", "Features", "features_23.pkl")
+# metrics = general_feature_testing(data = None, feature_extraction=True, classify=True, neural=True,
+                        # Fs=700, sensors=["ECG", "EMG", "EDA", "RR"], T=60, two_label=False, dataset_name="WESAD", features_path=None, gridsearch=False, train_type="WESAD")
+
+# This is all the code used to create the metrics used in the final result chapter 
 # compare_timeframes(all_data, sensors = ["EDA"], runs=10, two_label = True, neural = True, name="time_window_eda_two")
 # compare_timeframes(all_data, sensors = ["ECG"], runs=10, two_label = True, neural = True, name="time_window_ecg_two")
 # compare_timeframes(all_data, sensors = ["EDA"], runs=10, two_label = False, neural = True, name="time_window_eda_four")
@@ -460,9 +478,6 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 # compare_combinations(all_data, sensors = ["EDA"], prefixes = ["EDA_time", "EDA_phasic", "EDA_wavelet", "EDA_AR"], T=60, two_label = False, neural_used=True, name = "EDA_combinations_four")
 # compare_combinations(all_data, sensors = ["EDA","ECG","EMG", "RR"], prefixes = ["RR", "EDA", "ECG", "EMG"], T=60, two_label = True, neural_used=True, name = "all_combinations_two")
 # compare_combinations(all_data, sensors = ["EDA","ECG","EMG","RR"], prefixes = ["EDA", "ECG", "RR", "EMG"], T=60, two_label = False, neural_used=True, name = "all_combinations_four")
+# compare_timeframes(all_data, sensors = ["RR"], runs=8, tstart=30, two_label = False, neural = True, name="time_window_rr_four")
+# compare_timeframes(all_data, sensors = ["EMG"], runs=10, two_label = False, neural = True, name="time_window_emg_four")
 
-
-feature_path = os.path.join(dir_path, "Cache", "Features", "features_23.pkl")
-metrics = general_feature_testing(data = None, feature_extraction=True, classify=True, neural=True,
-                        Fs=700, sensors=["ECG", "EMG", "EDA", "RR"], T=60, two_label=False, dataset_name="WESAD", features_path=None, gridsearch=False, train_type="WESAD")
-                        #Fs=700, sensors=["ECG", "EDA"], T=60, two_label=True, dataset_name="WESAD", features_path=None, gridsearch=False)

@@ -1,54 +1,13 @@
 # BioSensing
 Arduino-based Stress Detector | EE2L21: EPO4
-# Groups (see also [issues](https://github.com/SjdTl/BioSensing/issues))
-- Hardware
-- Feature extraction
-- Classification
 
-	// Place your snippets for python here. Each snippet is defined under a snippet name and has a prefix, body and 
-	// description. The prefix is what is used to trigger the snippet and the body will be expanded and inserted. Possible variables are:
-	// $1, $2 for tab stops, $0 for the final cursor position, and ${1:label}, ${2:another} for placeholders. Placeholders with the 
-	// same ids are connected.
-	// Example:
-	// "Print to console": {
-	// 	"prefix": "log",
-	// 	"body": [
-	// 		"console.log('$1');",
-	// 		"$2"
-	// 	],
-	// 	"description": "Log output to console"
-	// }
+The code to reproduce the results found in the report. The main file is the BioSensing.py file which takes in some data and returns metrics (accuracies of different classifiers and the neural network).
 
-	"Print to console": {
-		"prefix": "docstring",
-		"body": [
-			"\"\"\"",
-			"Description",
-			"-----------",
-			"",
-			"Parameters",
-			"----------",
-			"x : type",
-				"\t description",
-			"",
-			"Returns",
-			"-------",
-			"out : type",
-				"\t description",
-			"",
-			"Raises",
-			"------",
-			"error",
-				"\t description",
-			"",
-			"Notes",
-			"-----",
-			"",
-			"Examples",
-			"--------",
-			">>>",
-			"\"\"\"",
-		],
-		"description": "Log output to console"
-	}
-}
+# Explanation per folder
+- Cache: stores the features and metrics of the current run. If the Biosensing.py script detects that the metrics is already present it will not run again and just return the metrics. If only the features are present, it will only calculate the metrics based on those features
+- Classification: machine learning code for the classifiers and contains the confusion matrices and feature importances
+- Features: preprocessing and feature extraction code. Also contains code to test and visualize those things
+- Figures: some figures made in LaTeX or Inkscape for the report
+- Hardware: contains the Arduino code
+- Metrics: contains metrics of different investigations; metrics for different timewindows and sensor combinations
+- Neural_network: machien learning code for the neural network and contains the confusion matrices and feature importances

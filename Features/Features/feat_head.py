@@ -277,7 +277,7 @@ def process_subject_label(subject, label, data, sensors, Fs, T):
         current_properties = pd.DataFrame({
                                             "random_feature" : np.random.rand(1),
                                             "label" : [label],
-                                            "subject" : [subject] 
+                                            "subject" : [int(subject)] 
                                             })
         current_feature.append(current_properties)
         features.append(pd.concat(current_feature, axis=1))
