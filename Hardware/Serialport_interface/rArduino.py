@@ -1,4 +1,3 @@
-#%%
 from os.path import isfile, join, isdir
 import os
 import numpy as np
@@ -7,6 +6,7 @@ import pickle
 import Interface
 import pandas as pd
 
+# a function used to map labels to integers
 def picklabel(test):
     if test == 'baseline':
         return 1
@@ -48,27 +48,27 @@ def create_pickle_arduino():
     # Object instantiation
     x = pd.Series()
     data = {}
+    
     # Subject instantiation, will be done automatically 
     subjects = []
     num_subjects = 3
     for i in range(1,num_subjects+1):
         subjects += [str(i)]
         
+    # order of the tests performed per subject   
     test_order = {'1' : ['baseline','meditation','amusement','anticipation','presentation','arithmetic'],
                   '2' : ['baseline','meditation','anticipation','presentation','arithmetic','amusement'],
                   '3' : ['baseline','anticipation','presentation','arithmetic','amusement','meditation']}
     
+    # ratings of how effective the tests were per subject
     test_rating = {'1' : {'baseline' : 10,'meditation' : 10,'amusement' : 10,'anticipation' : 4,'presentation' : 8,'arithmetic' : 8},
                   '2' : {'baseline' : 10,'meditation' : 10,'amusement' : 10,'anticipation' : 0,'presentation' : 10,'arithmetic' : 0},
                   '3' : {'baseline' : 10,'meditation' : 10,'amusement' : 10,'anticipation' : 4,'presentation' : 5,'arithmetic' : 8}}
     
-    # Loop through subjects and extract used data:
-    # Labels: 1-4
-    # Data: EMG, ECG, EDA of the chest
-    # Other data (for now) not used
 
-    
+    # open the relavent data files and insert the data into a dictionary
     for subject in subjects:
+        subject = int(subject)
         data[subject] = {"EMG" : x, "ECG" : x, "EDA" : x, "labels" : x}
         for test in test_order[subject]:
             if test_rating[subject][test] > 7:
@@ -79,11 +79,12 @@ def create_pickle_arduino():
                                  "EDA" : pd.concat([data[subject]['EDA'],df["EDA Data"]], ignore_index=True), 
                                  "labels" : pd.concat([data[subject]['labels'],pd.Series([picklabel(test)]*len(df["EMG Data"]))], ignore_index=True)}
                 print(data[subjects[0]])
+                
     # Turn dictionary into pickle    
     with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), "data.pkl"), 'wb') as handle:
         pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
     return data
+
 data = create_pickle_arduino()
 
 
-# %%
